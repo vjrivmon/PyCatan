@@ -18,10 +18,10 @@ class BotManager:
 
     def __init__(self, for_test=False):
         if not for_test:
-            self.first_bot_class = self.import_bot_class_from_input('primer')
-            self.second_bot_class = self.import_bot_class_from_input('segundo')
-            self.third_bot_class = self.import_bot_class_from_input('tercer')
-            self.fourth_bot_class = self.import_bot_class_from_input('cuarto')
+            self.first_bot_class = self.import_bot_class_from_input('first')
+            self.second_bot_class = self.import_bot_class_from_input('second')
+            self.third_bot_class = self.import_bot_class_from_input('third')
+            self.fourth_bot_class = self.import_bot_class_from_input('fourth')
         elif for_test == 'test_específico':
             self.first_bot_class = AlexPastorBot.AlexPastorBot
             self.second_bot_class = AlexPastorBot.AlexPastorBot
@@ -99,7 +99,7 @@ class BotManager:
 
     def import_bot_class_from_input(self, name=''):
         module_class = input(
-            'Módulo y clase del ' + name + ' bot (ej: mymodule.myclass)(dejar en blanco para usar la por defecto): ')
+            'Module and class of the ' + name + ' bot located in the folder Bots/ (e.g. mymodule.myclass) (leave blank to use the default): ')
         if module_class == '':
             klass = RandomBot.RandomBot
         else:
