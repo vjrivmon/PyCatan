@@ -248,7 +248,7 @@ class GameDirector:
             game_object['round_' + str(self.game_manager.get_round())], winner = self.round_start(winner)
             self.game_manager.set_round(self.game_manager.get_round() + 1)
 
-        print('Game (' + str(game_number) + ') results')
+        print('Game (' + str(game_number) + ') results. Player: VictoryPoints (largest_army) (longest_road)')
         for i in range(4):
             print('J' + str(i) + ': ' + str(self.game_manager.get_players()[i]['victory_points']) + ' (' +
                   str(self.game_manager.get_players()[i]['largest_army']) + ')' + ' (' +
