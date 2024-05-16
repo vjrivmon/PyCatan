@@ -17,10 +17,12 @@ class BotInterface:
 
     # Los triggers son llamados por el GameDirector las veces que sean necesarias hasta que devuelvan null
     #  o el GameDirector le niegue continuar el trigger
-    def on_trade_offer(self, incoming_trade_offer=TradeOffer()):
+    def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
         """
         Trigger para cuando llega una oferta. Devuelve si la acepta, la niega o envía una contraoferta
         :param incoming_trade_offer: Oferta de comercio que le llega al bot
+        :param player_making_offer: ID del jugador
+        :param board_instance: Board()
         :return: true, TradeOffer, false
         """
         return False
