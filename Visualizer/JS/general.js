@@ -3,7 +3,7 @@ let round_obj = {};
 let turn_obj = {};
 let phase_obj = {};
 
-let gameDirection = 'forward'; // or "backward"
+let game_direction = 'forward'; // or "backward"
 
 
 function init_events() {
@@ -31,7 +31,7 @@ function init_events() {
             reader.onload = function (evt) {
                 game_obj = JSON.parse(evt.target.result);
 
-                // TODO: falta añadir "mayor ejercito" / "carretera más larga"
+                // TODO: Mejora a futuro: falta añadir "mayor ejercito" / "carretera más larga"
                 init_events_with_game_obj();
                 addLogFromJSON();
                 setup();
@@ -138,7 +138,7 @@ function nodeSetup() {
     for (let i = 0; i < nodes.length; i++) {
         let node = jQuery('#node_' + i);
 
-        // TODO: Añadir icono de puerto a las costeras O añadir un icono en el mar
+        // TODO: Mejora a futuro: Añadir icono de puerto a las costeras O añadir un icono en el mar
         node.html(fromHarborNumberToMaterials(nodes[i]['harbor']));
     }
 }
@@ -295,7 +295,7 @@ function init_events_with_game_obj() {
                     changeHandObject(i, phase_obj['hand_P' + i]);
                 }
 
-                if (gameDirection === 'forward') {
+                if (game_direction === 'forward') {
                     diceroll_div.text('Diceroll: ' + phase_obj['dice']);
 
                     if (phase_obj['dice'] == 7) {
@@ -306,13 +306,13 @@ function init_events_with_game_obj() {
                         // console.log('SE JUEGA CARTA DE DESAROLLO AL INICIO DEL TURNO' + '| Ronda: ' + contador_rondas.val() + ' Turno: ' + contador_turnos.val())
                         on_development_card_played(phase_obj['development_card_played'][0])
                     }
-                } else if (gameDirection === 'backward') {
+                } else if (game_direction === 'backward') {
                     phase_obj = turn_obj['commerce_phase'];
                     deleteCaretStyling();
 
                     for (let i = 0; i < phase_obj.length; i++) {
                         if (phase_obj[i]['trade_offer'] == 'played_card') {
-                            off_development_card_played(phase_obj[i]['development_card_played'])
+                            off_development_card_played(phase_obj[i]['development_card_played'], actual_player_json)
                         }
                     }
                 }
@@ -368,7 +368,7 @@ function init_events_with_game_obj() {
                         html += '<hr/>';
 
                         // se actualiza la mano del jugador si avanza, se ignora si va hacia atrás
-                        if (gameDirection === 'forward') {
+                        if (game_direction === 'forward') {
                             changeHandObject(actual_player_json, phase_obj[i]['answer'])
                         }
 
@@ -379,7 +379,7 @@ function init_events_with_game_obj() {
                         html += '<span class="commerce_P' + contador_turnos.val() + '">P' + contador_turnos.val() + '</span>: Played a development card';
                         html += '</p></div>';
 
-                        if (gameDirection === 'forward') {
+                        if (game_direction === 'forward') {
                             on_development_card_played(phase_obj[i]['development_card_played']);
                         }
                     } else {
@@ -429,7 +429,7 @@ function init_events_with_game_obj() {
                                             let receives_wood = parseInt(phase_obj[i]['answers'][j][n]['trade_offer']['receives']['wood']);
                                             let receives_wool = parseInt(phase_obj[i]['answers'][j][n]['trade_offer']['receives']['wool']);
 
-                                            if (gameDirection === 'forward') {
+                                            if (game_direction === 'forward') {
                                                 changeHandObject(giver_nmbr, {
                                                     'cereal': (parseInt($('#hand_P' + giver_nmbr + ' .cereal_quantity').text()) - gives_cereal + receives_cereal),
                                                     'mineral': (parseInt($('#hand_P' + giver_nmbr + ' .mineral_quantity').text()) - gives_mineral + receives_mineral),
@@ -586,7 +586,7 @@ function init_events_with_game_obj() {
                                             let receives_wool = parseInt(phase_obj[i]['answers'][j][n]['trade_offer']['receives']['wool']);
 
 
-                                            if (gameDirection === 'forward') {
+                                            if (game_direction === 'forward') {
                                                 changeHandObject(giver_nmbr, {
                                                     'cereal': (parseInt($('#hand_P' + giver_nmbr + ' .cereal_quantity').text()) - gives_cereal + receives_cereal),
                                                     'mineral': (parseInt($('#hand_P' + giver_nmbr + ' .mineral_quantity').text()) - gives_mineral + receives_mineral),
@@ -726,7 +726,7 @@ function init_events_with_game_obj() {
                 } // end for
                 commerce_log_text.append(html)
 
-                if (gameDirection === 'backward') {
+                if (game_direction === 'backward') {
                     phase_obj = turn_obj['build_phase'];
                     for (let i = 0; i < phase_obj.length; i++) {
                         if (phase_obj[i]['building'] !== null) {
@@ -809,7 +809,7 @@ function init_events_with_game_obj() {
                                 case 'played_card':
                                     for (let i = 0; i < phase_obj.length; i++) {
                                         if (phase_obj[i]['development_card_played']) {
-                                            off_development_card_played(phase_obj[i]['development_card_played'])
+                                            off_development_card_played(phase_obj[i]['development_card_played'], actual_player_json)
                                         }
                                     }
                                     break;
@@ -833,7 +833,7 @@ function init_events_with_game_obj() {
                                     paint_it_player_color(actual_player_json, node);
                                     node.html('<i class="fa-solid fa-house"></i>');
 
-                                    if (gameDirection === 'forward') {
+                                    if (game_direction === 'forward') {
                                         changeHandObject(actual_player_json, {
                                             'cereal': cereal_quantity_text - 1,
                                             'mineral': mineral_quantity_text - 0,
@@ -851,7 +851,7 @@ function init_events_with_game_obj() {
                                     let node = jQuery('#node_' + phase_obj[i]['node_id']);
                                     node.html('<i class="fa-solid fa-chess-rook"></i>');
 
-                                    if (gameDirection === 'forward') {
+                                    if (game_direction === 'forward') {
                                         changeHandObject(actual_player_json, {
                                             'cereal': cereal_quantity_text - 2,
                                             'mineral': mineral_quantity_text - 3,
@@ -874,7 +874,7 @@ function init_events_with_game_obj() {
                                     }
                                     paint_it_player_color(actual_player_json, road);
 
-                                    if (gameDirection === 'forward') {
+                                    if (game_direction === 'forward') {
                                         changeHandObject(actual_player_json, {
                                             'cereal': cereal_quantity_text - 0,
                                             'mineral': mineral_quantity_text - 0,
@@ -897,7 +897,7 @@ function init_events_with_game_obj() {
                                     card_div_increment.addClass('fa-caret-up');
                                     card_div.addClass('increased');
 
-                                    if (gameDirection === 'forward') {
+                                    if (game_direction === 'forward') {
                                         changeHandObject(actual_player_json, {
                                             'cereal': cereal_quantity_text - 1,
                                             'mineral': mineral_quantity_text - 1,
@@ -911,7 +911,7 @@ function init_events_with_game_obj() {
                                 }
                                 break;
                             case 'played_card':
-                                if (phase_obj[i]['development_card_played'] && gameDirection === 'forward') {
+                                if (phase_obj[i]['development_card_played'] && game_direction === 'forward') {
                                     on_development_card_played(phase_obj[i]['development_card_played'])
                                 }
                                 break;
@@ -922,13 +922,13 @@ function init_events_with_game_obj() {
                     }
                 }
                 other_useful_info_text.append(html);
-                if (gameDirection === 'backward') {
+                if (game_direction === 'backward') {
                     phase_obj = turn_obj['end_turn'];
 
                     if (phase_obj['development_card_played'] && phase_obj['development_card_played'].length) {
                         // console.log('SE JUEGA CARTA DE DESAROLLO AL INICIO DEL TURNO' + '| Ronda: ' + contador_rondas.val() + ' Turno: ' + contador_turnos.val())
                         // console.log(phase_obj)
-                        off_development_card_played(phase_obj['development_card_played'][0])
+                        off_development_card_played(phase_obj['development_card_played'][0], actual_player_json)
                     }
                 }
                 break;
@@ -936,7 +936,7 @@ function init_events_with_game_obj() {
                 phase_obj = turn_obj['end_turn'];
                 let winner = '';
 
-                if (phase_obj['development_card_played'] && phase_obj['development_card_played'].length && gameDirection === 'forward') {
+                if (phase_obj['development_card_played'] && phase_obj['development_card_played'].length && game_direction === 'forward') {
                     // console.log('SE JUEGA CARTA DE DESAROLLO AL FINAL DEL TURNO' + '| Ronda: ' + contador_rondas.val() + ' Turno: ' + contador_turnos.val())
                     // console.log(phase_obj)
                     on_development_card_played(phase_obj['development_card_played'][0])
@@ -953,7 +953,7 @@ function init_events_with_game_obj() {
                     alert(winner);
                 }
 
-                if (gameDirection === 'backward') {
+                if (game_direction === 'backward') {
                     let round = game_obj['game']['round_' + (contador_rondas.val() - 1)];
                     let next_player = actual_player_json + 1; // 1 - 4
 
@@ -968,7 +968,11 @@ function init_events_with_game_obj() {
                     diceroll_div.text('Diceroll: ' + diceroll);
 
                     if (next_phase_obj['development_card_played'] && next_phase_obj['development_card_played'].length) {
-                        off_development_card_played(next_phase_obj['development_card_played'][0])
+                        off_development_card_played(next_phase_obj['development_card_played'][0], next_player)
+                    }
+
+                    if (next_phase_obj['dice'] == 7) {
+                        unmove_thief(next_phase_obj['past_thief_terrain'], next_phase_obj['thief_terrain'], next_player, next_phase_obj['robbed_player'], next_phase_obj['stolen_material_id'], false);
                     }
                 }
                 break;
@@ -1017,12 +1021,12 @@ function init_events_with_game_obj() {
 
     //-------------------------------------------------
     fase_previa_btn.off().on('click', function (e) {
-        gameDirection = 'backward';
+        game_direction = 'backward';
         let value = parseInt(contador_fases.val());
         contador_fases.val(value - 1).change();
     });
     fase_siguiente_btn.off().on('click', function (e) {
-        gameDirection = 'forward';
+        game_direction = 'forward';
         let value = parseInt(contador_fases.val());
         contador_fases.val(value + 1).change();
     });
@@ -1064,7 +1068,7 @@ function init_events_with_game_obj() {
 function changeHandObject(player, hand_obj) {
     let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
 
-    //TODO: Debería de alguna manera mostrar que materiales se han actualizado. Si son iguales no deberían de recalcarse
+    //TODO: Mejora a futuro: Debería de alguna manera mostrar que materiales se han actualizado. Si son iguales no deberían de recalcarse
     materials.forEach(function (material) {
         $('#hand_P' + player + ' .' + material + '_quantity').text(hand_obj[material]).change();
     });
@@ -1128,9 +1132,40 @@ function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id
     }
 }
 
+function unmove_thief(past_terrain, new_terrain, robbing_player, robbed_player, stolen_material_id, comes_from_card) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+
+    if (game_obj['setup']['board']['board_terrain'][past_terrain]['probability'] != 0) {
+        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('<span>' + game_obj['setup']['board']['board_terrain'][new_terrain]['probability'] + '</span>');
+    } else {
+        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('')
+    }
+
+    jQuery('#terrain_' + past_terrain + ' .terrain_number').html('<i class="fa-solid fa-user-ninja fa-2x" data-toggle="tooltip" data-placement="top" title="Ladrón"></i>');
+
+    if (comes_from_card) {
+        let robbed_player_material_quantity = $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + '_quantity');
+        let robbing_player_material_quantity = $('#hand_P' + robbing_player + ' .' + materials[stolen_material_id] + '_quantity');
+        robbed_player_material_quantity.val(robbed_player_material_quantity.val() + 1);
+        robbing_player_material_quantity.val(robbing_player_material_quantity.val() - 1);
+    }
+
+    deleteCaretStyling();
+
+    //    if (actual_player == robbed_player) {
+    //        $('#hand_P' + robbing_player + ' .' + materials[stolen_material_id] + ' .increment').removeClass(['fa-caret-up', 'fa-minus', 'fa-caret-down']).addClass('fa-minus');
+    //        $('#hand_P' + robbing_player + ' .' + materials[stolen_material_id]).removeClass(['increased', 'neutral', 'decreased']).addClass('neutral');
+    //    } else {
+    //        $('#hand_P' + robbing_player + ' .' + materials[stolen_material_id] + ' .increment').removeClass(['fa-caret-up', 'fa-minus', 'fa-caret-down']).addClass('fa-caret-up');
+    //        $('#hand_P' + robbing_player + ' .' + materials[stolen_material_id]).removeClass(['increased', 'neutral', 'decreased']).addClass('increased');
+    //        $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + ' .increment').removeClass(['fa-caret-up', 'fa-minus', 'fa-caret-down']).addClass('fa-caret-down');
+    //        $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id]).removeClass(['increased', 'neutral', 'decreased']).addClass('decreased');
+    //    }
+}
+
 function on_development_card_played(card) {
     // TODO: Mejora a futuro: mostrar dentro de "mayor ejercito" o algún lugar, cantidad de caballeros que tiene activos cada jugador.
-    // TODO: limitar altura de jQuery('#other_useful_info_text')
+    // TODO: Mejora a futuro: limitar altura de jQuery('#other_useful_info_text')
     let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
 
     let contador_turnos = jQuery('#contador_turnos');
@@ -1194,7 +1229,7 @@ function on_development_card_played(card) {
                 paint_it_player_color(actual_player, road);
             }
             if (card['valid_road_2']) {
-                let road = '';                            
+                let road = '';
                 if (roads['node_id_2'] < roads['road_to_2']) {
                     road = jQuery('#road_' + roads['node_id_2'] + '_' + roads['road_to_2']);
                 } else {
@@ -1214,44 +1249,46 @@ function on_development_card_played(card) {
     other_useful_info_text.append(html);
 }
 
-function off_development_card_played(card) {
-    // TODO: deshacer carta de desarrollo jugada
-    jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + card['played_card']).removeClass(['increased', 'neutral', 'decreased']).addClass('increased')
-    jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + card['played_card'] + ' .increment').removeClass(['fa-caret-up', 'fa-minus', 'fa-caret-down']).addClass('fa-caret-up')
-    let quantity = jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + card['played_card'] + '_quantity')
-    quantity.text(parseInt(quantity.text()) + 1).change()
+function off_development_card_played(card, player_that_played_card) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+
+    let contador_turnos = jQuery('#contador_turnos');
+    let other_useful_info_text = jQuery('#other_useful_info_text');
+    let actual_player = $('#contador_turnos').val() - 1;
+    let quantity = jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + card['played_card'] + '_quantity');
+
+    quantity.text(parseInt(quantity.text()) + 1).change();
 
     switch (card['played_card']) {
         case 'knight':
-            // console.log(quantity.text(parseInt(quantity.text()) + 1));
-            break;
+            unmove_thief(card['past_thief_terrain'], card['thief_terrain'], player_that_played_card, card['robbed_player'], card['stolen_material_id'], true);
         case 'victory_point':
-            break;
         case 'failed_victory_point':
-            break;
-
         case 'monopoly':
-            let material_chosen_array = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-            material_chosen = material_chosen_array[card['material_chosen']];
-
-            for (let i = 0; i < 4; i++) {
-                changeHandObject(i, card['hand_P' + i]);
-
-                if (material_chosen != '') {
-                    jQuery('#hand_P' + i + ' .' + material_chosen).addClass('increased');
-                    jQuery('#hand_P' + i + ' .' + material_chosen + ' .increment').addClass('fa-caret-up');
-                }
-            }
-
-            if (material_chosen != '') {
-                jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + material_chosen).removeClass('increased').addClass('decreased');
-                jQuery('#hand_P' + (jQuery('#contador_turnos').val() - 1) + ' .' + material_chosen + ' .increment').removeClass('fa-caret-up').addClass('fa-caret-down');
-            }
-            break;
-
         case 'year_of_plenty':
             break;
+
         case 'road_building':
+            let roads = card['roads'];
+
+            if (card['valid_road_1']) {
+                let road = '';
+                if (roads['node_id'] < roads['road_to']) {
+                    road = jQuery('#road_' + roads['node_id'] + '_' + roads['road_to']);
+                } else {
+                    road = jQuery('#road_' + roads['road_to'] + '_' + roads['node_id']);
+                }
+                paint_it_player_color(-1, road);
+            }
+            if (card['valid_road_2']) {
+                let road = '';
+                if (roads['node_id_2'] < roads['road_to_2']) {
+                    road = jQuery('#road_' + roads['node_id_2'] + '_' + roads['road_to_2']);
+                } else {
+                    road = jQuery('#road_' + roads['road_to_2'] + '_' + roads['node_id_2']);
+                }
+                paint_it_player_color(-1, road);
+            }
             break;
 
         case 'none':

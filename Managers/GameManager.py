@@ -1,3 +1,4 @@
+from copy import copy
 from Classes.Board import Board
 from Classes.Constants import *
 from Classes.DevelopmentCards import *
@@ -165,7 +166,7 @@ class GameManager:
             'giver': giver['id'],
             'receiver': receiver['id'],
         }
-        response = receiver['player'].on_trade_offer(trade_offer)
+        response = receiver['player'].on_trade_offer(copy(self.board), trade_offer, giver['id'])
 
         if count > self.MAX_COMMERCE_DEPTH:
             json_obj['response'] = False
@@ -360,7 +361,7 @@ class GameManager:
         materials = []
 
         for count in range(3):
-            node_id, road_to = self.bot_manager.players[player]['player'].on_game_start(self.board)
+            node_id, road_to = self.bot_manager.players[player]['player'].on_game_start(copy(self.board))
 
             if node_id in valid_nodes or count == 2:
 
@@ -749,7 +750,7 @@ class GameManager:
         :param player_id: int
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        return self.bot_manager.players[player_id]['player'].on_build_phase(self.board)
+        return self.bot_manager.players[player_id]['player'].on_build_phase(copy(self.board))
 
     def get_board_nodes(self):
         """

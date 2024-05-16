@@ -32,6 +32,12 @@ h3 {
     border-bottom: 0;
 }
 
+#fase_previa_btn[disabled] {
+  background-color: #dddddd;
+  color: #888888;
+  cursor: not-allowed;
+}
+
 #controles div {
     padding-top: 0.35em;
     /*    padding-bottom: 0.5em;*/

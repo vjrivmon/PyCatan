@@ -19,7 +19,7 @@ class AdrianHerasBot(BotInterface):
     def __init__(self, bot_id):
         super().__init__(bot_id)
 
-    def on_trade_offer(self, incoming_trade_offer=TradeOffer()):
+    def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
         """
         Hay que tener en cuenta que gives se refiere a los materiales que da el jugador que hace la oferta,
         luego en este caso es lo que recibe
