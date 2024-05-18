@@ -20,7 +20,7 @@ class TestGameDirector:
         self.game_director.game_manager.set_whose_turn_is_it(3)
         self.game_director.game_manager.set_phase(1)
         self.game_director.game_manager.set_round(10)
-        self.game_director.game_manager.bot_manager.players[0]['victory_points'] = 5
+        self.game_director.game_manager.agent_manager.players[0]['victory_points'] = 5
 
         self.game_director.trace_loader.current_trace = {"name": "<NAME>"}
 
@@ -43,7 +43,7 @@ class TestGameDirector:
                 self.game_director.game_manager.turn_manager.whose_turn_is_it == 0 and
                 self.game_director.game_manager.turn_manager.phase == 0 and
                 self.game_director.game_manager.turn_manager.round == 0)
-        assert self.game_director.game_manager.bot_manager.players[0]['victory_points'] == 0
+        assert self.game_director.game_manager.agent_manager.players[0]['victory_points'] == 0
 
         assert self.game_director.trace_loader.current_trace == {}
 
@@ -63,12 +63,12 @@ class TestGameDirector:
         # Al ganar con una carta de desarrollo
         self.game_director.reset_game_values()
 
-        self.game_director.game_manager.bot_manager.players[0]['victory_points'] = 9
-        self.game_director.game_manager.bot_manager.players[0]['hidden_victory_points'] = 1
-        self.game_director.game_manager.bot_manager.players[0]['development_cards'].add_card(
+        self.game_director.game_manager.agent_manager.players[0]['victory_points'] = 9
+        self.game_director.game_manager.agent_manager.players[0]['hidden_victory_points'] = 1
+        self.game_director.game_manager.agent_manager.players[0]['development_cards'].add_card(
             DevelopmentCard(17, DevelopmentCardConstants.VICTORY_POINT, DevelopmentCardConstants.VICTORY_POINT_EFFECT))
-        self.game_director.game_manager.bot_manager.players[0]['player'].development_cards_hand.hand = \
-            self.game_director.game_manager.bot_manager.players[0]['development_cards'].hand
+        self.game_director.game_manager.agent_manager.players[0]['player'].development_cards_hand.hand = \
+            self.game_director.game_manager.agent_manager.players[0]['development_cards'].hand
 
         start_turn_object, winner = self.game_director.start_turn(False, 0)
 
@@ -89,23 +89,23 @@ class TestGameDirector:
 
         assert winner is True
         assert self.game_director.game_manager.longest_road == {'longest_road': 4, 'player': -1}
-        assert self.game_director.game_manager.bot_manager.players[0]['victory_points'] == 0
+        assert self.game_director.game_manager.agent_manager.players[0]['victory_points'] == 0
 
         end_turn_object, winner = self.game_director.end_turn(False, 0)
 
         assert winner is False
         assert self.game_director.game_manager.longest_road == {'longest_road': 5, 'player': 0}
-        assert self.game_director.game_manager.bot_manager.players[0]['victory_points'] == 2
+        assert self.game_director.game_manager.agent_manager.players[0]['victory_points'] == 2
 
         # Al ganar con una carta de desarrollo
         self.game_director.reset_game_values()
 
-        self.game_director.game_manager.bot_manager.players[0]['victory_points'] = 9
-        self.game_director.game_manager.bot_manager.players[0]['hidden_victory_points'] = 1
-        self.game_director.game_manager.bot_manager.players[0]['development_cards'].add_card(
+        self.game_director.game_manager.agent_manager.players[0]['victory_points'] = 9
+        self.game_director.game_manager.agent_manager.players[0]['hidden_victory_points'] = 1
+        self.game_director.game_manager.agent_manager.players[0]['development_cards'].add_card(
             DevelopmentCard(17, DevelopmentCardConstants.VICTORY_POINT, DevelopmentCardConstants.VICTORY_POINT_EFFECT))
-        self.game_director.game_manager.bot_manager.players[0]['player'].development_cards_hand.hand = \
-            self.game_director.game_manager.bot_manager.players[0]['development_cards'].hand
+        self.game_director.game_manager.agent_manager.players[0]['player'].development_cards_hand.hand = \
+            self.game_director.game_manager.agent_manager.players[0]['development_cards'].hand
 
         end_turn_object, winner = self.game_director.end_turn(False, 0)
 
@@ -134,12 +134,12 @@ class TestGameDirector:
         # Al ganar con una carta de desarrollo
         self.game_director.reset_game_values()
 
-        self.game_director.game_manager.bot_manager.players[0]['victory_points'] = 9
-        self.game_director.game_manager.bot_manager.players[0]['hidden_victory_points'] = 1
-        self.game_director.game_manager.bot_manager.players[0]['development_cards'].add_card(
+        self.game_director.game_manager.agent_manager.players[0]['victory_points'] = 9
+        self.game_director.game_manager.agent_manager.players[0]['hidden_victory_points'] = 1
+        self.game_director.game_manager.agent_manager.players[0]['development_cards'].add_card(
             DevelopmentCard(17, DevelopmentCardConstants.VICTORY_POINT, DevelopmentCardConstants.VICTORY_POINT_EFFECT))
-        self.game_director.game_manager.bot_manager.players[0]['player'].development_cards_hand.hand = \
-            self.game_director.game_manager.bot_manager.players[0]['development_cards'].hand
+        self.game_director.game_manager.agent_manager.players[0]['player'].development_cards_hand.hand = \
+            self.game_director.game_manager.agent_manager.players[0]['development_cards'].hand
 
         round_object, winner = self.game_director.round_start(False)
 

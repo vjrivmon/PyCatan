@@ -1,37 +1,37 @@
-from Bots import RandomBot, AlexPastorBot
+from Agents import RandomAgent, AlexPastorAgent
 from Classes.DevelopmentCards import DevelopmentCardsHand
 from Classes.Hand import Hand
 
 
-class BotManager:
+class AgentManager:
     """
-    Clase que se encarga de los bots. De momento solo los carga en la partida, sin embargo, cabe la posibilidad de que
-    sea el bot manager el que se encargue de darle paso a los bots a hacer sus turnos
+    Clase que se encarga de los agentes. De momento solo los carga en la partida, sin embargo, cabe la posibilidad de
+    que sea el agent manager el que se encargue de darle paso a los agentes a hacer sus turnos
     """
     actual_player = 0
-    first_bot_class = ''
-    second_bot_class = ''
-    third_bot_class = ''
-    fourth_bot_class = ''
+    first_agent_class = ''
+    second_agent_class = ''
+    third_agent_class = ''
+    fourth_agent_class = ''
 
     players = []
 
     def __init__(self, for_test=False):
         if not for_test:
-            self.first_bot_class = self.import_bot_class_from_input('first')
-            self.second_bot_class = self.import_bot_class_from_input('second')
-            self.third_bot_class = self.import_bot_class_from_input('third')
-            self.fourth_bot_class = self.import_bot_class_from_input('fourth')
+            self.first_agent_class = self.import_agent_class_from_input('first')
+            self.second_agent_class = self.import_agent_class_from_input('second')
+            self.third_agent_class = self.import_agent_class_from_input('third')
+            self.fourth_agent_class = self.import_agent_class_from_input('fourth')
         elif for_test == 'test_específico':
-            self.first_bot_class = AlexPastorBot.AlexPastorBot
-            self.second_bot_class = AlexPastorBot.AlexPastorBot
-            self.third_bot_class = AlexPastorBot.AlexPastorBot
-            self.fourth_bot_class = AlexPastorBot.AlexPastorBot
+            self.first_agent_class = AlexPastorAgent.AlexPastorAgent
+            self.second_agent_class = AlexPastorAgent.AlexPastorAgent
+            self.third_agent_class = AlexPastorAgent.AlexPastorAgent
+            self.fourth_agent_class = AlexPastorAgent.AlexPastorAgent
         else:
-            self.first_bot_class = RandomBot.RandomBot
-            self.second_bot_class = RandomBot.RandomBot
-            self.third_bot_class = RandomBot.RandomBot
-            self.fourth_bot_class = RandomBot.RandomBot
+            self.first_agent_class = RandomAgent.RandomAgent
+            self.second_agent_class = RandomAgent.RandomAgent
+            self.third_agent_class = RandomAgent.RandomAgent
+            self.fourth_agent_class = RandomAgent.RandomAgent
 
         self.reset_game_values()
         return
@@ -50,7 +50,7 @@ class BotManager:
                 'id': 0,
                 'victory_points': 0,
                 'hidden_victory_points': 0,
-                'player': self.first_bot_class(0),
+                'player': self.first_agent_class(0),
                 'resources': Hand(),
                 'development_cards': DevelopmentCardsHand(),
                 'knights': 0,
@@ -62,7 +62,7 @@ class BotManager:
                 'id': 1,
                 'victory_points': 0,
                 'hidden_victory_points': 0,
-                'player': self.second_bot_class(1),
+                'player': self.second_agent_class(1),
                 'resources': Hand(),
                 'development_cards': DevelopmentCardsHand(),
                 'knights': 0,
@@ -74,7 +74,7 @@ class BotManager:
                 'id': 2,
                 'victory_points': 0,
                 'hidden_victory_points': 0,
-                'player': self.third_bot_class(2),
+                'player': self.third_agent_class(2),
                 'resources': Hand(),
                 'development_cards': DevelopmentCardsHand(),
                 'knights': 0,
@@ -86,7 +86,7 @@ class BotManager:
                 'id': 3,
                 'victory_points': 0,
                 'hidden_victory_points': 0,
-                'player': self.fourth_bot_class(3),
+                'player': self.fourth_agent_class(3),
                 'resources': Hand(),
                 'development_cards': DevelopmentCardsHand(),
                 'knights': 0,
@@ -97,14 +97,15 @@ class BotManager:
         ]
         return
 
-    def import_bot_class_from_input(self, name=''):
+    def import_agent_class_from_input(self, name=''):
         module_class = input(
-            'Module and class of the ' + name + ' bot located in the folder Bots/ (e.g. mymodule.myclass) (leave blank to use the default): ')
+            'Module and class of the ' + name +
+            ' agent located in the folder Agents/ (e.g. MyModule.MyClass) (leave blank to use the default): ')
         if module_class == '':
-            klass = RandomBot.RandomBot
+            klass = RandomAgent.RandomAgent
         else:
             components = module_class.split('.')
-            module = __import__('Bots.' + components[0], fromlist=[components[1]])
+            module = __import__('Agents.' + components[0], fromlist=[components[1]])
             klass = getattr(module, components[1])
 
         return klass

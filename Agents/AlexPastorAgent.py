@@ -1,59 +1,60 @@
 import random
 
-from Classes.Constants import MaterialConstants, BuildConstants
+from Classes.Constants import *
 from Classes.Materials import Materials
 from Classes.TradeOffer import TradeOffer
-from Interfaces.BotInterface import BotInterface
+from Interfaces.AgentInterface import AgentInterface
 
 
-class RandomBot(BotInterface):
+# ATENCIÓN: AGENTE PREPARADO SOLO PARA TESTING. NO UTILIZAR EN UNA PARTIDA REAL
+class AlexPastorAgent(AgentInterface):
     """
     Es necesario poner super().nombre_de_funcion() para asegurarse de que coge la función del padre
     """
-    def __init__(self, bot_id):
-        super().__init__(bot_id)
+
+    def __init__(self, agent_id):
+        super().__init__(agent_id)
 
     def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
-        answer = random.randint(0, 2)
-        if answer:
-            if answer == 2:
-                gives = Materials(random.randint(0, self.hand.resources.cereal),
-                                  random.randint(0, self.hand.resources.mineral),
-                                  random.randint(0, self.hand.resources.clay),
-                                  random.randint(0, self.hand.resources.wood),
-                                  random.randint(0, self.hand.resources.wool))
-                receives = Materials(random.randint(0, self.hand.resources.cereal),
-                                     random.randint(0, self.hand.resources.mineral),
-                                     random.randint(0, self.hand.resources.clay),
-                                     random.randint(0, self.hand.resources.wood),
-                                     random.randint(0, self.hand.resources.wool))
-                return TradeOffer(gives, receives)
-            else:
-                return True
-        else:
-            return False
+        """
+        Hay que tener en cuenta que gives se refiere a los materiales que da el jugador que hace la oferta,
+         luego en este caso es lo que recibe
+        :param incoming_trade_offer:
+        :return:
+        """
+        return True
 
     def on_turn_start(self):
-        # self.development_cards_hand.add_card(DevelopmentCard(99, 0, 0))
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
+        # Si tiene una carta de desarrollo la usa
+        if len(self.development_cards_hand.check_hand()):
             return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
-        return None
+        return
+
+    def on_turn_end(self):
+        # Si tiene una carta de desarrollo la usa
+        if len(self.development_cards_hand.check_hand()):
+            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        return
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
         return self.hand
 
     def on_moving_thief(self):
-        terrain = random.randint(0, 18)
-        player = -1
-        for node in self.board.terrain[terrain]['contacting_nodes']:
-            if self.board.nodes[node]['player'] != -1:
-                player = self.board.nodes[node]['player']
-        return {'terrain': terrain, 'player': player}
+        # Pone el ladrón donde haya un jugador adyacente para robarle.
+        # Si no se da la condición lo deja donde está, lo que hace que el GameManager lo ponga en un lugar aleatorio
+        terrain_with_thief_id = -1
+        for terrain in self.board.terrain:
+            if not terrain['has_thief']:
+                nodes = terrain['contacting_nodes']
+                for node_id in nodes:
+                    if self.board.nodes[node_id]['player'] not in [self.id, -1]:
+                        enemy = self.board.nodes[node_id]['player']
 
-    def on_turn_end(self):
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
-        return None
+                        return {'terrain': terrain['id'], 'player': enemy}
+            else:
+                terrain_with_thief_id = terrain['id']
+
+        return {'terrain': terrain_with_thief_id, 'player': -1}
 
     def on_commerce_phase(self):
         if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
@@ -131,7 +132,6 @@ class RandomBot(BotInterface):
         material = random.randint(0, 4)
         return material
 
-    # noinspection DuplicatedCode
     def on_road_building_card_use(self):
         valid_nodes = self.board.valid_road_nodes(self.id)
         if len(valid_nodes) > 1:

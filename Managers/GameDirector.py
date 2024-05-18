@@ -34,7 +34,7 @@ class GameDirector:
         self.game_manager.set_phase(0)
         self.game_manager.set_actual_player(player)
 
-        turn_start_response = self.game_manager.call_to_bot_on_turn_start(player)
+        turn_start_response = self.game_manager.call_to_agent_on_turn_start(player)
 
         if isinstance(turn_start_response, DevelopmentCard) and not self.game_manager.get_card_used() and not winner:
             played_card_obj, winner = self.game_manager.play_development_card(player, turn_start_response, winner)
@@ -69,7 +69,7 @@ class GameDirector:
 
         self.game_manager.set_phase(3)
 
-        turn_end_response = self.game_manager.call_to_bot_on_turn_end(player)
+        turn_end_response = self.game_manager.call_to_agent_on_turn_end(player)
 
         if isinstance(turn_end_response, DevelopmentCard) and not self.game_manager.get_card_used() and not winner:
             played_card_obj, winner = self.game_manager.play_development_card(player, turn_end_response, winner)
@@ -119,7 +119,7 @@ class GameDirector:
 
         self.game_manager.set_phase(1)
 
-        commerce_response = self.game_manager.call_to_bot_on_commerce_phase(player)
+        commerce_response = self.game_manager.call_to_agent_on_commerce_phase(player)
 
         commerce_phase_object, winner = self.game_manager.on_commerce_response(commerce_phase_object, commerce_response,
                                                                                depth, player, winner)
@@ -137,7 +137,7 @@ class GameDirector:
 
         self.game_manager.set_phase(2)
 
-        build_response = self.game_manager.call_to_bot_on_build_phase(player)
+        build_response = self.game_manager.call_to_agent_on_build_phase(player)
 
         build_phase_object, winner = self.game_manager.build_phase_object(build_phase_object, build_response, player,
                                                                           winner)
@@ -203,8 +203,8 @@ class GameDirector:
         Esta función permite comenzar una partida nueva.
         :param game_number: (int) número de partidas que se van a jugar.
         """
-        # Se cargan los bots y se inicializa el tablero
-        # self.game_manager.bot_manager.load_bots()
+        # Se cargan los agentes y se inicializa el tablero
+        # self.game_manager.agent_manager.load_agents()
         self.reset_game_values()
 
         # Se añade el tablero al setup, para que el intérprete sepa cómo es el tablero
@@ -250,7 +250,9 @@ class GameDirector:
 
         print('Game (' + str(game_number) + ') results. Player: VictoryPoints (largest_army) (longest_road)')
         for i in range(4):
-            print('J' + str(i) + ': ' + str(self.game_manager.get_players()[i]['victory_points']) + ' (' +
+            player = self.game_manager.get_players()[i]
+            print('P' + str(i) + ' (' + type(player['player']).__name__ + ')' + ': ' +
+                  str(player['victory_points']) + ' (' +
                   str(self.game_manager.get_players()[i]['largest_army']) + ')' + ' (' +
                   str(self.game_manager.get_players()[i]['longest_road']) + ')')
 

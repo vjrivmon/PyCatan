@@ -4,7 +4,7 @@ from Classes.Constants import *
 from Classes.DevelopmentCards import *
 from Classes.TradeOffer import TradeOffer
 from Classes.Hand import *
-from Managers.BotManager import BotManager
+from Managers.AgentManager import AgentManager
 from Managers.CommerceManager import CommerceManager
 from Managers.TurnManager import TurnManager
 
@@ -28,7 +28,7 @@ class GameManager:
         self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.commerce_manager = CommerceManager()
-        self.bot_manager = BotManager(for_test)
+        self.agent_manager = AgentManager(for_test)
         return
 
     def reset_game_values(self):
@@ -46,7 +46,7 @@ class GameManager:
         self.development_cards_deck = DevelopmentDeck()
         self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
-        self.bot_manager.reset_game_values()
+        self.agent_manager.reset_game_values()
         return
 
     def throw_dice(self):
@@ -72,7 +72,7 @@ class GameManager:
                 for node in terrain['contacting_nodes']:
                     # Si tiene jugador, implica que hay pueblo
                     if self.board.nodes[node]['player'] != -1:
-                        player = self.bot_manager.players[self.board.nodes[node]['player']]
+                        player = self.agent_manager.players[self.board.nodes[node]['player']]
                         # Si tiene ciudad se dan 2 en lugar de 1 material
 
                         if self.board.nodes[node]['has_city']:
@@ -88,7 +88,7 @@ class GameManager:
         Función que otorga a todos los jugadores 5 de todos los recursos. Usado solo para debugging
         :return: None
         """
-        for player in self.bot_manager.players:
+        for player in self.agent_manager.players:
             player['resources'].add_material(MaterialConstants.CEREAL, 5)
             player['resources'].add_material(MaterialConstants.MINERAL, 5)
             player['resources'].add_material(MaterialConstants.CLAY, 5)
@@ -106,7 +106,7 @@ class GameManager:
         """
         answer_object = []
 
-        receivers = self.bot_manager.players.copy()
+        receivers = self.agent_manager.players.copy()
         giver = receivers.pop(self.turn_manager.whose_turn_is_it)
 
         # Se aleatorizan el orden en el que se va a recibir la oferta para evitar que J1 tenga ventaja
@@ -178,8 +178,8 @@ class GameManager:
         """
         Función que hace el intercambio entre dos jugadores.
         :param trade_offer: (TradeOffer()) El intercambio que se va a hacer.
-        :param giver: ({BotInterface(), Hand(), int, DevelopmentCardHand()}) El jugador que da materiales.
-        :param receiver: ({BotInterface(), Hand(), int, DevelopmentCardHand()}) El jugador que recibe materiales.
+        :param giver: ({AgentInterface(), Hand(), int, DevelopmentCardHand()}) El jugador que da materiales.
+        :param receiver: ({AgentInterface(), Hand(), int, DevelopmentCardHand()}) El jugador que recibe materiales.
         :return: bool
         """
         if trade_offer is None or giver is None or receiver is None:
@@ -215,16 +215,16 @@ class GameManager:
         :param node: (Tree()) Número que representa un nodo en el tablero.
         :return: {bool, string}. Devuelve si se ha podido o no construir el poblado, y en caso negativo, la razón.
         """
-        if self.bot_manager.players[player_id]['resources'].resources.has_this_more_materials('town'):
+        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('town'):
             build_town_obj = self.board.build_town(player_id, node)
 
             if build_town_obj['response']:
-                self.bot_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
-                                                                                  MaterialConstants.CLAY,
-                                                                                  MaterialConstants.WOOD,
-                                                                                  MaterialConstants.WOOL
-                                                                                  ], 1)
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
+                                                                                    MaterialConstants.CLAY,
+                                                                                    MaterialConstants.WOOD,
+                                                                                    MaterialConstants.WOOL
+                                                                                    ], 1)
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
             return build_town_obj
         else:
@@ -237,14 +237,14 @@ class GameManager:
         :param node: (Tree()) Número que representa un nodo en el tablero.
         :return: {bool, string}. Devuelve si se ha podido o no construir la ciudad, y en caso negativo, la razón.
         """
-        if self.bot_manager.players[player_id]['resources'].resources.has_this_more_materials('city'):
+        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('city'):
             build_city_obj = self.board.build_city(player_id, node)
 
             if build_city_obj['response']:
-                self.bot_manager.players[player_id]['resources'].remove_material(MaterialConstants.CEREAL, 2)
-                self.bot_manager.players[player_id]['resources'].remove_material(MaterialConstants.MINERAL, 3)
+                self.agent_manager.players[player_id]['resources'].remove_material(MaterialConstants.CEREAL, 2)
+                self.agent_manager.players[player_id]['resources'].remove_material(MaterialConstants.MINERAL, 3)
 
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
             return build_city_obj
         else:
@@ -259,14 +259,14 @@ class GameManager:
         :param free: (bool) Usado solo para cuando construyes carreteras gratis con una carta de desarrollo.
         :return: {bool, string}. Devuelve si se ha podido o no construir la carretera, y en caso negativo, la razón.
         """
-        if self.bot_manager.players[player_id]['resources'].resources.has_this_more_materials('road') or free:
+        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('road') or free:
             build_road_obj = self.board.build_road(player_id, node, road)
 
             if build_road_obj['response'] and not free:
-                self.bot_manager.players[player_id]['resources'].remove_material([MaterialConstants.CLAY,
-                                                                                  MaterialConstants.WOOD
-                                                                                  ], 1)
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CLAY,
+                                                                                    MaterialConstants.WOOD
+                                                                                    ], 1)
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
             return build_road_obj
         else:
@@ -283,19 +283,19 @@ class GameManager:
         card_drawn = self.development_cards_deck.draw_card()
         if card_drawn is not None:
 
-            if self.bot_manager.players[player_id]['resources'].resources.has_this_more_materials('card'):
-                self.bot_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
-                                                                                  MaterialConstants.MINERAL,
-                                                                                  MaterialConstants.WOOL
-                                                                                  ], 1)
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+            if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('card'):
+                self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
+                                                                                    MaterialConstants.MINERAL,
+                                                                                    MaterialConstants.WOOL
+                                                                                    ], 1)
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
                 if card_drawn.type == DevelopmentCardConstants.VICTORY_POINT:
-                    self.bot_manager.players[player_id]['hidden_victory_points'] += 1
+                    self.agent_manager.players[player_id]['hidden_victory_points'] += 1
 
-                self.bot_manager.players[player_id]['development_cards'].add_card(card_drawn)
-                self.bot_manager.players[player_id]['player'].development_cards_hand.hand = \
-                    self.bot_manager.players[player_id]['development_cards'].hand
+                self.agent_manager.players[player_id]['development_cards'].add_card(card_drawn)
+                self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
+                    self.agent_manager.players[player_id]['development_cards'].hand
 
                 return {'response': True, 'card_id': card_drawn.id, 'card_type': card_drawn.type,
                         'card_effect': card_drawn.effect}
@@ -332,8 +332,8 @@ class GameManager:
         :param player: Número que representa al jugador a robar
         :return: int
         """
-        player_obj = self.bot_manager.players[player]
-        actual_player_obj = self.bot_manager.players[self.bot_manager.actual_player]
+        player_obj = self.agent_manager.players[player]
+        actual_player_obj = self.agent_manager.players[self.agent_manager.actual_player]
 
         material_id = -1
         total = player_obj["resources"].get_total()
@@ -356,12 +356,12 @@ class GameManager:
         :param player: contador externo que indica a qué jugador le toca
         :return: node_id, road_to
         """
-        # Le da a los bots 2 intentos de poner bien los pueblos y carreteras. Si no, el GameManager lo hará por ellos.
+        # Le da a los agentes 2 intentos de poner bien los pueblos y carreteras. Si no, el GameManager lo hará por ellos.
         valid_nodes = self.board.valid_starting_nodes()
         materials = []
 
         for count in range(3):
-            node_id, road_to = self.bot_manager.players[player]['player'].on_game_start(copy(self.board))
+            node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(copy(self.board))
 
             if node_id in valid_nodes or count == 2:
 
@@ -377,11 +377,11 @@ class GameManager:
 
                 self.board.nodes[node_id]['player'] = player
 
-                # Se le dan materiales al BotManager y este a los bots para que sepan cuantos tienen en realidad
-                self.bot_manager.players[player]['resources'].add_material(materials, 1)
-                self.bot_manager.players[player]['player'].hand = self.bot_manager.players[player]['resources']
+                # Se le dan materiales al AgentManager y este a los agentes para que sepan cuantos tienen en realidad
+                self.agent_manager.players[player]['resources'].add_material(materials, 1)
+                self.agent_manager.players[player]['player'].hand = self.agent_manager.players[player]['resources']
 
-                self.bot_manager.players[player]['victory_points'] += 1
+                self.agent_manager.players[player]['victory_points'] += 1
 
                 # Parte carreteras
                 if self.board.build_road(player, node_id, road_to)['response']:
@@ -416,9 +416,9 @@ class GameManager:
         return {'longest_road': longest_road_obj['longest_road'], 'player': longest_road_obj['player']}
 
     def play_development_card(self, player_id, card, winner):
-        """Si la carta que llega existe en la mano del BotManager se elimina y se hace el efecto, si no, se hace
+        """Si la carta que llega existe en la mano del AgentManager se elimina y se hace el efecto, si no, se hace
         un return nulo. Si la carta es un punto de victoria no se borra de la mano.
-        Después se iguala la mano del jugador a la del BotManager para evitar trampas.
+        Después se iguala la mano del jugador a la del AgentManager para evitar trampas.
         :param player_id:
         :param card:
         :param winner: bool
@@ -426,16 +426,16 @@ class GameManager:
         """
         card_obj = {}
 
-        if card.__to_object__() in self.bot_manager.players[player_id]['development_cards'].check_hand():
+        if card.__to_object__() in self.agent_manager.players[player_id]['development_cards'].check_hand():
             if card.type != DevelopmentCardConstants.VICTORY_POINT:
-                self.bot_manager.players[player_id]['development_cards'].delete_card(card.id)  # Borramos la carta
+                self.agent_manager.players[player_id]['development_cards'].delete_card(card.id)  # Borramos la carta
 
-                self.bot_manager.players[player_id]['player'].development_cards_hand.hand = \
-                    self.bot_manager.players[player_id]['development_cards'].hand
+                self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
+                    self.agent_manager.players[player_id]['development_cards'].hand
 
         else:
-            self.bot_manager.players[player_id]['player'].development_cards_hand.hand = \
-                self.bot_manager.players[player_id]['development_cards'].hand  # Hacen trampas
+            self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
+                self.agent_manager.players[player_id]['development_cards'].hand  # Hacen trampas
 
             card_obj['played_card'] = 'none'
             card_obj['reason'] = 'Trying to use cards they don\'t have'
@@ -444,12 +444,12 @@ class GameManager:
 
         if card.type == DevelopmentCardConstants.KNIGHT:
             # se le suma un nuevo caballero al jugador y se le pide mover al ladrón
-            self.bot_manager.players[player_id]['knights'] += 1
+            self.agent_manager.players[player_id]['knights'] += 1
 
-            if self.bot_manager.players[player_id]['knights'] > self.largest_army:
+            if self.agent_manager.players[player_id]['knights'] > self.largest_army:
                 if self.largest_army_player == {}:
                     # Definimos el nuevo poseedor con el ejército más grande
-                    self.largest_army_player = self.bot_manager.players[player_id]
+                    self.largest_army_player = self.agent_manager.players[player_id]
                     self.largest_army_player['largest_army'] = 1
                     self.largest_army_player['victory_points'] += 2
                 else:
@@ -458,16 +458,16 @@ class GameManager:
                     self.largest_army_player['victory_points'] -= 2
 
                     # Definimos el nuevo poseedor con el ejército más grande
-                    self.largest_army_player = self.bot_manager.players[player_id]
+                    self.largest_army_player = self.agent_manager.players[player_id]
                     self.largest_army_player['largest_army'] = 1
                     self.largest_army_player['victory_points'] += 2
 
-            on_moving_thief = self.bot_manager.players[player_id]['player'].on_moving_thief()
+            on_moving_thief = self.agent_manager.players[player_id]['player'].on_moving_thief()
             move_thief_obj = self.move_thief(on_moving_thief['terrain'], on_moving_thief['player'])
 
             # se pasan los cambios al objeto
             card_obj['played_card'] = 'knight'
-            card_obj['total_knights'] = self.bot_manager.players[player_id]['knights']
+            card_obj['total_knights'] = self.agent_manager.players[player_id]['knights']
             card_obj['past_thief_terrain'] = move_thief_obj['last_thief_terrain']
             card_obj['thief_terrain'] = move_thief_obj['terrain_id']
             card_obj['robbed_player'] = move_thief_obj['robbed_player']
@@ -479,11 +479,11 @@ class GameManager:
         elif card.type == DevelopmentCardConstants.VICTORY_POINT:
             # Si tienen suficientes puntos de victoria para ganar. Ganan automáticamente, si no, no pasa nada
 
-            if (self.bot_manager.players[player_id]['victory_points'] +
-               self.bot_manager.players[player_id]['hidden_victory_points']) >= 10:
+            if (self.agent_manager.players[player_id]['victory_points'] +
+                self.agent_manager.players[player_id]['hidden_victory_points']) >= 10:
 
                 card_obj['played_card'] = 'victory_point'
-                self.bot_manager.players[player_id]['victory_points'] = 10
+                self.agent_manager.players[player_id]['victory_points'] = 10
                 winner = True
 
                 self.already_played_development_card = True
@@ -497,29 +497,29 @@ class GameManager:
 
             if card.effect == DevelopmentCardConstants.MONOPOLY_EFFECT:
                 # Elige material
-                material_chosen = self.bot_manager.players[player_id]['player'].on_monopoly_card_use()
+                material_chosen = self.agent_manager.players[player_id]['player'].on_monopoly_card_use()
                 material_sum = 0
 
                 if material_chosen is None:
                     material_chosen = random.randint(0, 4)
 
                 # Se elimina el material de la mano de todos los jugadores
-                for player in self.bot_manager.players:
+                for player in self.agent_manager.players:
                     material_sum += player['resources'].get_from_id(material_chosen)
                     player['resources'].remove_material(material_chosen,
                                                         player['resources'].get_from_id(material_chosen))
                     player['player'].hand = player['resources']
 
                 # Se le dan todos los materiales eliminados al que usó la carta
-                self.bot_manager.players[player_id]['resources'].add_material(material_chosen, material_sum)
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['resources'].add_material(material_chosen, material_sum)
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
                 # Se añade al objeto el material, la suma, y las nuevas manos tras la resta de materiales
                 card_obj['played_card'] = 'monopoly'
                 card_obj['material_chosen'] = material_chosen
                 card_obj['material_sum'] = material_sum
                 for i in range(4):
-                    card_obj['hand_P' + str(i)] = self.bot_manager.players[i]['resources'].resources.__to_object__()
+                    card_obj['hand_P' + str(i)] = self.agent_manager.players[i]['resources'].resources.__to_object__()
 
                 self.already_played_development_card = True
                 return card_obj, winner
@@ -527,7 +527,7 @@ class GameManager:
             elif card.effect == DevelopmentCardConstants.ROAD_BUILDING_EFFECT:
 
                 # Se piden en qué puntos quieren construir carreteras
-                road_nodes = self.bot_manager.players[player_id]['player'].on_road_building_card_use()
+                road_nodes = self.agent_manager.players[player_id]['player'].on_road_building_card_use()
                 card_obj['played_card'] = 'road_building'
 
                 # Si hay al menos una carretera
@@ -596,7 +596,7 @@ class GameManager:
                 card_obj['played_card'] = 'year_of_plenty'
 
                 # Eligen 2 materiales (puede ser el mismo 2 veces)
-                materials_selected = self.bot_manager.players[player_id]['player'].on_year_of_plenty_card_use()
+                materials_selected = self.agent_manager.players[player_id]['player'].on_year_of_plenty_card_use()
                 card_obj['materials_selected'] = materials_selected
 
                 if materials_selected is None:
@@ -604,13 +604,13 @@ class GameManager:
                     materials_selected = {'material': material, 'material_2': material2}
 
                 # Obtienen una carta de ese material elegido
-                self.bot_manager.players[player_id]['resources'].add_material(materials_selected['material'], 1)
-                self.bot_manager.players[player_id]['resources'].add_material(materials_selected['material_2'], 1)
+                self.agent_manager.players[player_id]['resources'].add_material(materials_selected['material'], 1)
+                self.agent_manager.players[player_id]['resources'].add_material(materials_selected['material_2'], 1)
 
                 # Se actualiza la mano
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
 
-                card_obj['hand_P' + str(player_id)] = self.bot_manager.players[
+                card_obj['hand_P' + str(player_id)] = self.agent_manager.players[
                     player_id]['resources'].resources.__to_object__()
 
                 self.already_played_development_card = True
@@ -621,12 +621,12 @@ class GameManager:
     def check_player_hands(self):
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.bot_manager.players[i]['development_cards'].check_hand())
+            print(self.agent_manager.players[i]['development_cards'].check_hand())
 
         print('Players: ')
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.bot_manager.players[i]['player'].development_cards_hand.check_hand())
+            print(self.agent_manager.players[i]['player'].development_cards_hand.check_hand())
 
     def get_turn(self):
         """
@@ -682,7 +682,7 @@ class GameManager:
         """
         :return: list
         """
-        return self.bot_manager.players
+        return self.agent_manager.players
 
     def set_actual_player(self, player_id=0):
         """
@@ -716,41 +716,41 @@ class GameManager:
         """
         :return: int
         """
-        return self.bot_manager.players[player_id]['resources'].get_total()
+        return self.agent_manager.players[player_id]['resources'].get_total()
 
     def player_resources_to_object(self, player_id):
         """
         :return: dict
         """
-        return self.bot_manager.players[player_id]['resources'].resources.__to_object__()
+        return self.agent_manager.players[player_id]['resources'].resources.__to_object__()
 
-    def call_to_bot_on_turn_start(self, player):
+    def call_to_agent_on_turn_start(self, player):
         """
         :param player: int
         :return: DevelopmentCard, None
         """
-        return self.bot_manager.players[player]['player'].on_turn_start()
+        return self.agent_manager.players[player]['player'].on_turn_start()
 
-    def call_to_bot_on_turn_end(self, player_id):
+    def call_to_agent_on_turn_end(self, player_id):
         """
         :param player_id: int
         :return: DevelopmentCard, None
         """
-        return self.bot_manager.players[player_id]['player'].on_turn_end()
+        return self.agent_manager.players[player_id]['player'].on_turn_end()
 
-    def call_to_bot_on_commerce_phase(self, player_id):
+    def call_to_agent_on_commerce_phase(self, player_id):
         """
         :param player_id: int
         :return: TradeOffer, dict{'gives': int, 'receives': int}, None
         """
-        return self.bot_manager.players[player_id]['player'].on_commerce_phase()
+        return self.agent_manager.players[player_id]['player'].on_commerce_phase()
 
-    def call_to_bot_on_build_phase(self, player_id):
+    def call_to_agent_on_build_phase(self, player_id):
         """
         :param player_id: int
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        return self.bot_manager.players[player_id]['player'].on_build_phase(copy(self.board))
+        return self.agent_manager.players[player_id]['player'].on_build_phase(copy(self.board))
 
     def get_board_nodes(self):
         """
@@ -785,7 +785,7 @@ class GameManager:
         :return: start_turn_object, dict
         """
         if self.last_dice_roll == 7:
-            for obj in self.bot_manager.players:
+            for obj in self.agent_manager.players:
                 if obj['resources'].get_total() > 7:
                     total = obj['player'].on_having_more_than_7_materials_when_thief_is_called().get_total()
                     max_hand = math.floor(total / 2)
@@ -794,7 +794,7 @@ class GameManager:
                         obj['resources'].remove_material(random.randint(0, 4), 1)
                         total = obj['resources'].get_total()
 
-            on_moving_thief = self.bot_manager.players[player_id]['player'].on_moving_thief()
+            on_moving_thief = self.agent_manager.players[player_id]['player'].on_moving_thief()
             move_thief_obj = self.move_thief(on_moving_thief['terrain'], on_moving_thief['player'])
 
             start_turn_object['past_thief_terrain'] = move_thief_obj['last_thief_terrain']
@@ -816,7 +816,7 @@ class GameManager:
             commerce_phase_object['trade_offer'] = commerce_response.__to_object__()
             commerce_phase_object['harbor_trade'] = False
 
-            if self.bot_manager.players[player_id]['resources'].resources.has_this_more_materials(
+            if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials(
                     commerce_response.gives):
                 commerce_phase_object['inviable'] = False
                 answer_object = self.send_trade_to_everyone(commerce_response)
@@ -835,20 +835,20 @@ class GameManager:
 
             if harbor_type == HarborConstants.NONE:
                 response = self.commerce_manager.trade_without_harbor(
-                    self.bot_manager.players[player_id]['resources'], commerce_response['gives'],
+                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
                     commerce_response['receives'])
             elif harbor_type == HarborConstants.ALL:
                 response = self.commerce_manager.trade_through_harbor(
-                    self.bot_manager.players[player_id]['resources'], commerce_response['gives'],
+                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
                     commerce_response['receives'])
             else:
                 response = self.commerce_manager.trade_through_special_harbor(
-                    self.bot_manager.players[player_id]['resources'], commerce_response['gives'],
+                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
                     commerce_response['receives'])
 
             if isinstance(response, Hand):
-                self.bot_manager.players[player_id]['resources'] = response
-                self.bot_manager.players[player_id]['player'].hand = self.bot_manager.players[player_id]['resources']
+                self.agent_manager.players[player_id]['resources'] = response
+                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
                 commerce_phase_object['answer'] = response.resources.__to_object__()
 
                 return commerce_phase_object, winner
@@ -898,7 +898,7 @@ class GameManager:
 
             if built['response']:
                 if build_response['building'] in [BuildConstants.TOWN, BuildConstants.CITY]:
-                    self.bot_manager.players[player_id]['victory_points'] += 1
+                    self.agent_manager.players[player_id]['victory_points'] += 1
 
                 if build_response['building'] == BuildConstants.CARD:
                     build_phase_object['card_id'] = built['card_effect']

@@ -4,23 +4,23 @@ from Classes.Hand import Hand
 from Classes.TradeOffer import TradeOffer
 
 
-class BotInterface:
+class AgentInterface:
     """
-    Interfaz que implementa a un bot
+    Interfaz que implementa a un agente
     """
 
-    def __init__(self, bot_id):
+    def __init__(self, agent_id):
         self.hand = Hand()
         self.board = Board()
         self.development_cards_hand = DevelopmentCardsHand()
-        self.id = bot_id
+        self.id = agent_id
 
     # Los triggers son llamados por el GameDirector las veces que sean necesarias hasta que devuelvan null
     #  o el GameDirector le niegue continuar el trigger
     def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
         """
         Trigger para cuando llega una oferta. Devuelve si la acepta, la niega o envía una contraoferta
-        :param incoming_trade_offer: Oferta de comercio que le llega al bot
+        :param incoming_trade_offer: Oferta de comercio que le llega al agente
         :param player_making_offer: ID del jugador
         :param board_instance: Board()
         :return: true, TradeOffer, false
@@ -36,7 +36,7 @@ class BotInterface:
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
         """
-        Trigger que se llama cuando se debe descartar materiales. Si no los descarta el bot, los descartará
+        Trigger que se llama cuando se debe descartar materiales. Si no los descarta el agente, los descartará
         el GameDirector aleatoriamente.
         :return: Hand()
         """

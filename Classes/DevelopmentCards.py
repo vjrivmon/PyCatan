@@ -12,7 +12,7 @@ class DevelopmentDeck:
     # Puedes jugar cualquier cantidad de cartas de desarrollo que otorguen puntos de victoria.
     # Las cartas que dan puntos de victoria (idealmente) se mantienen en secreto hasta que se pueda ganar con ellas
     # NO se puede jugar una carta que se acaba de comprar SALVO que sea una que te lleve a 10 puntos de victoria
-    # Se pueden jugar en cualquier momento de una ronda, incluso antes de tirar el dado (en cualquier on_... del bot)
+    # Se pueden jugar en cualquier momento de una ronda, incluso antes de tirar el dado (en cualquier on_... del agente)
 
     deck = []  # Deck es un array de objetos carta
     current_index = 0  # La carta que se va a robar si alguien construye una

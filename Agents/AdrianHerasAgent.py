@@ -3,10 +3,10 @@ import random
 from Classes.Constants import *
 from Classes.Materials import Materials
 from Classes.TradeOffer import TradeOffer
-from Interfaces.BotInterface import BotInterface
+from Interfaces.AgentInterface import AgentInterface
 
 
-class AdrianHerasBot(BotInterface):
+class AdrianHerasAgent(AgentInterface):
     """
     Es necesario poner super().nombre_de_funcion() para asegurarse de que coge la función del padre
     """
@@ -16,8 +16,8 @@ class AdrianHerasBot(BotInterface):
     year_of_plenty_material_one = MaterialConstants.CEREAL
     year_of_plenty_material_two = MaterialConstants.MINERAL
 
-    def __init__(self, bot_id):
-        super().__init__(bot_id)
+    def __init__(self, agent_id):
+        super().__init__(agent_id)
 
     def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
         """

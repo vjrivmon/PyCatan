@@ -1,10 +1,10 @@
 # Catan Simulation in Python
 
-A Settlers of Catan simulator for AI bots written in Python.
+A Settlers of Catan simulator for AI agents written in Python.
 
 ## Overview
 
-This repository contains a Python-based simulator for the board game Settlers of Catan. It is designed to test and refine AI bots in a simulated environment. Users can execute predefined bots, as well as introduce their own custom bots into the game.
+This repository contains a Python-based simulator for the board game Settlers of Catan. It is designed to test and refine AI agents in a simulated environment. Users can execute predefined agents, as well as introduce their own custom agents into the game.
 
 ## Getting Started
 
@@ -12,15 +12,15 @@ This repository contains a Python-based simulator for the board game Settlers of
 
 Ensure you have Python installed on your machine. The simulation is compatible with Python 3.x.
 
-### Adding Your Bots
+### Adding Your Agents
 
-1. Navigate to the `Bots` folder.
-2. Place your custom bot module or Python file in this folder.
-3. Ensure your bot class is correctly defined within the module.
+1. Navigate to the `Agents` folder.
+2. Place your custom agent module or Python file in this folder.
+3. Ensure your agent class is correctly defined within the module.
 
 ### Running the Simulator
 
-To run the simulator, use the `main` module. Specify the bots to be executed and the number of games to be played. Each bot should be referenced by the module or file name, followed by a dot, and then the class name (e.g., `mymodule.myclass`).
+To run the simulator, use the `main` module. Specify the agents to be executed and the number of games to be played. Each agent should be referenced by the module or file name, followed by a dot, and then the class name (e.g., `MyModule.MyClass`).
 
 ### Results
 
