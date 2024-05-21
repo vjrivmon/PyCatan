@@ -112,8 +112,11 @@ class GameManager:
         # Se aleatorizan el orden en el que se va a recibir la oferta para evitar que J1 tenga ventaja
         random.shuffle(receivers)
 
+        original_trade_offer = trade_offer
+
         for receiver in receivers:
             on_tradeoffer_response = []
+            trade_offer = original_trade_offer
 
             count = 1
             offer = True
