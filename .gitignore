@@ -169,3 +169,4 @@ pyproject.toml
 
 # Other
 Traces/
+.vscode/
