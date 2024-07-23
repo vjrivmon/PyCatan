@@ -7,7 +7,7 @@ class Hand:
     """
 
     def __init__(self):
-        self.resources = Materials(0,0,0,0,0)
+        self.resources = Materials()
         return
 
     def add_material(self, resource, amount):
@@ -23,7 +23,16 @@ class Hand:
                 self.add_material(material, amount)
 
         else:
-            self.resources = self.resources.add_from_id(resource, amount)
+            if resource == 0:
+                self.resources.add_cereal(amount)
+            elif resource == 1:
+                self.resources.add_mineral(amount)
+            elif resource == 2:
+                self.resources.add_clay(amount)
+            elif resource == 3:
+                self.resources.add_wood(amount)
+            elif resource == 4:
+                self.resources.add_wool(amount)
 
         return
 
