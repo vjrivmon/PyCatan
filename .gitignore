@@ -164,6 +164,8 @@ cython_debug/
 # rye
 requirements.lock
 requirements-dev.lock
+.python-version
+pyproject.toml
 
 # Other
 Traces/
