@@ -1,7 +1,8 @@
 from Agents import RandomAgent, AlexPastorAgent
+from Interfaces.AgentInterface import AgentInterface as AgIn
 from Classes.DevelopmentCards import DevelopmentCardsHand
 from Classes.Hand import Hand
-
+import inspect
 
 class AgentManager:
     """
@@ -16,8 +17,17 @@ class AgentManager:
 
     players = []
 
-    def __init__(self, for_test=False):
-        if not for_test:
+    def __init__(self, for_test=False, agents = None):
+        if agents:
+            if len(agents) != 4:
+                raise ValueError('El número de agentes debe ser 4')
+            if not all([inspect.isclass(agent) and issubclass(agent, AgIn) for agent in agents]):
+                raise ValueError('Los agentes deben de ser clases que hereden de AgentInterface')
+            self.first_agent_class = agents[0]
+            self.second_agent_class = agents[1]
+            self.third_agent_class = agents[2]
+            self.fourth_agent_class = agents[3]
+        elif not for_test:
             self.first_agent_class = self.import_agent_class_from_input('first')
             self.second_agent_class = self.import_agent_class_from_input('second')
             self.third_agent_class = self.import_agent_class_from_input('third')

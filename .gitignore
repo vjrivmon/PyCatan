@@ -164,3 +164,6 @@ cython_debug/
 # rye
 requirements.lock
 requirements-dev.lock
+
+# Other
+Traces/

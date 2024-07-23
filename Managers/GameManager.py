@@ -16,7 +16,7 @@ class GameManager:
     MAX_COMMERCE_DEPTH = 2
     MAX_COMMERCE_TRADES = 2
 
-    def __init__(self, for_test=False):
+    def __init__(self, for_test=False, agents = None):
         self.already_played_development_card = False
         self.last_dice_roll = 0
         self.largest_army = 2
@@ -28,7 +28,7 @@ class GameManager:
         self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.commerce_manager = CommerceManager()
-        self.agent_manager = AgentManager(for_test)
+        self.agent_manager = AgentManager(for_test, agents=agents)
         return
 
     def reset_game_values(self):
