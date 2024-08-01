@@ -8,8 +8,8 @@ class GameDirector:
     Clase que se encarga de dirigir la partida, empezarla y acabarla
     """
 
-    def __init__(self, for_test=False):
-        self.game_manager = GameManager(for_test)
+    def __init__(self, for_test=False, agents = None):
+        self.game_manager = GameManager(for_test, agents)
         self.trace_loader = TraceLoader()
         return
 
