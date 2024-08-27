@@ -198,7 +198,7 @@ class GameDirector:
         return round_object, winner
 
     # Game #
-    def game_start(self, game_number=0):
+    def game_start(self, game_number=0, print_outcome=True):
         """
         Esta función permite comenzar una partida nueva.
         :param game_number: (int) número de partidas que se van a jugar.
@@ -234,10 +234,10 @@ class GameDirector:
             setup_object["P" + str(i)].append({"id": node_id, "road": road_to})
 
         self.trace_loader.current_trace["setup"] = setup_object
-        self.game_loop(game_number)
+        self.game_loop(game_number, print_outcome)
         return self.trace_loader.current_trace
 
-    def game_loop(self, game_number):
+    def game_loop(self, game_number, print_outcome):
         """
         Esta función permite jugar varias partidas seguidas.
         :param game_number: (int) número de partidas que se van a jugar.
@@ -248,13 +248,14 @@ class GameDirector:
             game_object['round_' + str(self.game_manager.get_round())], winner = self.round_start(winner)
             self.game_manager.set_round(self.game_manager.get_round() + 1)
 
-        print('Game (' + str(game_number) + ') results. Player: VictoryPoints (largest_army) (longest_road)')
-        for i in range(4):
-            player = self.game_manager.get_players()[i]
-            print('P' + str(i) + ' (' + type(player['player']).__name__ + ')' + ': ' +
-                  str(player['victory_points']) + ' (' +
-                  str(self.game_manager.get_players()[i]['largest_army']) + ')' + ' (' +
-                  str(self.game_manager.get_players()[i]['longest_road']) + ')')
+        if print_outcome:
+            print('Game (' + str(game_number) + ') results. Player: VictoryPoints (largest_army) (longest_road)')
+            for i in range(4):
+                player = self.game_manager.get_players()[i]
+                print('P' + str(i) + ' (' + type(player['player']).__name__ + ')' + ': ' +
+                    str(player['victory_points']) + ' (' +
+                    str(self.game_manager.get_players()[i]['largest_army']) + ')' + ' (' +
+                    str(self.game_manager.get_players()[i]['longest_road']) + ')')
 
         self.trace_loader.current_trace["game"] = game_object
         self.trace_loader.export_to_file(game_number)
