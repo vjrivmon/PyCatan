@@ -234,8 +234,8 @@ class GameDirector:
             setup_object["P" + str(i)].append({"id": node_id, "road": road_to})
 
         self.trace_loader.current_trace["setup"] = setup_object
-        self.game_loop(game_number)
-        return
+        return self.game_loop(game_number)
+        
 
     def game_loop(self, game_number):
         """
@@ -258,4 +258,4 @@ class GameDirector:
 
         self.trace_loader.current_trace["game"] = game_object
         self.trace_loader.export_to_file(game_number)
-        return
+        return self.trace_loader.current_trace
