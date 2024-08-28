@@ -23,22 +23,10 @@ class Hand:
         if isinstance(resource_id, int):
             resource_id = [resource_id]
 
-        # logica antigua
-        # for id in resource_id:
-        #     if amount + self.resources.get_from_id(id) < 0:
-        #         return
-        #     self.resources = self.resources.add_from_id(id, amount)
-        # return
-
         # lo convertimos a materiales para poder sumarlo: ([1,3],5) -> [0,5,0,5,0]
-        resources = Materials(*[ amount if id in resource_id else 0 for id in range(5)]) 
-        tmp_resources = self.resources + resources
-
-        # comprobamos que ninguno sea negativo, un jugador no puede tener materiales negativos
-        if any([n < 0 for n in tmp_resources]):
-            return
-
-        self.resources = tmp_resources
+        materials = Materials(*[ amount * resource_id.count(id) for id in range(5)])
+        materials = materials + self.resources
+        self.resources = Materials(*[0 if n < 0 else n for n in materials])
 
 
     def remove_material(self, resource, amount):
