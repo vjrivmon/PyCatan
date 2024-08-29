@@ -2,9 +2,7 @@ from typing import NamedTuple
 from Classes.Constants import MaterialConstants as mc
 from Classes.Constants import BuildConstants as bc
 from Classes.Constants import BuildMaterialsConstants as bmc
-
 import operator as op
-
 
 class Materials(NamedTuple):
     """
@@ -21,8 +19,8 @@ class Materials(NamedTuple):
     def from_ids(cls, ids, amount = 1):
         if isinstance(ids, int):
             ids = [ids]
-        return Materials(*[amount if i in ids else 0 for i in range(5)])
-
+        return Materials(*[amount * ids.count(id) for id in range(5)])
+        
     @classmethod
     def from_iterable(cls, iterable):
         return Materials(*iterable)
@@ -33,12 +31,11 @@ class Materials(NamedTuple):
             return False
         return cls.from_iterable(bmc[building])
 
-    # utilidades #####
-    def remove_negative(self):
+    def replace_negative(self):
         return Materials(*[0 if n < 0 else n for n in self])
 
     def is_empty(self):
-        return sum(self) == 0
+        return all([n == 0 for n in self])
 
     def check_negative(self):
         return any([n < 0 for n in self])
@@ -104,4 +101,3 @@ class Materials(NamedTuple):
     
     def __rmul__(self, other):
         return self.__mul__(other)
-

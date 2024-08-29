@@ -21,10 +21,9 @@ class Hand:
         if isinstance(resource_id, int):
             resource_id = [resource_id]
 
-        # lo convertimos a materiales para poder sumarlo: ([1,3],5) -> [0,5,0,5,0]
-        materials = Materials(*[ amount * resource_id.count(id) for id in range(5)])
+        materials = Materials.from_ids(resource_id, amount)
         materials = materials + self.resources
-        self.resources = Materials(*[0 if n < 0 else n for n in materials])
+        self.resources = materials.replace_negative()
 
 
     def remove_material(self, resource, amount):
