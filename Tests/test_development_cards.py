@@ -64,10 +64,6 @@ class TestDevelopmentCards:
         assert (played_card.id == 2 and played_card.effect == Dcc.KNIGHT_EFFECT and
                 played_card.type == Dcc.KNIGHT)
 
-        played_card = hand_of_cards.select_card_by_array_index(0)
-        assert (played_card.id == 0 and played_card.effect == Dcc.KNIGHT_EFFECT and
-                played_card.type == Dcc.KNIGHT)
-
         # Comprobamos que la función delete_card() borra la carta correctamente por ID
         hand_of_cards.delete_card(1)
         assert hand_of_cards.check_hand() == [{'id': 0, 'type': Dcc.KNIGHT, 'effect': Dcc.KNIGHT_EFFECT},

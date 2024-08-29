@@ -13,50 +13,36 @@ class DevelopmentDeck:
     # Las cartas que dan puntos de victoria (idealmente) se mantienen en secreto hasta que se pueda ganar con ellas
     # NO se puede jugar una carta que se acaba de comprar SALVO que sea una que te lleve a 10 puntos de victoria
     # Se pueden jugar en cualquier momento de una ronda, incluso antes de tirar el dado (en cualquier on_... del agente)
-
-    deck = []  # Deck es un array de objetos carta
     current_index = 0  # La carta que se va a robar si alguien construye una
 
     def __init__(self):
-        # Se vacía primero por completo el deck para evitar que se dupliquen las cartas
-        self.deck.clear()
-        # Genera el array de cartas de desarrollo y lo baraja
-        # Hay 14 soldados
-        # 6 cartas de progreso (2 de cada)
-        # 5 de puntos de victoria
-        for i in range(0, 14):
-            self.deck.append(DevelopmentCard(i, Dcc.KNIGHT, Dcc.KNIGHT_EFFECT))
-        for i in range(14, 19):
-            self.deck.append(DevelopmentCard(i, Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT))
-        for i in range(19, 21):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT))
-        for i in range(21, 23):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT))
-        for i in range(23, 25):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT))
-        return
+        # cuidado, [objeto] * n crea n referencias al mismo objeto
+        self.deck = []
+        self.deck += [DevelopmentCard(0, Dcc.KNIGHT, Dcc.KNIGHT_EFFECT) for i in range(14)] # Soldados
+        self.deck += [DevelopmentCard(0, Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT) for i in range(5)] # Puntos de victoria
+        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT) for i in range(2)] # Cartas de progreso
+        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT) for i in range(2)]
+        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT) for i in range(2)]
 
-    def shuffle_deck(self):
-        # Se barajan las cartas de desarrollo
-        current_index, random_index = len(self.deck), 0
+        for i in range(len(self.deck)):
+            self.deck[i].id = i
+
+
+    def shuffle_deck(self): # En que momento se ha decidido implementar shuffle. Lo dejo así porque rompe test de intetgración
+        current_index = len(self.deck)
         while current_index != 0:
-            random_index = math.floor(random.random() * current_index)
+            random_index = math.floor(random.random() * current_index) # randint par quien?
             current_index -= 1
             (self.deck[current_index], self.deck[random_index]) = (self.deck[random_index], self.deck[current_index])
-        return
 
     def draw_card(self):
-        if self.current_index != len(self.deck):  # No quedan cartas que robar
-            card = self.deck[self.current_index]
-            self.current_index += 1
-            return card
-        return
+        if len(self.deck):
+            return self.deck.pop(0)
 
     def __str__(self):
-        string = '[ \n'
+        string = '[ \n' 
         for card in self.deck:
-            string += card.__str__()
-            string += ', \n'
+            string += f"{card.__str__()}, \n"
         string += ']'
 
         return string
@@ -89,62 +75,32 @@ class DevelopmentCardsHand:
     Clase que interactúa con la mano del jugador. Cada jugador solo puede ver su propia mano salvo que se use una carta,
     en cuyo caso los demás jugadores saben la carta usada.
     """
-    hand = []  # Cartas que posee en mano
-
     def __init__(self):
         self.hand = []
-        return
 
-    def add_card(self, card):
-        if isinstance(card, DevelopmentCard):
-            self.hand.append(card)
-        else:
-            return
+    def add_card(self, card: DevelopmentCard):
+        self.hand.append(card)
 
-    def check_hand(self):
+    def check_hand(self): #TODO: por que no de volver el objeto carta y ya?
         """
         Devuelve la mano que tiene el jugador, por si quiere por su cuenta comprobar qué cartas posee para gastar.
         :return: [{'id': int, 'type': string, 'effect': int}...]
         """
-        hand_array = []
-        for card in self.hand:
-            card_obj = {'id': card.id, 'type': card.type, 'effect': card.effect}
-            hand_array.append(card_obj)
-
-        return hand_array
-
-    def select_card_by_array_index(self, index):
-        """
-        Al usar esta función indicas que quieres jugar esta carta pasando el índice de la carta en el array,
-        lo que se la pasa al gameManager, la juega y la borra de la mano.
-        :param index:
-        :return: {'id': int, 'type': string, 'effect': int}
-        """
-        if len(self.hand):
-            card_obj = self.hand[index]
-            return card_obj
-        return
+        return [{'id': card.id, 'type': card.type, 'effect': card.effect} for card in self.hand]
 
     def select_card_by_id(self, id):
         """
         Seleccionas la carta con el ID que se le pase, la pasa al gameManager, la juega y la borra de la mano.
         :param id: (int) Número indicativo de la carta.
         """
+        # return next((card for card in self.hand if card.id == id), None) # alternativa
         for card in self.hand:
             if card.id == id:
-                card_obj = card
-                return card_obj
-
-        return
+                return card
 
     def delete_card(self, id):
         """
         Borra la carta con la ID que se le pase.
         :param id: (int) Número indicativo de la carta.
         """
-        rest_of_hand = []
-        for card in self.hand:
-            if card.id != id:
-                rest_of_hand.append(card)
-        self.hand = rest_of_hand
-        return
+        self.hand = list(filter(lambda card: card.id != id, self.hand))
