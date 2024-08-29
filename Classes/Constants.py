@@ -1,3 +1,5 @@
+from collections import namedtuple
+
 class MaterialConstants:
     """
     Constantes para facilitar la legibilidad al trabajar con materiales
@@ -74,3 +76,10 @@ class DevelopmentCardConstants:
 
     def __init__(self):
         return
+
+BuildMaterialsConstants = {
+    BuildConstants.TOWN: (1, 0, 1, 1, 1),
+    BuildConstants.CITY: (2, 3, 0, 0, 0),
+    BuildConstants.ROAD: (0, 0, 1, 1, 0),
+    BuildConstants.CARD: (1, 1, 0, 0, 1)
+}
