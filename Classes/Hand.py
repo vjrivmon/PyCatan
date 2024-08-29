@@ -17,10 +17,6 @@ class Hand:
         :param amount: (int) cantidad del recurso a añadir.
         :return: None
         """
-        # si es un entero lo convertimos en una lista
-        if isinstance(resource_id, int):
-            resource_id = [resource_id]
-
         materials = Materials.from_ids(resource_id, amount)
         materials = materials + self.resources
         self.resources = materials.replace_negative()
