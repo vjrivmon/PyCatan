@@ -3,6 +3,9 @@ from Classes.Constants import MaterialConstants as mc
 from Classes.Constants import BuildConstants as bc
 from Classes.Constants import BuildMaterialsConstants as bmc
 
+import operator as op
+
+
 class Materials(NamedTuple):
     """
     Clase que representa los materiales. Se usa tanto en la mano de los jugadores como en las ofertas
@@ -31,7 +34,7 @@ class Materials(NamedTuple):
         return cls.from_iterable(bmc[building])
 
     # utilidades #####
-    def non_negative(self):
+    def remove_negative(self):
         return Materials(*[0 if n < 0 else n for n in self])
 
     def is_empty(self):
@@ -49,23 +52,7 @@ class Materials(NamedTuple):
     def remove_from_id(self, material_constant, amount):
         return self.add_from_id(material_constant, -amount)
 
-    # adders #####
-    def add_cereal(self, amount):
-        return self.add_from_id(mc.CEREAL, amount)
-
-    def add_mineral(self, amount):
-        return self.add_from_id(mc.MINERAL, amount)
-
-    def add_clay(self, amount):
-        return self.add_from_id(mc.CLAY, amount)
-
-    def add_wood(self, amount):
-        return self.add_from_id(mc.WOOD, amount)
-
-    def add_wool(self, amount):
-        return self.add_from_id(mc.WOOL, amount)
-    
-    def has_this_more_materials(self, materials):
+    def has_this_more_materials(self, materials): #TODO: añadir tipos
         """
         Si le llega otra clase Materials() comprobará si hay más o igual materiales que los que hay en el parámetro y
         si le llega un string con lo que se quiere construir comprobará si tiene suficiente material para hacerlo.
@@ -75,23 +62,8 @@ class Materials(NamedTuple):
         if isinstance(materials, str):
             materials = Materials.from_building(materials)
             
-        if isinstance(materials, Materials):
-            return not (self - materials).check_negative()
-        else:
-            return False
-        
-    def __sub__(self, other):
-        return Materials(*[self[i] - other[i] for i in range(5)])
+        return all(materials <= self)
     
-    def __add__(self, other):
-        return Materials(*[self[i] + other[i] for i in range(5)])
-    
-    def __mul__(self, other):
-        return Materials(*[self[i] * other for i in range(5)])
-    
-    def __rmul__(self, other):
-        return self.__mul__(other)
-
     def __str__(self):
         material_icons = ["🥖", "🪨", "🧱", "🪵", "🧶"]
         material_tuples = list(zip(self, material_icons))
@@ -104,3 +76,32 @@ class Materials(NamedTuple):
 
     def __repr__(self):
         return 'Materials()'
+
+    # aqui hay demasiado codigo repetido, debe haber una mejor forma
+    def __eq__(self, other):
+        return map(op.eq, self, other)
+
+    def __lt__(self, other):
+        return map(op.lt, self, other)
+
+    def __le__(self, other):
+        return map(op.le, self, other)
+
+    def __gt__(self, other):
+        return map(op.gt, self, other)
+        
+    def __ge__(self, other):
+        return map(op.ge, self, other)
+
+    def __sub__(self, other):
+        return Materials(*map(op.sub, self, other))
+    
+    def __add__(self, other):
+        return Materials(*map(op.add, self, other))
+    
+    def __mul__(self, other):
+        return Materials(*map(op.mul, self, other))
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
