@@ -28,12 +28,8 @@ class DevelopmentDeck:
             self.deck[i].id = i
 
 
-    def shuffle_deck(self): # En que momento se ha decidido implementar shuffle. Lo dejo así porque rompe test de intetgración
-        current_index = len(self.deck)
-        while current_index != 0:
-            random_index = math.floor(random.random() * current_index) # randint par quien?
-            current_index -= 1
-            (self.deck[current_index], self.deck[random_index]) = (self.deck[random_index], self.deck[current_index])
+    def shuffle_deck(self): # En que momento se ha decidido reimplementar shuffle. Lo dejo así porque rompe test de intetgración
+        random.shuffle(self.deck)
 
     def draw_card(self):
         if len(self.deck):
