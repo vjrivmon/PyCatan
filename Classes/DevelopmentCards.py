@@ -13,7 +13,6 @@ class DevelopmentDeck:
     # Las cartas que dan puntos de victoria (idealmente) se mantienen en secreto hasta que se pueda ganar con ellas
     # NO se puede jugar una carta que se acaba de comprar SALVO que sea una que te lleve a 10 puntos de victoria
     # Se pueden jugar en cualquier momento de una ronda, incluso antes de tirar el dado (en cualquier on_... del agente)
-    current_index = 0  # La carta que se va a robar si alguien construye una
 
     def __init__(self):
         # cuidado, [objeto] * n crea n referencias al mismo objeto
@@ -24,11 +23,12 @@ class DevelopmentDeck:
         self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT) for i in range(2)]
 
         random.shuffle(self.deck)
-        
+
 
     def draw_card(self):
         if len(self.deck):
             return self.deck.pop(0)
+
 
     def __str__(self):
         string = '' 
@@ -38,10 +38,9 @@ class DevelopmentDeck:
         return string
 
 
-class DevelopmentCard:
+class DevelopmentCard: # de verdad hace falta type y effect?
     """
     Carta de desarrollo
-    :param id: Número que identifica la carta.
     :param type: Punto de victoria, soldado, o carta de progreso (monopolio, año de la cosecha,
     construir 2 carreteras gratis).
     :param effect: En función del número que tiene, hace una cosa u otra.

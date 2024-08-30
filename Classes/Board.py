@@ -25,9 +25,33 @@ class Board:
 
               Representa una ficha de terreno del tablero. Poseen información de los nodos con
                  los que hacen contacto, si posee al ladrón actualmente y su probabilidad de salir
+
+    La asignación de los ids de nodo y terreno se ha llevado a cabo por filas, de izquierda a derecha y de arriba a abajo.
     """
 
     def __init__(self, nodes=None, terrain=None):
+        self.contacting_nodes = {
+            0: [0, 1, 2, 8, 9, 10],
+            1: [2, 3, 4, 10, 11, 12],
+            2: [4, 5, 6, 12, 13, 14],
+            3: [7, 8, 9, 17, 18, 19],
+            4: [9, 10, 11, 19, 20, 21],
+            5: [11, 12, 13, 21, 22, 23],
+            6: [13, 14, 15, 23, 24, 25],
+            7: [16, 17, 18, 27, 28, 29],
+            8: [18, 19, 20, 29, 30, 31],
+            9: [20, 21, 22, 31, 32, 33],
+            10: [22, 23, 24, 33, 34, 35],
+            11: [24, 25, 26, 35, 36, 37],
+            12: [28, 29, 30, 38, 39, 40],
+            13: [30, 31, 32, 40, 41, 42],
+            14: [32, 33, 34, 42, 43, 44],
+            15: [34, 35, 36, 44, 45, 46],
+            16: [39, 40, 41, 47, 48, 49],
+            17: [41, 42, 43, 49, 50, 51],
+            18: [43, 44, 45, 51, 52, 53],
+        }
+
         self.nodes = []  # 0 a 53
         self.terrain = []  # 0 a 18
         if nodes is None:
@@ -69,6 +93,8 @@ class Board:
         else:
             self.terrain = terrain
 
+
+
         return
 
     def visualize_board(self):
@@ -103,49 +129,8 @@ class Board:
         :param node_id: El ID de la pieza del terreno actual
         :return: [terrain_id, terrain_id, terrain_id, terrain_id, terrain_id, terrain_id]
         """
-
-        contacting_terrain = []
-
-        if 0 <= node_id <= 2 or 8 <= node_id <= 10:
-            contacting_terrain.append(0)
-        if 2 <= node_id <= 4 or 10 <= node_id <= 12:
-            contacting_terrain.append(1)
-        if 4 <= node_id <= 6 or 12 <= node_id <= 14:
-            contacting_terrain.append(2)
-        if 7 <= node_id <= 9 or 17 <= node_id <= 19:
-            contacting_terrain.append(3)
-        if 9 <= node_id <= 11 or 19 <= node_id <= 21:
-            contacting_terrain.append(4)
-        if 11 <= node_id <= 13 or 21 <= node_id <= 23:
-            contacting_terrain.append(5)
-        if 13 <= node_id <= 15 or 23 <= node_id <= 25:
-            contacting_terrain.append(6)
-        if 16 <= node_id <= 18 or 27 <= node_id <= 29:
-            contacting_terrain.append(7)
-        if 18 <= node_id <= 20 or 29 <= node_id <= 31:
-            contacting_terrain.append(8)
-        if 20 <= node_id <= 22 or 31 <= node_id <= 33:
-            contacting_terrain.append(9)
-        if 22 <= node_id <= 24 or 33 <= node_id <= 35:
-            contacting_terrain.append(10)
-        if 24 <= node_id <= 26 or 35 <= node_id <= 37:
-            contacting_terrain.append(11)
-        if 28 <= node_id <= 30 or 38 <= node_id <= 40:
-            contacting_terrain.append(12)
-        if 30 <= node_id <= 32 or 40 <= node_id <= 42:
-            contacting_terrain.append(13)
-        if 32 <= node_id <= 34 or 42 <= node_id <= 44:
-            contacting_terrain.append(14)
-        if 34 <= node_id <= 36 or 44 <= node_id <= 46:
-            contacting_terrain.append(15)
-        if 39 <= node_id <= 41 or 47 <= node_id <= 49:
-            contacting_terrain.append(16)
-        if 41 <= node_id <= 43 or 49 <= node_id <= 51:
-            contacting_terrain.append(17)
-        if 43 <= node_id <= 45 or 51 <= node_id <= 53:
-            contacting_terrain.append(18)
-
-        return contacting_terrain
+        contact = [terrain_id for terrain_id, nodes in self.contacting_nodes.items() if node_id in nodes]
+        return contact
 
     def __get_contacting_nodes__(self, terrain_id):
         """
