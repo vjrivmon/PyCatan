@@ -35,8 +35,8 @@ class RandomAgent(AgentInterface):
 
     def on_turn_start(self):
         # self.development_cards_hand.add_card(DevelopmentCard(99, 0, 0))
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
         return None
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
@@ -51,13 +51,13 @@ class RandomAgent(AgentInterface):
         return {'terrain': terrain, 'player': player}
 
     def on_turn_end(self):
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
         return None
 
     def on_commerce_phase(self):
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
 
         answer = random.randint(0, 1)
         if answer:
@@ -90,8 +90,8 @@ class RandomAgent(AgentInterface):
     def on_build_phase(self, board_instance):
         self.board = board_instance
 
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
 
         answer = random.randint(0, 2)
         # Pueblo / carretera

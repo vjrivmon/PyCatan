@@ -17,29 +17,23 @@ class DevelopmentDeck:
 
     def __init__(self):
         # cuidado, [objeto] * n crea n referencias al mismo objeto
-        self.deck = []
-        self.deck += [DevelopmentCard(0, Dcc.KNIGHT, Dcc.KNIGHT_EFFECT) for i in range(14)] # Soldados
-        self.deck += [DevelopmentCard(0, Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT) for i in range(5)] # Puntos de victoria
-        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT) for i in range(2)] # Cartas de progreso
-        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT) for i in range(2)]
-        self.deck += [DevelopmentCard(0, Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT) for i in range(2)]
+        self.deck = [DevelopmentCard(Dcc.KNIGHT, Dcc.KNIGHT_EFFECT) for i in range(14)] # Soldados
+        self.deck += [DevelopmentCard(Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT) for i in range(5)] # Puntos de victoria
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT) for i in range(2)] # Cartas de progreso
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT) for i in range(2)]
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT) for i in range(2)]
 
-        for i in range(len(self.deck)):
-            self.deck[i].id = i
-
-
-    def shuffle_deck(self): # En que momento se ha decidido reimplementar shuffle. Lo dejo así porque rompe test de intetgración
         random.shuffle(self.deck)
+        
 
     def draw_card(self):
         if len(self.deck):
             return self.deck.pop(0)
 
     def __str__(self):
-        string = '[ \n' 
+        string = '' 
         for card in self.deck:
-            string += f"{card.__str__()}, \n"
-        string += ']'
+            string += f" - {card.__str__()}, \n"
 
         return string
 
@@ -53,17 +47,16 @@ class DevelopmentCard:
     :param effect: En función del número que tiene, hace una cosa u otra.
     """
 
-    def __init__(self, id=0, type='', effect=0):
-        self.id = id
+    def __init__(self, type='', effect=0):
         self.type = type
         self.effect = effect
         return
 
     def __str__(self):
-        return "{'id': " + str(self.id) + ", 'type': " + str(self.type) + ", 'effect': " + str(self.effect) + "}"
+        return f"Type: {self.type}, Effect: {self.effect}"
 
     def __to_object__(self):
-        return {'id': self.id, 'type': self.type, 'effect': self.effect}
+        return {'type': self.type, 'effect': self.effect}
 
 
 class DevelopmentCardsHand:
@@ -77,26 +70,16 @@ class DevelopmentCardsHand:
     def add_card(self, card: DevelopmentCard):
         self.hand.append(card)
 
-    def check_hand(self): #TODO: por que no de volver el objeto carta y ya?
+    def select_card(self, idx: int):
         """
-        Devuelve la mano que tiene el jugador, por si quiere por su cuenta comprobar qué cartas posee para gastar.
-        :return: [{'id': int, 'type': string, 'effect': int}...]
+        Seleccionas la carta con el índice que se le pase, la pasa al gameManager, la juega y la borra de la mano.
+        :param idx: (int) Índice de la carta.
         """
-        return [{'id': card.id, 'type': card.type, 'effect': card.effect} for card in self.hand]
+        return self.hand[idx]
 
-    def select_card_by_id(self, id):
-        """
-        Seleccionas la carta con el ID que se le pase, la pasa al gameManager, la juega y la borra de la mano.
-        :param id: (int) Número indicativo de la carta.
-        """
-        # return next((card for card in self.hand if card.id == id), None) # alternativa
-        for card in self.hand:
-            if card.id == id:
-                return card
-
-    def delete_card(self, id):
+    def delete_card(self, card: DevelopmentCard):
         """
         Borra la carta con la ID que se le pase.
         :param id: (int) Número indicativo de la carta.
         """
-        self.hand = list(filter(lambda card: card.id != id, self.hand))
+        self.hand = list(filter(lambda c1: c1 != card, self.hand))

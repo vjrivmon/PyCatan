@@ -26,14 +26,14 @@ class AlexPastorAgent(AgentInterface):
 
     def on_turn_start(self):
         # Si tiene una carta de desarrollo la usa
-        if len(self.development_cards_hand.check_hand()):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand):
+            return self.development_cards_hand.select_card(0)
         return
 
     def on_turn_end(self):
         # Si tiene una carta de desarrollo la usa
-        if len(self.development_cards_hand.check_hand()):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand):
+            return self.development_cards_hand.select_card(0)
         return
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
@@ -57,8 +57,8 @@ class AlexPastorAgent(AgentInterface):
         return {'terrain': terrain_with_thief_id, 'player': -1}
 
     def on_commerce_phase(self):
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
 
         answer = random.randint(0, 1)
         if answer:
@@ -91,8 +91,8 @@ class AlexPastorAgent(AgentInterface):
     def on_build_phase(self, board_instance):
         self.board = board_instance
 
-        if len(self.development_cards_hand.check_hand()) and random.randint(0, 1):
-            return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[0].id)
+        if len(self.development_cards_hand.hand) and random.randint(0, 1):
+            return self.development_cards_hand.select_card(0)
 
         answer = random.randint(0, 2)
         # Pueblo / carretera

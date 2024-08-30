@@ -25,7 +25,6 @@ class GameManager:
 
         self.board = Board()
         self.development_cards_deck = DevelopmentDeck()
-        self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.commerce_manager = CommerceManager()
         self.agent_manager = AgentManager(for_test, agents=agents)
@@ -44,7 +43,6 @@ class GameManager:
 
         self.board = Board()
         self.development_cards_deck = DevelopmentDeck()
-        self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.agent_manager.reset_game_values()
         return
@@ -300,7 +298,7 @@ class GameManager:
                 self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
                     self.agent_manager.players[player_id]['development_cards'].hand
 
-                return {'response': True, 'card_id': card_drawn.id, 'card_type': card_drawn.type,
+                return {'response': True, 'card_type': card_drawn.type,
                         'card_effect': card_drawn.effect}
             else:
                 return {'response': False, 'error_msg': 'Falta de materiales'}
@@ -429,9 +427,9 @@ class GameManager:
         """
         card_obj = {}
 
-        if card.__to_object__() in self.agent_manager.players[player_id]['development_cards'].check_hand():
+        if card in self.agent_manager.players[player_id]['development_cards'].hand:
             if card.type != DevelopmentCardConstants.VICTORY_POINT:
-                self.agent_manager.players[player_id]['development_cards'].delete_card(card.id)  # Borramos la carta
+                self.agent_manager.players[player_id]['development_cards'].delete_card(card)  # Borramos la carta
 
                 self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
                     self.agent_manager.players[player_id]['development_cards'].hand
@@ -624,12 +622,12 @@ class GameManager:
     def check_player_hands(self):
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.agent_manager.players[i]['development_cards'].check_hand())
+            print(self.agent_manager.players[i]['development_cards'].hand)
 
         print('Players: ')
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.agent_manager.players[i]['player'].development_cards_hand.check_hand())
+            print(self.agent_manager.players[i]['player'].development_cards_hand.hand)
 
     def get_turn(self):
         """

@@ -34,13 +34,13 @@ class AdrianHerasAgent(AgentInterface):
 
     def on_turn_start(self):
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
+        if len(self.development_cards_hand.hand):
             # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
+            for i in range(0, len(self.development_cards_hand.hand)):
                 # Si una es un caballero
                 if self.development_cards_hand.hand[i].type == DevelopmentCardConstants.KNIGHT:
                     # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                    return self.development_cards_hand.select_card(i)
         return None
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
@@ -90,13 +90,13 @@ class AdrianHerasAgent(AgentInterface):
 
     def on_turn_end(self):
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
+        if len(self.development_cards_hand.hand):
             # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
+            for i in range(0, len(self.development_cards_hand.hand)):
                 # Si una es un punto de victoria
                 if self.development_cards_hand.hand[i].type == DevelopmentCardConstants.VICTORY_POINT:
                     # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                    return self.development_cards_hand.select_card(i)
         return None
 
     def on_commerce_phase(self):
@@ -105,13 +105,13 @@ class AdrianHerasAgent(AgentInterface):
         """
         # Juega monopolio si ha entregado más de 3 del mismo tipo de material a un jugador en el intercambio
         if self.material_given_more_than_three is not None:
-            if len(self.development_cards_hand.check_hand()):
+            if len(self.development_cards_hand.hand):
                 # Mira todas las cartas
-                for i in range(0, len(self.development_cards_hand.check_hand())):
+                for i in range(0, len(self.development_cards_hand.hand)):
                     # Si una es un punto de monopolio
                     if self.development_cards_hand.hand[i].effect == DevelopmentCardConstants.MONOPOLY_EFFECT:
                         # La juega
-                        return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                        return self.development_cards_hand.select_card(i)
 
         gives = Materials(0,0,0,0,0)
         receives = Materials(0,0,0,0,0)
@@ -205,9 +205,9 @@ class AdrianHerasAgent(AgentInterface):
         self.board = board_instance
 
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
+        if len(self.development_cards_hand.hand):
             # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
+            for i in range(0, len(self.development_cards_hand.hand)):
                 # Comprueba primero de que hay más de 2 carreteras disponibles para construirlas
                 road_possibilities = self.board.valid_road_nodes(self.id)
 
@@ -216,7 +216,7 @@ class AdrianHerasAgent(AgentInterface):
                         (self.development_cards_hand.hand[i].effect == DevelopmentCardConstants.ROAD_BUILDING_EFFECT and
                          len(road_possibilities) > 1)):
                     # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                    return self.development_cards_hand.select_card(i)
 
         if self.hand.resources.has_this_more_materials(BuildConstants.CITY) and self.town_number > 0:
             possibilities = self.board.valid_city_nodes(self.id)
