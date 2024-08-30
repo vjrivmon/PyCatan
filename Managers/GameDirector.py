@@ -8,9 +8,10 @@ class GameDirector:
     Clase que se encarga de dirigir la partida, empezarla y acabarla
     """
 
-    def __init__(self, for_test=False, agents = None):
+    def __init__(self, for_test=False, agents = None, max_rounds=1000):
         self.game_manager = GameManager(for_test, agents)
         self.trace_loader = TraceLoader()
+        self.max_rounds = max_rounds
         return
 
     def reset_game_values(self):
@@ -244,9 +245,12 @@ class GameDirector:
         """
         game_object = {}
         winner = False
-        while not winner:
+        for i in range(self.max_rounds):
+            if i == self.max_rounds-1: print('Game (' + str(game_number) + ') has reached the maximum number of rounds')
             game_object['round_' + str(self.game_manager.get_round())], winner = self.round_start(winner)
             self.game_manager.set_round(self.game_manager.get_round() + 1)
+            if winner:
+                break
 
         if print_outcome:
             print('Game (' + str(game_number) + ') results. Player: VictoryPoints (largest_army) (longest_road)')
