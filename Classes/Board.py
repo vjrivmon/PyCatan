@@ -308,39 +308,36 @@ class Board:
         return {'response': True, 'error_msg': ''}
             
 
-    def move_thief(self, terrain=-1):
+    def move_thief(self, terrain_id):
         """
         Permite mover el ladrón a la casilla de terreno especificada
         Cambia la variable terrain para colocar al ladrón en el terreno correspondiente
         :param terrain: Número que representa un hexágono en el tablero
         :return: {bool, string}. Envía si se ha podido move al ladrón y en caso de no haberse podido el porqué
         """
-        if self.terrain[terrain]['has_thief']:
-            self.terrain[terrain]['has_thief'] = False
-
-            rand_terrain = terrain
-            while rand_terrain == terrain:
+        if self.terrain[terrain_id]['has_thief']: # Yo aqui hacia un raise exception y me quedaba muy agusto
+            
+            # prupuesta:
+            # rand_terrain = random.choice([x for x in range(19) if x != terrain_id])
+            # hay que regenerar tests
+            rand_terrain = terrain_id 
+            while rand_terrain == terrain_id:
                 rand_terrain = random.randint(0, 18)
 
+            self.terrain[terrain_id]['has_thief'] = False
             self.terrain[rand_terrain]['has_thief'] = True
             return {'response': False,
-                    'error_msg': 'No se puede mover al ladrón a la misma casilla',
+                    'error_msg': 'No se puede mover al ladrón a la misma casilla, movido a una casilla aleatoria',
                     'terrain_id': rand_terrain,
-                    'last_thief_terrain': terrain}
-        else:
-            # Quitamos el ladrón del terreno que lo posea
-            last_terrain_id = -1
-            for square in self.terrain:
-                if square['has_thief']:
-                    square['has_thief'] = False
-                    last_terrain_id = square['id']
-                    break
-
-            self.terrain[terrain]['has_thief'] = True
-            return {'response': True,
-                    'error_msg': '',
-                    'terrain_id': terrain,
-                    'last_thief_terrain': last_terrain_id}
+                    'last_thief_terrain': terrain_id}
+        
+        last_terrain = next(filter(lambda square: square['has_thief'], self.terrain)) # buscamos el ladron
+        last_terrain['has_thief'] = False # movemos el ladron
+        self.terrain[terrain_id]['has_thief'] = True
+        return {'response': True,
+                'error_msg': '',
+                'terrain_id': terrain_id,
+                'last_thief_terrain': last_terrain['id']}
 
     def empty_adjacent_nodes(self, node_id):
         """
@@ -385,7 +382,7 @@ class Board:
         return [node['id'] for node in self.nodes if valid_city_node(node)]
 
 
-    def valid_road_nodes(self, player_id):
+    def valid_road_nodes(self, player_id): # TODO
         """
         Devuelve un array de diccionarios con los nodos iniciales y finales en los que se puede hacer una carretera
         :param player_id:
@@ -403,20 +400,13 @@ class Board:
                 # al mirar el adyacente verá que puede construir y dejará hacer la carretera.
                 # Sin embargo, esto evitará que se pueda atravesar pueblos de otros jugadores.
 
-                # if (node['player'] == player_id or node['player'] == -1) \
-                #         and (self.nodes[adjacent_node_id] == player_id or self.nodes[adjacent_node_id] == -1):
-                if self.nodes[adjacent_node_id]['player'] == player_id or self.nodes[adjacent_node_id]['player'] == -1:
+                if self.nodes[adjacent_node_id]['player'] in [player_id, -1]:
 
                     # Por cada carretera que haya en el nodo adyacente
                     for road in self.nodes[adjacent_node_id]['roads']:
                         # Si la carretera no es una carretera de vuelta
                         if road['node_id'] != node['id']:
-                            if road['player_id'] == player_id:
-                                # En caso de que sea legal Y no sea una carretera de vuelta, se permite construir
-                                allowed_to_build = True
-                            # En caso de que no sea legal, no se permite construir
-                            else:
-                                allowed_to_build = False
+                            allowed_to_build = road['player_id'] == player_id
                         # En caso de haber una carretera de vuelta, independientemente de qué jugador,
                         # se corta inmediatamente y se prohíbe construir
                         else:
@@ -427,15 +417,16 @@ class Board:
 
         return valid_nodes
 
+
     def valid_starting_nodes(self):
         """
         Devuelve un array con el ID de todos los nodos viables para el posicionamiento inicial.
         No necesita número del jugador porque es cualquier nodo que no tenga un jugador en él y no sea costero
         :return: [int]
         """
-
         valid_node = lambda n: n['player'] == -1 and self.empty_adjacent_nodes(n['id']) and not self.is_coastal_node(n['id'])
         return [node['id'] for node in self.nodes if valid_node(node)]
+
 
     def check_for_player_harbors(self, player, material_harbor=None):
         """
