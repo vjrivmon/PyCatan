@@ -30,6 +30,7 @@ class Board:
     """
 
     def __init__(self, nodes=None, terrain=None):
+        # TODO: esto se deberia de poder calcular automaticamente
         self.contacting_nodes = {
             0: [0, 1, 2, 8, 9, 10],
             1: [2, 3, 4, 10, 11, 12],
@@ -52,11 +53,38 @@ class Board:
             18: [43, 44, 45, 51, 52, 53],
         }
 
-        self.nodes = []  # 0 a 53
-        self.terrain = []  # 0 a 18
-        if nodes is None:
-            i = 0
-            while i < 54:
+        self.probabilities = {
+            0: 11,      1: 12,      2: 9,       3: 4,       4: 6,
+            5: 5,       6: 10,      7: 7,       8: 3,       9: 11,
+            10: 4,      11: 8,      12: 8,      13: 10,     14: 9,
+            15: 3,      16: 5,      17: 2,      18: 6
+        }
+
+        self.terrain_types = {
+            0: TerrainConstants.WOOD, 1: TerrainConstants.WOOL, 2: TerrainConstants.CEREAL,
+            3: TerrainConstants.CLAY, 4: TerrainConstants.MINERAL, 5: TerrainConstants.CLAY,
+            6: TerrainConstants.WOOL, 7: TerrainConstants.DESERT, 8: TerrainConstants.WOOD,
+            9: TerrainConstants.CEREAL, 10: TerrainConstants.WOOD, 11: TerrainConstants.CEREAL,
+            12: TerrainConstants.CLAY, 13: TerrainConstants.WOOL, 14: TerrainConstants.WOOL,
+            15: TerrainConstants.MINERAL, 16: TerrainConstants.MINERAL, 17: TerrainConstants.CEREAL,
+            18: TerrainConstants.WOOD
+        }
+
+        self.harbors = {
+            0: HarborConstants.WOOD, 1: HarborConstants.WOOD,
+            3: HarborConstants.CEREAL, 4: HarborConstants.CEREAL,
+            14: HarborConstants.CLAY, 15: HarborConstants.CLAY,
+            28: HarborConstants.MINERAL, 38: HarborConstants.MINERAL,
+            50: HarborConstants.WOOL, 51: HarborConstants.WOOL,
+            7: HarborConstants.ALL, 17: HarborConstants.ALL, 26: HarborConstants.ALL, 37: HarborConstants.ALL,
+            45: HarborConstants.ALL, 46: HarborConstants.ALL, 47: HarborConstants.ALL, 48: HarborConstants.ALL
+        }
+
+        if nodes:
+            self.nodes = nodes
+        else:
+            self.nodes = []  # 0 a 53
+            for i in range(54):
                 self.nodes.append({
                     "id": i,
                     "adjacent": self.__get_adjacent_nodes__(i),
@@ -66,59 +94,43 @@ class Board:
                     "player": -1,
                     "contacting_terrain": self.__get_contacting_terrain__(i),
                 })
-                i += 1
-        else:
-            self.nodes = nodes
-        if terrain is None:
-            j = 0
-            while j < 19:
-                probability = self.__get_probability__(j)
-                if probability != 7:
-                    self.terrain.append({
-                        "id": j,
-                        "has_thief": False,
-                        "probability": probability,
-                        "terrain_type": self.__get_terrain_type__(j),
-                        "contacting_nodes": self.__get_contacting_nodes__(j),
-                    })
-                else:
-                    self.terrain.append({
-                        "id": j,
-                        "has_thief": True,
-                        "probability": 0,
-                        "terrain_type": self.__get_terrain_type__(j),
-                        "contacting_nodes": self.__get_contacting_nodes__(j),
-                    })
-                j += 1
-        else:
+
+        if terrain:
             self.terrain = terrain
+        else:
+            self.terrain = []  # 0 a 18
+            for j in range(19):
+                probability = self.__get_probability__(j)
+                has_thief = probability == 7
+                self.terrain.append({
+                    "id": j,
+                    "has_thief": has_thief,
+                    "probability": probability if not has_thief else 0,
+                    "terrain_type": self.__get_terrain_type__(j),
+                    "contacting_nodes": self.__get_contacting_nodes__(j),
+                })
 
 
 
         return
 
     def visualize_board(self):
-        # Código para comprobar que el tablero se inicializa con los adyacentes correctos
         print('Nodos:')
-
         for node in self.nodes:
             print('ID: ' + str(node['id']))
             print('Adjacent: ' + str(node['adjacent']))
             print('Harbor: ' + str(node['harbor']))
             print('Player: ' + str(node['player']))
             print('Roads: ' + str(node['roads']))
-            print('---------------------\n')
+            print('---\n')
 
-        # Código para comprobar que el tablero se inicializa con el terreno correcto
         print('Terreno:')
-        m = 0
-        while m < 19:
-            print(self.terrain[m]['id'])
-            print(self.terrain[m]['probability'])
-            print(self.terrain[m]['contacting_nodes'])
-            print(self.terrain[m]['terrain_type'])
-            print('#######################\n')
-            m += 1
+        for terrain in self.terrain:
+            print(terrain[m]['id'])
+            print(terrain[m]['probability'])
+            print(terrain[m]['contacting_nodes'])
+            print(terrain[m]['terrain_type'])
+            print('---\n')
 
     def get_board(self):
         return self.__class__()
@@ -138,121 +150,13 @@ class Board:
         :param terrain_id: El ID de la pieza del terreno actual
         :return: [node_id, node_id, node_id, node_id, node_id, node_id]
         """
-
-        # Si empiezas en la esquina superior izquierda.
-        #   Nodos contactos son nodo +1, +2, (+8, +9, +10); +1, +2, (+10, +11, +12); +1, +2, (+11, +12, +13);
-        contacting_nodes = []
-        starting_node = -999
-        bottom_row_sum = -999
-
-        if 0 <= terrain_id < 3:
-            bottom_row_sum = 8
-            if terrain_id == 0:
-                starting_node = 0
-            elif terrain_id == 1:
-                starting_node = 2
-            elif terrain_id == 2:
-                starting_node = 4
-
-        elif 3 <= terrain_id < 7:
-            bottom_row_sum = 10
-            if terrain_id == 3:
-                starting_node = 7
-            elif terrain_id == 4:
-                starting_node = 9
-            elif terrain_id == 5:
-                starting_node = 11
-            elif terrain_id == 6:
-                starting_node = 13
-
-        elif 7 <= terrain_id < 12:
-            bottom_row_sum = 11
-            if terrain_id == 7:
-                starting_node = 16
-            elif terrain_id == 8:
-                starting_node = 18
-            elif terrain_id == 9:
-                starting_node = 20
-            elif terrain_id == 10:
-                starting_node = 22
-            elif terrain_id == 11:
-                starting_node = 24
-
-        elif 12 <= terrain_id < 16:
-            bottom_row_sum = 10
-            if terrain_id == 12:
-                starting_node = 28
-            elif terrain_id == 13:
-                starting_node = 30
-            elif terrain_id == 14:
-                starting_node = 32
-            elif terrain_id == 15:
-                starting_node = 34
-
-        elif 16 <= terrain_id < 19:
-            bottom_row_sum = 8
-            if terrain_id == 16:
-                starting_node = 39
-            elif terrain_id == 17:
-                starting_node = 41
-            elif terrain_id == 18:
-                starting_node = 43
-
-        contacting_nodes.append(starting_node)
-        contacting_nodes.append(starting_node + 1)
-        contacting_nodes.append(starting_node + 2)
-        contacting_nodes.append(starting_node + bottom_row_sum)
-        contacting_nodes.append(starting_node + bottom_row_sum + 1)
-        contacting_nodes.append(starting_node + bottom_row_sum + 2)
-
-        return contacting_nodes
+        return self.contacting_nodes.get(terrain_id, TerrainConstants.DESERT)
 
     def __get_probability__(self, terrain_id):
-        # Establecer el tablero con las probabilidades por defecto del mapa de ejemplo de Catán
-        if terrain_id == 17:
-            return 2
-        elif terrain_id == 8 or terrain_id == 15:
-            return 3
-        elif terrain_id == 3 or terrain_id == 10:
-            return 4
-        elif terrain_id == 5 or terrain_id == 16:
-            return 5
-        elif terrain_id == 4 or terrain_id == 18:
-            return 6
-        elif terrain_id == 7:
-            return 7
-        elif terrain_id == 11 or terrain_id == 12:
-            return 8
-        elif terrain_id == 2 or terrain_id == 14:
-            return 9
-        elif terrain_id == 6 or terrain_id == 13:
-            return 10
-        elif terrain_id == 0 or terrain_id == 9:
-            return 11
-        elif terrain_id == 1:
-            return 12
-        else:
-            return 0
+        return self.probabilities[terrain_id]
 
     def __get_terrain_type__(self, terrain_id):
-        """
-        Establecer el tablero con el tipo de terreno por defecto del mapa de ejemplo de Catán
-        :param terrain_id: int
-        :return: int
-        """
-        if terrain_id == 0 or terrain_id == 8 or terrain_id == 10 or terrain_id == 18:
-            return TerrainConstants.WOOD
-        elif terrain_id == 1 or terrain_id == 6 or terrain_id == 13 or terrain_id == 14:
-            return TerrainConstants.WOOL
-        elif terrain_id == 2 or terrain_id == 9 or terrain_id == 11 or terrain_id == 17:
-            return TerrainConstants.CEREAL
-        elif terrain_id == 3 or terrain_id == 5 or terrain_id == 12:
-            return TerrainConstants.CLAY
-        elif terrain_id == 4 or terrain_id == 15 or terrain_id == 16:
-            return TerrainConstants.MINERAL
-        else:
-            # En el caso de ser 7 o cualquier ID inexistente le asigna un desierto
-            return TerrainConstants.DESERT
+        return self.terrain_types[terrain_id]
 
     def __get_adjacent_nodes__(self, node_id):
         """
@@ -327,21 +231,7 @@ class Board:
         return adjacent_nodes
 
     def __get_harbors__(self, node_id):
-        if node_id == 0 or node_id == 1:
-            return HarborConstants.WOOD
-        elif node_id == 3 or node_id == 4:
-            return HarborConstants.CEREAL
-        elif node_id == 14 or node_id == 15:
-            return HarborConstants.CLAY
-        elif node_id == 28 or node_id == 38:
-            return HarborConstants.MINERAL
-        elif node_id == 50 or node_id == 51:
-            return HarborConstants.WOOL
-        elif (node_id == 7 or node_id == 17 or node_id == 26 or node_id == 37 or
-              node_id == 45 or node_id == 46 or node_id == 47 or node_id == 48):
-            return HarborConstants.ALL
-        else:
-            return HarborConstants.NONE
+        return self.harbors.get(node_id, HarborConstants.NONE)
 
     def build_town(self, player, node=-1):
         """
