@@ -82,3 +82,11 @@ class DevelopmentCardsHand:
         :param id: (int) Número indicativo de la carta.
         """
         self.hand = list(filter(lambda c1: c1 != card, self.hand))
+
+    def find_card_by_effect(self, effect: int):
+        """
+        Busca una carta en la mano del jugador por su efecto.
+        :param effect: (int) Efecto de la carta.
+        :return: List(DevelopmentCard) Carta con el efecto buscado.
+        """
+        return list(filter(lambda c1: c1.effect == effect, self.hand))

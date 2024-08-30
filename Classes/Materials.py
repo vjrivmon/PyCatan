@@ -49,7 +49,7 @@ class Materials(NamedTuple):
     def remove_from_id(self, material_constant, amount):
         return self.add_from_id(material_constant, -amount)
 
-    def has_this_more_materials(self, materials): #TODO: añadir tipos
+    def has_more(self, materials): #TODO: añadir tipos
         """
         Si le llega otra clase Materials() comprobará si hay más o igual materiales que los que hay en el parámetro y
         si le llega un string con lo que se quiere construir comprobará si tiene suficiente material para hacerlo.

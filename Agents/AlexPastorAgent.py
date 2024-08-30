@@ -15,11 +15,11 @@ class AlexPastorAgent(AgentInterface):
     def __init__(self, agent_id):
         super().__init__(agent_id)
 
-    def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
+    def on_trade_offer(self, board_instance, offer=TradeOffer(), player_id=int):
         """
         Hay que tener en cuenta que gives se refiere a los materiales que da el jugador que hace la oferta,
          luego en este caso es lo que recibe
-        :param incoming_trade_offer:
+        :param offer:
         :return:
         """
         return True
@@ -96,7 +96,7 @@ class AlexPastorAgent(AgentInterface):
 
         answer = random.randint(0, 2)
         # Pueblo / carretera
-        if self.hand.resources.has_this_more_materials(BuildConstants.TOWN) and answer == 0:
+        if self.hand.resources.has_more(BuildConstants.TOWN) and answer == 0:
             answer = random.randint(0, 1)
             # Elegimos aleatoriamente si hacer un pueblo o una carretera
             if answer:
@@ -113,14 +113,14 @@ class AlexPastorAgent(AgentInterface):
                             'road_to': valid_nodes[road_node]['finishing_node']}
 
         # Ciudad
-        elif self.hand.resources.has_this_more_materials(BuildConstants.CITY) and answer == 1:
+        elif self.hand.resources.has_more(BuildConstants.CITY) and answer == 1:
             valid_nodes = self.board.valid_city_nodes(self.id)
             if len(valid_nodes):
                 city_node = random.randint(0, len(valid_nodes) - 1)
                 return {'building': BuildConstants.CITY, 'node_id': valid_nodes[city_node]}
 
         # Carta de desarrollo
-        elif self.hand.resources.has_this_more_materials(BuildConstants.CARD) and answer == 2:
+        elif self.hand.resources.has_more(BuildConstants.CARD) and answer == 2:
             return {'building': BuildConstants.CARD}
 
         return None
