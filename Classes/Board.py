@@ -80,6 +80,8 @@ class Board:
             45: HarborConstants.ALL, 46: HarborConstants.ALL, 47: HarborConstants.ALL, 48: HarborConstants.ALL
         }
 
+        self.coastal_nodes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 25, 26, 27, 28, 36, 37, 38, 39, 45, 46, 47, 48, 49, 50, 51, 52, 53]
+
         if nodes:
             self.nodes = nodes
         else:
@@ -158,7 +160,7 @@ class Board:
     def __get_terrain_type__(self, terrain_id):
         return self.terrain_types[terrain_id]
 
-    def __get_adjacent_nodes__(self, node_id):
+    def __get_adjacent_nodes__(self, node_id): #TODO
         """
         Función que obtiene los nodos adyacentes de manera automática
         :param node_id: Id del nodo del que se quieren los ID de los nodos adyacentes
@@ -233,32 +235,28 @@ class Board:
     def __get_harbors__(self, node_id):
         return self.harbors.get(node_id, HarborConstants.NONE)
 
-    def build_town(self, player, node=-1):
+    def build_town(self, player: int, node: int =-1):
         """
-        Permite construir un pueblo por el jugador especificado en el cruce escrito
-        Cambia la variable nodes para colocar un pueblo en ello
-        :param player: Número que representa al jugador
-        :param node: Número que representa un nodo en el tablero
+        Construye un pueblo.
+        :param player: id del jugador.
+        :param node: id del nodo.
         :return: {bool, string}. Devuelve si se ha podido o no construir el poblado, y en caso de no el porqué
         """
-        if self.nodes[node]['player'] == -1:
-            can_build = False
-            for roads in self.nodes[node]['roads']:
-                if roads['player_id'] == player:
-                    can_build = True
-
-            if not self.adjacent_nodes_dont_have_towns(node):
-                return {'response': False, 'error_msg': 'Hay un pueblo o ciudad muy cercano al nodo'}
-            if can_build:
-                self.nodes[node]['player'] = player
-                self.nodes[node]['has_city'] = False
-                return {'response': True, 'error_msg': ''}
-            else:
-                return {'response': False,
-                        'error_msg': 'Debes poseer una carretera hasta el nodo para poder construir un pueblo'}
-        else:
+        if self.nodes[node]['player'] != -1:
             return {'response': False, 'error_msg': 'No se puede construir en un nodo que le pertenece a otro jugador'}
+        
+        if not self.empty_adjacent_nodes(node):
+            return {'response': False, 'error_msg': 'Hay un pueblo o ciudad muy cercano al nodo'}
 
+        can_build = any([road['player_id'] == player for road in self.nodes[node]['roads']])
+        if not can_build:
+            return {'response': False, 'error_msg': 'Debes poseer una carretera hasta el nodo para poder construir un pueblo'}
+        
+        self.nodes[node]['player'] = player
+        self.nodes[node]['has_city'] = False
+        return {'response': True, 'error_msg': ''}
+            
+            
     def build_city(self, player, node=-1):
         """
         Permite construir una ciudad por el jugador especificado en el cruce escrito
@@ -267,56 +265,48 @@ class Board:
         :param node: Número que representa un nodo en el tablero
         :return: {bool, string}. Envía si se ha podido construir la ciudad y en caso de no haberse podido el porqué
         """
-        if self.nodes[node]['player'] == player:
-            if self.nodes[node]['has_city']:
-                return {'response': False, 'error_msg': 'Ya hay una ciudad tuya en el nodo'}
-            # self.nodes[node]['player'] = player
-            self.nodes[node]['has_city'] = True
-            return {'response': True, 'error_msg': ''}
-        elif self.nodes[node]['player'] == -1:
-            return {'response': False, 'error_msg': 'Primero debe construirse un poblado'}
-        else:
+        if self.nodes[node]['player'] != player:
             return {'response': False, 'error_msg': 'Ya posee el nodo otro jugador'}
+        
+        if self.nodes[node]['player'] == -1:
+            return {'response': False, 'error_msg': 'Primero debe construirse un poblado'}
 
-    def build_road(self, player, starting_node=-1, finishing_node=-1):
+        if self.nodes[node]['has_city']:
+            return {'response': False, 'error_msg': 'Ya hay una ciudad tuya en el nodo'}
+        
+        self.nodes[node]['has_city'] = True
+        return {'response': True, 'error_msg': ''}
+            
+
+
+    def build_road(self, player, start=-1, end=-1):
         """
         Permite construir una carretera por el jugador especificado en la carretera especificada
         Cambia la variable roads para colocar una carretera del jugador designado en ella
         :param player: Número que representa al jugador
-        :param starting_node: Nodo desde el que se inicia la carretera
+        :param start: Nodo desde el que se inicia la carretera
         :param finishing_node: Nodo al que llega la carretera. Debe ser adyacente
         :return: {bool, string}. Envía si se ha podido construir la carretera y en caso de no haberse podido el porqué
         """
-        can_build = False
-        # Comprueba si ya había una carretera puesta que le pertenezca al jugador
-        for road in self.nodes[starting_node]['roads']:
-            if road['node_id'] == finishing_node:
-                # Dejamos de mirar si ya hay una carretera hacia el nodo final
-                return {'response': False, 'error_msg': 'Ya hay una carretera aquí'}
-            if (road['player_id'] == player and
-                    (self.nodes[starting_node]['player'] == -1 or self.nodes[starting_node]['player'] == player)):
-                can_build = True
+        # Comprobamos si ya existe una carretera. Dado que las carreteras se registran en
+        # ambas direcciones (como se puede ver al final de la función), solo es necesario
+        # comprobar una de las dos direcciones
+        already_built = any([road['node_id'] == end for road in self.nodes[start]['roads']])
+        if already_built:
+            return {'response': False, 'error_msg': 'Ya hay una carretera aquí'}
 
-        for road in self.nodes[finishing_node]['roads']:
-            if road['node_id'] == starting_node:
-                # Dejamos de mirar si ya hay una carretera hacia el nodo final
-                return {'response': False, 'error_msg': 'Ya hay una carretera aquí'}
-            if road['player_id'] == player:
-                can_build = True
+        # comprobamos si el jugador se puede conectar a la carretera, ya sea mediante otra carretera o
+        # una ciudad o pueblo
+        conected_road = any([road['player_id'] in [player] for road in self.nodes[start]['roads']])
+        player_owns_node = self.nodes[start]['player'] == player
+        if not (conected_road or player_owns_node):
+            return {'response': False, 'error_msg': 'No puedes hacer una carretera aquí,' +
+                        ' no hay una carretera, ciudad o pueblo adyacente que te pertenezca.'}
 
-        if self.nodes[starting_node]['player'] == player:
-            can_build = True
-
-        # Si le pertenece el nodo inicial o tiene una carretera, deja construir
-        if can_build:
-            self.nodes[starting_node]['roads'].append({'player_id': player, 'node_id': finishing_node})
-            self.nodes[finishing_node]['roads'].append({'player_id': player, 'node_id': starting_node})
-
-            return {'response': True, 'error_msg': ''}
-        else:
-            return {'response': False,
-                    'error_msg': 'No puedes hacer una carretera aquí,' +
-                                 ' no hay una carretera o nodo adyacente que te pertenezca'}
+        self.nodes[start]['roads'].append({'player_id': player, 'node_id': end})
+        self.nodes[end]['roads'].append({'player_id': player, 'node_id': start})
+        return {'response': True, 'error_msg': ''}
+            
 
     def move_thief(self, terrain=-1):
         """
@@ -352,7 +342,7 @@ class Board:
                     'terrain_id': terrain,
                     'last_thief_terrain': last_terrain_id}
 
-    def adjacent_nodes_dont_have_towns(self, node_id):
+    def empty_adjacent_nodes(self, node_id):
         """
         Comprueba si los nodos a una casilla de distancia del node_id tienen pueblo o ciudad
         :param node_id:
@@ -363,13 +353,8 @@ class Board:
                 return False
         return True
 
-    def is_it_a_coastal_node(self, node_id):
-        coastal_nodes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 25, 26, 27, 28, 36, 37, 38, 39, 45, 46, 47, 48, 49,
-                         50, 51, 52, 53]
-        if node_id in coastal_nodes:
-            return True
-        else:
-            return False
+    def is_coastal_node(self, node_id):
+        return node_id in self.coastal_nodes
 
     def valid_town_nodes(self, player_id):
         """
@@ -381,10 +366,12 @@ class Board:
         valid_nodes = []
         for node in self.nodes:
             for road in node['roads']:
-                if (road['player_id'] == player_id
-                        and self.adjacent_nodes_dont_have_towns(node['id'])
-                        and node['player'] == -1
-                        and node['id'] not in valid_nodes):
+                if (
+                    road['player_id'] == player_id and
+                    self.empty_adjacent_nodes(node['id']) and
+                    node['player'] == -1 and
+                    node['id'] not in valid_nodes
+                ):
                     valid_nodes.append(node['id'])
         return valid_nodes
 
@@ -394,11 +381,9 @@ class Board:
         :param player_id: int
         :return: [int...]
         """
-        valid_nodes = []
-        for node in self.nodes:
-            if node['player'] == player_id and not node['has_city']:
-                valid_nodes.append(node['id'])
-        return valid_nodes
+        valid_city_node = lambda node: node['player'] == player_id and node['has_city'] == False
+        return [node['id'] for node in self.nodes if valid_city_node(node)]
+
 
     def valid_road_nodes(self, player_id):
         """
@@ -449,14 +434,8 @@ class Board:
         :return: [int]
         """
 
-        valid_nodes = []
-        for node in self.nodes:
-            if (node['player'] == -1 and
-                    self.adjacent_nodes_dont_have_towns(node['id']) and
-                    not self.is_it_a_coastal_node(node['id'])):
-                valid_nodes.append(node['id'])
-
-        return valid_nodes
+        valid_node = lambda n: n['player'] == -1 and self.empty_adjacent_nodes(n['id']) and not self.is_coastal_node(n['id'])
+        return [node['id'] for node in self.nodes if valid_node(node)]
 
     def check_for_player_harbors(self, player, material_harbor=None):
         """
@@ -465,26 +444,19 @@ class Board:
         :param material_harbor: int/None
         :return: int
         """
-        harbor_3_1_nodes = [7, 17, 26, 37, 45, 46, 47, 48]
+        # create the inverted dictionary of harbors: {harbor: [nodes...]}
+        inverted_harbors = {harbor: [] for harbor in self.harbors.values()}
+        for node, harbor in self.harbors.items():
+                inverted_harbors[harbor].append(node)
 
-        if material_harbor == MaterialConstants.CEREAL:
-            if self.nodes[3]['player'] == player or self.nodes[4]['player'] == player:
-                return HarborConstants.CEREAL
-        elif material_harbor == MaterialConstants.MINERAL:
-            if self.nodes[28]['player'] == player or self.nodes[38]['player'] == player:
-                return HarborConstants.MINERAL
-        elif material_harbor == MaterialConstants.CLAY:
-            if self.nodes[14]['player'] == player or self.nodes[15]['player'] == player:
-                return HarborConstants.CLAY
-        elif material_harbor == MaterialConstants.WOOD:
-            if self.nodes[0]['player'] == player or self.nodes[1]['player'] == player:
-                return HarborConstants.WOOD
-        elif material_harbor == MaterialConstants.WOOL:
-            if self.nodes[50]['player'] == player or self.nodes[51]['player'] == player:
-                return HarborConstants.WOOL
+        # specific resource nodes
+        harbor_nodes = inverted_harbors[material_harbor]
+        if any([self.nodes[node_id]['player'] == player for node_id in harbor_nodes]):
+            return material_harbor
 
-        for node in harbor_3_1_nodes:
-            if self.nodes[node]['player'] == player:
-                return HarborConstants.ALL
+        # 3:1 nodes
+        harbor_nodes = inverted_harbors[HarborConstants.ALL]
+        if any([self.nodes[harbor]['player'] == player for harbor in harbor_nodes]):
+            return HarborConstants.ALL
 
         return HarborConstants.NONE

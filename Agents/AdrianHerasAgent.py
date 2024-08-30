@@ -256,7 +256,7 @@ class AdrianHerasAgent(AgentInterface):
             # TODO: Sería ideal que funcionase pero hay poco tiempo, que coja una aleatoria, pero si es costero y tiene puerto lo coge siempre
             possibilities = self.board.valid_road_nodes(self.id)
             for road_obj in possibilities:
-                if self.board.is_it_a_coastal_node(road_obj['finishing_node']) and \
+                if self.board.is_coastal_node(road_obj['finishing_node']) and \
                         self.board.nodes[road_obj['finishing_node']]['harbor'] != HarborConstants.NONE:
                     return {'building': BuildConstants.ROAD,
                             'node_id': road_obj['starting_node'],
