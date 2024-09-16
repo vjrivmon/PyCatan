@@ -14,74 +14,48 @@ class DevelopmentDeck:
     # NO se puede jugar una carta que se acaba de comprar SALVO que sea una que te lleve a 10 puntos de victoria
     # Se pueden jugar en cualquier momento de una ronda, incluso antes de tirar el dado (en cualquier on_... del agente)
 
-    deck = []  # Deck es un array de objetos carta
-    current_index = 0  # La carta que se va a robar si alguien construye una
-
     def __init__(self):
-        # Se vacía primero por completo el deck para evitar que se dupliquen las cartas
-        self.deck.clear()
-        # Genera el array de cartas de desarrollo y lo baraja
-        # Hay 14 soldados
-        # 6 cartas de progreso (2 de cada)
-        # 5 de puntos de victoria
-        for i in range(0, 14):
-            self.deck.append(DevelopmentCard(i, Dcc.KNIGHT, Dcc.KNIGHT_EFFECT))
-        for i in range(14, 19):
-            self.deck.append(DevelopmentCard(i, Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT))
-        for i in range(19, 21):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT))
-        for i in range(21, 23):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT))
-        for i in range(23, 25):
-            self.deck.append(DevelopmentCard(i, Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT))
-        return
+        # cuidado, [objeto] * n crea n referencias al mismo objeto
+        self.deck = [DevelopmentCard(Dcc.KNIGHT, Dcc.KNIGHT_EFFECT) for i in range(14)] # Soldados
+        self.deck += [DevelopmentCard(Dcc.VICTORY_POINT, Dcc.VICTORY_POINT_EFFECT) for i in range(5)] # Puntos de victoria
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.ROAD_BUILDING_EFFECT) for i in range(2)] # Cartas de progreso
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.YEAR_OF_PLENTY_EFFECT) for i in range(2)]
+        self.deck += [DevelopmentCard(Dcc.PROGRESS_CARD, Dcc.MONOPOLY_EFFECT) for i in range(2)]
 
-    def shuffle_deck(self):
-        # Se barajan las cartas de desarrollo
-        current_index, random_index = len(self.deck), 0
-        while current_index != 0:
-            random_index = math.floor(random.random() * current_index)
-            current_index -= 1
-            (self.deck[current_index], self.deck[random_index]) = (self.deck[random_index], self.deck[current_index])
-        return
+        random.shuffle(self.deck)
+
 
     def draw_card(self):
-        if self.current_index != len(self.deck):  # No quedan cartas que robar
-            card = self.deck[self.current_index]
-            self.current_index += 1
-            return card
-        return
+        if len(self.deck):
+            return self.deck.pop(0)
+
 
     def __str__(self):
-        string = '[ \n'
+        string = '' 
         for card in self.deck:
-            string += card.__str__()
-            string += ', \n'
-        string += ']'
+            string += f" - {card.__str__()}, \n"
 
         return string
 
 
-class DevelopmentCard:
+class DevelopmentCard: # de verdad hace falta type y effect?
     """
     Carta de desarrollo
-    :param id: Número que identifica la carta.
     :param type: Punto de victoria, soldado, o carta de progreso (monopolio, año de la cosecha,
     construir 2 carreteras gratis).
     :param effect: En función del número que tiene, hace una cosa u otra.
     """
 
-    def __init__(self, id=0, type='', effect=0):
-        self.id = id
+    def __init__(self, type='', effect=0):
         self.type = type
         self.effect = effect
         return
 
     def __str__(self):
-        return "{'id': " + str(self.id) + ", 'type': " + str(self.type) + ", 'effect': " + str(self.effect) + "}"
+        return f"Type: {self.type}, Effect: {self.effect}"
 
     def __to_object__(self):
-        return {'id': self.id, 'type': self.type, 'effect': self.effect}
+        return {'type': self.type, 'effect': self.effect}
 
 
 class DevelopmentCardsHand:
@@ -89,62 +63,30 @@ class DevelopmentCardsHand:
     Clase que interactúa con la mano del jugador. Cada jugador solo puede ver su propia mano salvo que se use una carta,
     en cuyo caso los demás jugadores saben la carta usada.
     """
-    hand = []  # Cartas que posee en mano
-
     def __init__(self):
         self.hand = []
-        return
 
-    def add_card(self, card):
-        if isinstance(card, DevelopmentCard):
-            self.hand.append(card)
-        else:
-            return
+    def add_card(self, card: DevelopmentCard):
+        self.hand.append(card)
 
-    def check_hand(self):
+    def select_card(self, idx: int):
         """
-        Devuelve la mano que tiene el jugador, por si quiere por su cuenta comprobar qué cartas posee para gastar.
-        :return: [{'id': int, 'type': string, 'effect': int}...]
+        Seleccionas la carta con el índice que se le pase, la pasa al gameManager, la juega y la borra de la mano.
+        :param idx: (int) Índice de la carta.
         """
-        hand_array = []
-        for card in self.hand:
-            card_obj = {'id': card.id, 'type': card.type, 'effect': card.effect}
-            hand_array.append(card_obj)
+        return self.hand[idx]
 
-        return hand_array
-
-    def select_card_by_array_index(self, index):
-        """
-        Al usar esta función indicas que quieres jugar esta carta pasando el índice de la carta en el array,
-        lo que se la pasa al gameManager, la juega y la borra de la mano.
-        :param index:
-        :return: {'id': int, 'type': string, 'effect': int}
-        """
-        if len(self.hand):
-            card_obj = self.hand[index]
-            return card_obj
-        return
-
-    def select_card_by_id(self, id):
-        """
-        Seleccionas la carta con el ID que se le pase, la pasa al gameManager, la juega y la borra de la mano.
-        :param id: (int) Número indicativo de la carta.
-        """
-        for card in self.hand:
-            if card.id == id:
-                card_obj = card
-                return card_obj
-
-        return
-
-    def delete_card(self, id):
+    def delete_card(self, card: DevelopmentCard):
         """
         Borra la carta con la ID que se le pase.
         :param id: (int) Número indicativo de la carta.
         """
-        rest_of_hand = []
-        for card in self.hand:
-            if card.id != id:
-                rest_of_hand.append(card)
-        self.hand = rest_of_hand
-        return
+        self.hand = list(filter(lambda c1: c1 != card, self.hand))
+
+    def find_card_by_effect(self, effect: int):
+        """
+        Busca una carta en la mano del jugador por su efecto.
+        :param effect: (int) Efecto de la carta.
+        :return: List(DevelopmentCard) Carta con el efecto buscado.
+        """
+        return list(filter(lambda c1: c1.effect == effect, self.hand))

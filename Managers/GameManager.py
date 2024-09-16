@@ -25,7 +25,6 @@ class GameManager:
 
         self.board = Board()
         self.development_cards_deck = DevelopmentDeck()
-        self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.commerce_manager = CommerceManager()
         self.agent_manager = AgentManager(for_test, agents=agents)
@@ -44,7 +43,6 @@ class GameManager:
 
         self.board = Board()
         self.development_cards_deck = DevelopmentDeck()
-        self.development_cards_deck.shuffle_deck()
         self.turn_manager = TurnManager()
         self.agent_manager.reset_game_values()
         return
@@ -189,8 +187,8 @@ class GameManager:
             return False
 
         # Si receiver o giver no tiene materiales se le ignora
-        if (receiver['resources'].resources.has_this_more_materials(trade_offer.receives) and
-                giver['resources'].resources.has_this_more_materials(trade_offer.gives)):
+        if (receiver['resources'].resources.has_more(trade_offer.receives) and
+                giver['resources'].resources.has_more(trade_offer.gives)):
 
             materials = ['cereal', 'mineral', 'clay', 'wood', 'wool']
 
@@ -218,7 +216,7 @@ class GameManager:
         :param node: (Tree()) Número que representa un nodo en el tablero.
         :return: {bool, string}. Devuelve si se ha podido o no construir el poblado, y en caso negativo, la razón.
         """
-        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('town'):
+        if self.agent_manager.players[player_id]['resources'].resources.has_more('town'):
             build_town_obj = self.board.build_town(player_id, node)
 
             if build_town_obj['response']:
@@ -240,7 +238,7 @@ class GameManager:
         :param node: (Tree()) Número que representa un nodo en el tablero.
         :return: {bool, string}. Devuelve si se ha podido o no construir la ciudad, y en caso negativo, la razón.
         """
-        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('city'):
+        if self.agent_manager.players[player_id]['resources'].resources.has_more('city'):
             build_city_obj = self.board.build_city(player_id, node)
 
             if build_city_obj['response']:
@@ -262,7 +260,7 @@ class GameManager:
         :param free: (bool) Usado solo para cuando construyes carreteras gratis con una carta de desarrollo.
         :return: {bool, string}. Devuelve si se ha podido o no construir la carretera, y en caso negativo, la razón.
         """
-        if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('road') or free:
+        if self.agent_manager.players[player_id]['resources'].resources.has_more('road') or free:
             build_road_obj = self.board.build_road(player_id, node, road)
 
             if build_road_obj['response'] and not free:
@@ -286,7 +284,7 @@ class GameManager:
         card_drawn = self.development_cards_deck.draw_card()
         if card_drawn is not None:
 
-            if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials('card'):
+            if self.agent_manager.players[player_id]['resources'].resources.has_more('card'):
                 self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
                                                                                     MaterialConstants.MINERAL,
                                                                                     MaterialConstants.WOOL
@@ -300,7 +298,7 @@ class GameManager:
                 self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
                     self.agent_manager.players[player_id]['development_cards'].hand
 
-                return {'response': True, 'card_id': card_drawn.id, 'card_type': card_drawn.type,
+                return {'response': True, 'card_type': card_drawn.type,
                         'card_effect': card_drawn.effect}
             else:
                 return {'response': False, 'error_msg': 'Falta de materiales'}
@@ -429,9 +427,9 @@ class GameManager:
         """
         card_obj = {}
 
-        if card.__to_object__() in self.agent_manager.players[player_id]['development_cards'].check_hand():
+        if card in self.agent_manager.players[player_id]['development_cards'].hand:
             if card.type != DevelopmentCardConstants.VICTORY_POINT:
-                self.agent_manager.players[player_id]['development_cards'].delete_card(card.id)  # Borramos la carta
+                self.agent_manager.players[player_id]['development_cards'].delete_card(card)  # Borramos la carta
 
                 self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
                     self.agent_manager.players[player_id]['development_cards'].hand
@@ -624,12 +622,12 @@ class GameManager:
     def check_player_hands(self):
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.agent_manager.players[i]['development_cards'].check_hand())
+            print(self.agent_manager.players[i]['development_cards'].hand)
 
         print('Players: ')
         for i in range(4):
             print('P' + str(i + 1))
-            print(self.agent_manager.players[i]['player'].development_cards_hand.check_hand())
+            print(self.agent_manager.players[i]['player'].development_cards_hand.hand)
 
     def get_turn(self):
         """
@@ -819,7 +817,7 @@ class GameManager:
             commerce_phase_object['trade_offer'] = commerce_response.__to_object__()
             commerce_phase_object['harbor_trade'] = False
 
-            if self.agent_manager.players[player_id]['resources'].resources.has_this_more_materials(
+            if self.agent_manager.players[player_id]['resources'].resources.has_more(
                     commerce_response.gives):
                 commerce_phase_object['inviable'] = False
                 answer_object = self.send_trade_to_everyone(commerce_response)

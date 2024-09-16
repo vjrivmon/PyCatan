@@ -19,33 +19,23 @@ class AdrianHerasAgent(AgentInterface):
     def __init__(self, agent_id):
         super().__init__(agent_id)
 
-    def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
+    def on_trade_offer(self, board_instance, offer=TradeOffer(), player_id=int):
         """
         Hay que tener en cuenta que gives se refiere a los materiales que da el jugador que hace la oferta,
         luego en este caso es lo que recibe
-        :param incoming_trade_offer:
+        :param offer:
         :return:
         """
-        if incoming_trade_offer.gives.has_this_more_materials(incoming_trade_offer.receives):
-            return True
-        else:
-            return False
-        # return super().on_trade_offer(incoming_trade_offer)
+        return offer.gives.has_more(offer.receives)
 
     def on_turn_start(self):
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
-            # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
-                # Si una es un caballero
-                if self.development_cards_hand.hand[i].type == DevelopmentCardConstants.KNIGHT:
-                    # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
-        return None
+        knight_cards = self.development_cards_hand.find_card_by_effect(DevelopmentCardConstants.KNIGHT_EFFECT)
+        return knight_cards[0] if len(knight_cards) > 0  else None
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
         # Comprueba si tiene materiales para construir una ciudad. Si los tiene, descarta el resto que no le sirvan.
-        if self.hand.resources.has_this_more_materials(BuildConstants.CITY):
+        if self.hand.resources.has_more(BuildConstants.CITY):
             while self.hand.get_total() > 7:
                 if self.hand.resources.wool > 0:
                     self.hand.remove_material(4, 1)
@@ -90,13 +80,13 @@ class AdrianHerasAgent(AgentInterface):
 
     def on_turn_end(self):
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
+        if len(self.development_cards_hand.hand):
             # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
+            for i in range(0, len(self.development_cards_hand.hand)):
                 # Si una es un punto de victoria
                 if self.development_cards_hand.hand[i].type == DevelopmentCardConstants.VICTORY_POINT:
                     # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                    return self.development_cards_hand.select_card(i)
         return None
 
     def on_commerce_phase(self):
@@ -105,19 +95,19 @@ class AdrianHerasAgent(AgentInterface):
         """
         # Juega monopolio si ha entregado más de 3 del mismo tipo de material a un jugador en el intercambio
         if self.material_given_more_than_three is not None:
-            if len(self.development_cards_hand.check_hand()):
+            if len(self.development_cards_hand.hand):
                 # Mira todas las cartas
-                for i in range(0, len(self.development_cards_hand.check_hand())):
+                for i in range(0, len(self.development_cards_hand.hand)):
                     # Si una es un punto de monopolio
                     if self.development_cards_hand.hand[i].effect == DevelopmentCardConstants.MONOPOLY_EFFECT:
                         # La juega
-                        return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                        return self.development_cards_hand.select_card(i)
 
         gives = Materials(0,0,0,0,0)
         receives = Materials(0,0,0,0,0)
 
         # No pide nada porque puede hacer una ciudad
-        if self.town_number >= 1 and self.hand.resources.has_this_more_materials(BuildConstants.CITY):
+        if self.town_number >= 1 and self.hand.resources.has_more(BuildConstants.CITY):
             self.material_given_more_than_three = None
             return None
         # Pedir lo que falte para una ciudad, ofrece el resto de materiales iguales a los que pide
@@ -154,7 +144,7 @@ class AdrianHerasAgent(AgentInterface):
         # Como no puede construir una ciudad pide materiales para hacer un pueblo
         elif self.town_number == 0:
             # Si tiene materiales para hacer un pueblo directamente no comercia
-            if self.hand.resources.has_this_more_materials(Materials(1, 0, 1, 1, 1)):
+            if self.hand.resources.has_more(Materials(1, 0, 1, 1, 1)):
                 return None
             # Si no los tiene hace un intercambio
             else:
@@ -205,9 +195,9 @@ class AdrianHerasAgent(AgentInterface):
         self.board = board_instance
 
         # Si tiene mano de cartas de desarrollo
-        if len(self.development_cards_hand.check_hand()):
+        if len(self.development_cards_hand.hand):
             # Mira todas las cartas
-            for i in range(0, len(self.development_cards_hand.check_hand())):
+            for i in range(0, len(self.development_cards_hand.hand)):
                 # Comprueba primero de que hay más de 2 carreteras disponibles para construirlas
                 road_possibilities = self.board.valid_road_nodes(self.id)
 
@@ -216,9 +206,9 @@ class AdrianHerasAgent(AgentInterface):
                         (self.development_cards_hand.hand[i].effect == DevelopmentCardConstants.ROAD_BUILDING_EFFECT and
                          len(road_possibilities) > 1)):
                     # La juega
-                    return self.development_cards_hand.select_card_by_id(self.development_cards_hand.hand[i].id)
+                    return self.development_cards_hand.select_card(i)
 
-        if self.hand.resources.has_this_more_materials(BuildConstants.CITY) and self.town_number > 0:
+        if self.hand.resources.has_more(BuildConstants.CITY) and self.town_number > 0:
             possibilities = self.board.valid_city_nodes(self.id)
             for node_id in possibilities:
                 for terrain_piece_id in self.board.nodes[node_id]['contacting_terrain']:
@@ -230,7 +220,7 @@ class AdrianHerasAgent(AgentInterface):
                         self.town_number -= 1  # Transformamos un pueblo en una ciudad
                         return {'building': BuildConstants.CITY, 'node_id': node_id}
 
-        if self.hand.resources.has_this_more_materials(BuildConstants.TOWN):
+        if self.hand.resources.has_more(BuildConstants.TOWN):
             possibilities = self.board.valid_town_nodes(self.id)
             for node_id in possibilities:
                 for terrain_piece_id in self.board.nodes[node_id]['contacting_terrain']:
@@ -245,7 +235,7 @@ class AdrianHerasAgent(AgentInterface):
                         self.town_number += 1  # Añadimos un pueblo creado
                         return {'building': BuildConstants.TOWN, 'node_id': node_id}
 
-        if self.hand.resources.has_this_more_materials(BuildConstants.ROAD):
+        if self.hand.resources.has_more(BuildConstants.ROAD):
             # Construye sí o sí carretera si acaba en un nodo costero, pero, ¿y si no lo busca aleatoriamente?
             # Idealmente, debe de poder buscar caminos y encontrar el ideal a un puerto o similar, pero eso implicaría
             #  programar un algoritmo de búsqueda de nodos por pesos que actualmente me parece imposible de hacer.
@@ -256,7 +246,7 @@ class AdrianHerasAgent(AgentInterface):
             # TODO: Sería ideal que funcionase pero hay poco tiempo, que coja una aleatoria, pero si es costero y tiene puerto lo coge siempre
             possibilities = self.board.valid_road_nodes(self.id)
             for road_obj in possibilities:
-                if self.board.is_it_a_coastal_node(road_obj['finishing_node']) and \
+                if self.board.is_coastal_node(road_obj['finishing_node']) and \
                         self.board.nodes[road_obj['finishing_node']]['harbor'] != HarborConstants.NONE:
                     return {'building': BuildConstants.ROAD,
                             'node_id': road_obj['starting_node'],
@@ -274,7 +264,7 @@ class AdrianHerasAgent(AgentInterface):
 
         # Si tiene materiales para hacer una carta, la construye. Como va la última en la pila,
         #    ya habrá construido cualquier otra cosa más útil
-        if self.hand.resources.has_this_more_materials(BuildConstants.CARD):
+        if self.hand.resources.has_more(BuildConstants.CARD):
             return {'building': BuildConstants.CARD}
 
         return None

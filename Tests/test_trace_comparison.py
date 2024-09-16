@@ -3,10 +3,12 @@ sys.path.append('..') # This is to add the parent directory to the path
 
 from Managers.GameDirector import GameDirector
 from Agents.RandomAgent import RandomAgent as ra
+from Agents.AdrianHerasAgent import AdrianHerasAgent as aha
+
 import random
 import json
 
-game_director = GameDirector(agents=(ra, ra, ra, ra))
+game_director = GameDirector(agents=(ra, ra, aha, aha), max_rounds=200)
 for i in range(100):
     random.seed(i)
     game_trace = game_director.game_start(i, False)
