@@ -13,7 +13,7 @@ class TraceLoader:
         # Cogemos el día y hora para ponerle el nombre a la carpeta a crear en trazas
         # Creamos la carpeta del día y hora de hoy para guardar todas las trazas ahí
         # Si no existe la carpeta "Traces" la crea
-        today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S')
+        today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S-%f')
         self.full_path = Path(__file__).parent / "Traces" / today
         self.full_path.mkdir(parents=True)
         return

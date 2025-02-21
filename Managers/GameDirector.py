@@ -199,7 +199,7 @@ class GameDirector:
         return round_object, winner
 
     # Game #
-    def game_start(self, game_number=0, print_outcome=True):
+    def game_start(self, game_number=0, print_outcome=True, store_trace=True):
         """
         Esta función permite comenzar una partida nueva.
         :param game_number: (int) número de partidas que se van a jugar.
@@ -235,10 +235,10 @@ class GameDirector:
             setup_object["P" + str(i)].append({"id": node_id, "road": road_to})
 
         self.trace_loader.current_trace["setup"] = setup_object
-        self.game_loop(game_number, print_outcome)
+        self.game_loop(game_number, print_outcome, store_trace)
         return self.trace_loader.current_trace
 
-    def game_loop(self, game_number, print_outcome):
+    def game_loop(self, game_number, print_outcome, store_trace):
         """
         Esta función permite jugar varias partidas seguidas.
         :param game_number: (int) número de partidas que se van a jugar.
@@ -246,7 +246,8 @@ class GameDirector:
         game_object = {}
         winner = False
         for i in range(self.max_rounds):
-            if i == self.max_rounds-1: print('Game (' + str(game_number) + ') has reached the maximum number of rounds')
+            if print_outcome and i == self.max_rounds-1: 
+                print('Game (' + str(game_number) + ') has reached the maximum number of rounds')
             game_object['round_' + str(self.game_manager.get_round())], winner = self.round_start(winner)
             self.game_manager.set_round(self.game_manager.get_round() + 1)
             if winner:
@@ -262,5 +263,6 @@ class GameDirector:
                     str(self.game_manager.get_players()[i]['longest_road']) + ')')
 
         self.trace_loader.current_trace["game"] = game_object
-        self.trace_loader.export_to_file(game_number)
+        if store_trace:
+            self.trace_loader.export_to_file(game_number)
         return
