@@ -8,10 +8,11 @@ class GameDirector:
     Clase que se encarga de dirigir la partida, empezarla y acabarla
     """
 
-    def __init__(self, for_test=False, agents = None, max_rounds=1000):
+    def __init__(self, for_test=False, agents = None, max_rounds=1000, store_trace=True):
         self.game_manager = GameManager(for_test, agents)
-        self.trace_loader = TraceLoader()
+        self.trace_loader = TraceLoader(store_trace)
         self.max_rounds = max_rounds
+        self.store_trace = store_trace
         return
 
     def reset_game_values(self):
@@ -199,10 +200,12 @@ class GameDirector:
         return round_object, winner
 
     # Game #
-    def game_start(self, game_number=0, print_outcome=True, store_trace=True):
+    def game_start(self, game_number=0, print_outcome=True):
         """
         Esta función permite comenzar una partida nueva.
         :param game_number: (int) número de partidas que se van a jugar.
+        :param print_outcome: (bool) si se quiere imprimir el resultado de la partida.
+        :return: object con la traza de la partida.
         """
         # Se cargan los agentes y se inicializa el tablero
         # self.game_manager.agent_manager.load_agents()
@@ -235,10 +238,10 @@ class GameDirector:
             setup_object["P" + str(i)].append({"id": node_id, "road": road_to})
 
         self.trace_loader.current_trace["setup"] = setup_object
-        self.game_loop(game_number, print_outcome, store_trace)
+        self.game_loop(game_number, print_outcome)
         return self.trace_loader.current_trace
 
-    def game_loop(self, game_number, print_outcome, store_trace):
+    def game_loop(self, game_number, print_outcome):
         """
         Esta función permite jugar varias partidas seguidas.
         :param game_number: (int) número de partidas que se van a jugar.
@@ -263,6 +266,6 @@ class GameDirector:
                     str(self.game_manager.get_players()[i]['longest_road']) + ')')
 
         self.trace_loader.current_trace["game"] = game_object
-        if store_trace:
+        if self.store_trace:
             self.trace_loader.export_to_file(game_number)
         return

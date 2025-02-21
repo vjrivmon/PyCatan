@@ -9,13 +9,14 @@ class TraceLoader:
     current_trace = {}
     full_path = ''
 
-    def __init__(self):
+    def __init__(self, store_trace=True):
         # Cogemos el día y hora para ponerle el nombre a la carpeta a crear en trazas
         # Creamos la carpeta del día y hora de hoy para guardar todas las trazas ahí
         # Si no existe la carpeta "Traces" la crea
-        today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S-%f')
-        self.full_path = Path(__file__).parent / "Traces" / today
-        self.full_path.mkdir(parents=True)
+        if store_trace:
+            today = datetime.today().strftime('%Y-%m-%d_%H-%M-%S-%f')
+            self.full_path = Path(__file__).parent / "Traces" / today
+            self.full_path.mkdir(parents=True)
         return
 
     def export_to_file(self, game_number):
