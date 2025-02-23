@@ -362,15 +362,23 @@ class GameManager:
         materials = []
 
         for count in range(3):
-            node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(copy(self.board))
+            try:
+                node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(copy(self.board))
+            except Exception as e:
+                print(f"Error: {e}. Agente: {self.agent_manager.players[player]['player']}")
+                node_id, road_to = None, None
 
             if node_id in valid_nodes or count == 2:
 
                 if count == 2:
-                    node_id = valid_nodes[random.randint(0, (len(valid_nodes) - 1))]
+                    if not valid_nodes:
+                        raise Exception("No hay nodos válidos disponibles para iniciar el juego")
+                    else:
+                        node_id = random.choice(valid_nodes)
 
                     possible_roads = self.board.nodes[node_id]['adjacent']
-                    road_to = possible_roads[random.randint(0, len(possible_roads) - 1)]
+                    road_to = random.choice(possible_roads)
+
 
                 terrain_ids = self.board.nodes[node_id]['contacting_terrain']
                 for ter_id in terrain_ids:
@@ -389,7 +397,7 @@ class GameManager:
                     return node_id, road_to
                 else:
                     possible_roads = self.board.nodes[node_id]['adjacent']
-                    road_to = possible_roads[random.randint(0, len(possible_roads) - 1)]
+                    road_to = random.choice(possible_roads) 
                     self.board.build_road(player, node_id, road_to)
                     return node_id, road_to
 
@@ -558,7 +566,7 @@ class GameManager:
                                 # Si no se ha podido construir se cambia de carretera a una aleatoria posible
                                 valid_nodes = self.board.valid_road_nodes(player_id)
                                 if len(valid_nodes):
-                                    road_node = random.randint(0, len(valid_nodes) - 1)
+                                    road_node = random.choice(valid_nodes) 
                                     road_nodes['node_id'] = valid_nodes[road_node]['starting_node']
                                     road_nodes['road_to'] = valid_nodes[road_node]['finishing_node']
                                 else:
@@ -574,7 +582,7 @@ class GameManager:
 
                                 valid_nodes = self.board.valid_road_nodes(player_id)
                                 if len(valid_nodes):
-                                    road_node = random.randint(0, len(valid_nodes) - 1)
+                                    road_node = random.choice(valid_nodes) 
                                     road_nodes['node_id_2'] = valid_nodes[road_node]['starting_node']
                                     road_nodes['road_to_2'] = valid_nodes[road_node]['finishing_node']
                                 else:
