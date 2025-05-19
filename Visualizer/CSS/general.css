@@ -1,10 +1,24 @@
+/* Añadimos fuentes modernas */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@400;500;700&display=swap');
+
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #f8f9fa;
+    color: #343a40;
+    margin: 0;
+    padding: 0;
+}
+
 h1,
 h3 {
     display: inline-block;
+    font-family: 'Cinzel', serif;
+    color: #2c3e50;
 }
 
 h1 {
     font-size: 2rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
 h3 {
@@ -19,6 +33,20 @@ h3 {
     padding: 0 1em 0 1em;
 }
 
+/* Estilo de tarjetas para componentes del juego */
+.card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    transform: translateY(-5px);
+}
 
 /*********************************/
 /*            Controles          */
@@ -27,131 +55,375 @@ h3 {
 #controles {
     height: 7vh;
     background: white;
-    border: 1px solid black;
-    /*    border-bottom: 3px solid black;*/
-    border-bottom: 0;
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+#controles button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+#controles button:hover {
+    background-color: #2980b9;
+    transform: scale(1.05);
 }
 
 #fase_previa_btn[disabled] {
-  background-color: #dddddd;
-  color: #888888;
-  cursor: not-allowed;
+    background-color: #dddddd;
+    color: #888888;
+    cursor: not-allowed;
+    transform: none;
 }
 
 #controles div {
     padding-top: 0.35em;
-    /*    padding-bottom: 0.5em;*/
 }
 
 /*********************************/
 /*              Log              */
 /*********************************/
 
-
 .log {
-    /*    padding-right: 0;*/
-    /*    border: 1px solid black;*/
     padding: 0 1em 0 1em;
-    border-left: 3px solid black;
+    border-left: 3px solid #3498db;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 #other_useful_info {
-    border-top: black solid 1px;
+    border-top: #3498db solid 1px;
+    margin-top: 10px;
+    padding-top: 10px;
 }
 
 #commerce_log_text,
 #other_useful_info_text {
     background: white;
-    font-family: monospace;
+    font-family: 'Courier New', monospace;
     overflow-y: scroll;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #e0e0e0;
+    height: 200px;
 }
-
 
 #commerce_log_title,
 #other_useful_info_title {
-    font-family: sans-serif;
-    text-decoration: underline;
+    font-family: 'Cinzel', serif;
+    text-decoration: none;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    display: block;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 5px;
 }
 
+/* Mejoramos los colores de los jugadores */
 .commerce_P1 {
-    color: darkred;
+    color: #e74c3c;
+    font-weight: bold;
 }
 .commerce_P2 {
-    color: darkblue;
+    color: #3498db;
+    font-weight: bold;
 }
 .commerce_P3 {
-    color: darkgreen;
+    color: #2ecc71;
+    font-weight: bold;
 }
 .commerce_P4 {
-    color: darkgoldenrod;
+    color: #f39c12;
+    font-weight: bold;
 }
 
 .gives,
 .receives {
     margin: 0;
     margin-left: 5em;
+    padding: 3px 0;
 }
 
 .answers {
     margin-left: 5em;
+    font-style: italic;
 }
 
 .counteroffer_gives,
 .counteroffer_receives,
 .counteroffer_answer {
     margin-left: 5em;
+    background-color: #f8f9fa;
+    padding: 3px 8px;
+    border-radius: 4px;
 }
-
 
 /*********************************/
 /*         Player profiles       */
 /*********************************/
 
-
 .player {
-    border: 1px black solid;
-    border-top: 0;
-    border-left: 0;
+    border: none;
+    border-radius: 8px;
+    background-color: white;
+    margin: 10px 5px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.player:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    transform: translateY(-5px);
 }
 
 .playerprofile {
-    /*    height: 10vh;*/
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.playerprofile img {
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .largest_army,
 .longest_road {
     height: 5vh;
-    color: rgba(127, 127, 127, 50%)
+    color: rgba(127, 127, 127, 50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    margin: 5px 0;
 }
 
 .hand {
     background: white;
     padding-top: 0.5em;
     padding-bottom: 0.5em;
+    border-radius: 8px;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
 }
 
 .top_hand_row {
     align-items: flex-start;
     height: 50%;
+    padding: 5px 0;
 }
 
 .bottom_hand_row {
     align-items: flex-end;
     height: 50%;
+    padding: 5px 0;
 }
 
 .increment {
     width: 1rem;
+    display: inline-block;
+    text-align: center;
+    font-weight: bold;
 }
 
 .increased {
-    color: red;
+    color: #e74c3c;
+    animation: pulse 1s;
 }
 
 .decreased {
-    color: mediumblue;
+    color: #3498db;
+    animation: shake 0.5s;
 }
 
 .neutral {
-    color: darkgreen;
+    color: #2ecc71;
+}
+
+/* Animaciones para los incrementos */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-3px); }
+    50% { transform: translateX(3px); }
+    75% { transform: translateX(-3px); }
+    100% { transform: translateX(0); }
+}
+
+/* Estilos para elementos de recursos */
+.resource-icon {
+    display: inline-block;
+    width: 25px;
+    height: 25px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    margin: 0 5px;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
+}
+
+/* Personalización para puntos de victoria */
+.victory-points {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f39c12;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estilos para animación de dados */
+.dice-animation-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    perspective: 600px;
+    z-index: 9999;
+}
+
+.dice {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 1s;
+}
+
+.face {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: white;
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    font-weight: bold;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.dice .front {
+    transform: translateZ(50px);
+}
+
+.dice .back {
+    transform: rotateX(-180deg) translateZ(50px);
+}
+
+.dice .top {
+    transform: rotateX(90deg) translateZ(50px);
+}
+
+.dice .bottom {
+    transform: rotateX(-90deg) translateZ(50px);
+}
+
+.dice .right {
+    transform: rotateY(90deg) translateZ(50px);
+}
+
+.dice .left {
+    transform: rotateY(-90deg) translateZ(50px);
+}
+
+/* Estilos para la pantalla de dados */
+.dice-display {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.dice-value {
+    font-size: 1.2em;
+    color: #e74c3c;
+}
+
+/* Estilos para la animación de comercio */
+.trade-animation {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    z-index: 9999;
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.trade-animation:before {
+    content: "↔";
+    font-size: 24px;
+    color: #3498db;
+}
+
+/* Estilos para modal de victoria */
+.victory-animation-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+#confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#winner-name {
+    color: #f39c12;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    font-family: 'Cinzel', serif;
+    font-size: 2.5rem;
+}
+
+/* Estilos para estadísticas */
+.card-stats {
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 500;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para el botón de cargar partida */
+.btn-primary {
+    background-color: #3498db;
+    border-color: #2980b9;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
