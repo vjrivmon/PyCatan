@@ -1393,26 +1393,86 @@ function initAnimations() {
 
 // Función para animar los dados
 function animateDiceRoll(value) {
-    // Mostrar la animación de dados
-    $('#dice-animation').removeClass('d-none');
+    // Pausar los controles del juego durante la animación
+    const controls = document.querySelectorAll('#controles button');
+    controls.forEach(button => button.disabled = true);
     
-    // Animar los dados rodando
-    gsap.to('.dice', {
-        duration: 1,
-        rotationX: "random(0, 360)",
-        rotationY: "random(0, 360)",
-        rotationZ: "random(0, 360)",
-        ease: "power1.inOut",
+    // Mostrar el overlay
+    const overlay = document.getElementById('dice-overlay');
+    overlay.classList.add('active');
+    
+    // Obtener el dado y el resultado
+    const dice = document.querySelector('.dice');
+    const diceResult = document.querySelector('.dice-result');
+    const diceValue = document.getElementById('dice-value');
+    
+    // Asignar el valor final del dado
+    diceValue.textContent = value;
+    
+    // Valores de rotación para cada resultado del dado
+    let rotationValues = {
+        1: [0, 0, 0],       // Frontal muestra 1
+        2: [0, -90, 0],     // Derecha muestra 2
+        3: [-90, 0, 0],     // Arriba muestra 3
+        4: [90, 0, 0],      // Abajo muestra 4
+        5: [0, 90, 0],      // Izquierda muestra 5
+        6: [0, 180, 0]      // Atrás muestra 6
+    };
+    
+    // Configurar la animación del dado con GSAP
+    gsap.to(dice, {
+        duration: 0.1,
+        opacity: 1
+    });
+    
+    // Animación de agitado inicial
+    gsap.to(dice, {
+        duration: 0.5,
+        rotationX: "random(-720, 720)",
+        rotationY: "random(-720, 720)",
+        rotationZ: "random(-720, 720)",
+        ease: "power1.inOut"
+    });
+    
+    // Animación principal del dado girando
+    gsap.to(dice, {
+        duration: 2,
+        rotationX: "random(-1440, 1440)",
+        rotationY: "random(-1440, 1440)",
+        rotationZ: "random(-1440, 1440)",
+        ease: "power3.inOut",
+        delay: 0.5,
         onComplete: function() {
-            // Ocultar la animación y mostrar el resultado
-            $('#dice-animation').addClass('d-none');
-            $('.dice-value').text(value);
-            
-            // Animar el texto del resultado
-            $('#diceroll').addClass('animate__animated animate__bounceIn');
-            setTimeout(function() {
-                $('#diceroll').removeClass('animate__animated animate__bounceIn');
-            }, 1000);
+            // Animar hasta el resultado final
+            gsap.to(dice, {
+                duration: 1,
+                rotationX: rotationValues[value][0],
+                rotationY: rotationValues[value][1],
+                rotationZ: rotationValues[value][2],
+                ease: "elastic.out(1, 0.8)",
+                onComplete: function() {
+                    // Mostrar el resultado
+                    diceResult.classList.add('show');
+                    dice.classList.add('dice-shake');
+                    
+                    // Esperar un momento y ocultar la animación
+                    setTimeout(function() {
+                        diceResult.classList.remove('show');
+                        overlay.classList.remove('active');
+                        
+                        // Actualizar la visualización del resultado en la interfaz
+                        $('.dice-value').text(value);
+                        $('#diceroll').addClass('animate__animated animate__bounceIn');
+                        
+                        // Habilitar los controles del juego nuevamente
+                        controls.forEach(button => button.disabled = false);
+                        
+                        setTimeout(function() {
+                            $('#diceroll').removeClass('animate__animated animate__bounceIn');
+                        }, 1000);
+                    }, 2000);
+                }
+            });
         }
     });
 }
@@ -1662,7 +1722,7 @@ function paint_it_player_color(player, object_to_paint) {
 // Modificar función de tirar dados para incluir animación
 let originalDiceroll = $('#diceroll').text();
 function updateDiceRoll(value) {
-    // Reemplazar solo el número
+    // Animar el dado
     animateDiceRoll(value);
 }
 
@@ -1689,6 +1749,9 @@ setup = function() {
     
     // Estilizar mejor los nodos de puerto
     enhanceHarborNodes();
+    
+    // Mejorar la animación de los dados
+    enhanceDiceRoll();
 }
 
 // Función para renderizar perfiles de jugadores
@@ -1802,4 +1865,47 @@ function enhanceHarborNodes() {
             });
         });
     }, 1000);
+}
+
+// Interceptar las llamadas al método de cambio de fase para animar tiradas de dados
+let originalCounterFasesChange = null;
+
+// Después de iniciar el juego
+function enhanceDiceRoll() {
+    // Capturar la función original si aún no se ha hecho
+    if (!originalCounterFasesChange) {
+        const contador_fases = jQuery('#contador_fases');
+        originalCounterFasesChange = contador_fases.off('change').get(0).onchange;
+        
+        // Reemplazar con nuestra función mejorada
+        contador_fases.on('change', function(e) {
+            if (contador_fases.val() === '') {
+                return;
+            }
+            
+            let actual_player_json = parseInt(jQuery('#contador_turnos').val()) - 1;
+            
+            // Si estamos en la fase 0 (inicio del turno) y avanzando
+            if (parseInt(contador_fases.val()) === 1 && game_direction === 'forward') {
+                // Obtener el objeto de fase
+                const phase_obj = turn_obj['start_turn'];
+                
+                // Si hay un valor de dado, lanzar la animación
+                if (phase_obj && phase_obj['dice']) {
+                    animateDiceRoll(phase_obj['dice']);
+                    
+                    // Continuar con el resto del procesamiento después de la animación
+                    setTimeout(function() {
+                        // Llamar a la función original después de la animación
+                        originalCounterFasesChange.call(contador_fases.get(0), e);
+                    }, 3500); // Ajustar según la duración de la animación
+                    
+                    return; // Evitar la ejecución inmediata
+                }
+            }
+            
+            // Para otros casos, llamar a la función original directamente
+            originalCounterFasesChange.call(contador_fases.get(0), e);
+        });
+    }
 }

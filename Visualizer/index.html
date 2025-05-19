@@ -398,14 +398,22 @@
             </div>
         </div>
         
-        <div id="dice-animation" class="dice-animation-container d-none">
-            <div class="dice">
-                <div class="face front"></div>
-                <div class="face back"></div>
-                <div class="face top"></div>
-                <div class="face bottom"></div>
-                <div class="face right"></div>
-                <div class="face left"></div>
+        <!-- Overlay para animación de dados -->
+        <div id="dice-overlay" class="dice-overlay">
+            <div class="text-center">
+                <div class="dice-container">
+                    <div class="dice">
+                        <div class="face face-1 front"></div>
+                        <div class="face face-6 back"></div>
+                        <div class="face face-2 right"></div>
+                        <div class="face face-5 left"></div>
+                        <div class="face face-3 top"></div>
+                        <div class="face face-4 bottom"></div>
+                    </div>
+                </div>
+                <div class="dice-result mt-4">
+                    <span id="dice-value">0</span>
+                </div>
             </div>
         </div>
         
