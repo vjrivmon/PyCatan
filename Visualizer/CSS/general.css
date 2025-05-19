@@ -7,7 +7,7 @@ body {
     color: #343a40;
     margin: 0;
     padding: 0;
-    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23e74c3c"><path d="M12 2L2 12l3 3 7-7 7 7 3-3L12 2z"/></svg>') 12 12, auto;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M8 4L20 14L14 15L16 22L13 24L11 17L6 20Z" fill="%23d21404" stroke="%23ffffff" stroke-width="2" stroke-linejoin="round"/></svg>') 8 8, auto;
 }
 
 h1,
@@ -615,13 +615,13 @@ h3 {
     animation: shake 0.5s ease-in-out;
 }
 
-/* Cursor personalizado rojo para elementos interactivos */
+/* Cursor personalizado para elementos interactivos */
 #gamefield, .road, .node {
-    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23e74c3c"><path d="M12 2L2 12l3 3 7-7 7 7 3-3L12 2z"/></svg>') 12 12, pointer;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M8 4L20 14L14 15L16 22L13 24L11 17L6 20Z" fill="%23d21404" stroke="%23ffffff" stroke-width="2" stroke-linejoin="round"/></svg>') 8 8, pointer;
 }
 
 button, .btn, a {
-    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="%23e74c3c"><path d="M12 2L2 12l3 3 7-7 7 7 3-3L12 2z"/></svg>') 12 12, pointer;
+    cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M8 4L20 14L14 15L16 22L13 24L11 17L6 20Z" fill="%23d21404" stroke="%23ffffff" stroke-width="2" stroke-linejoin="round"/></svg>') 8 8, pointer;
 }
 
 /* Animación de trazado para el cursor - desactivada */
