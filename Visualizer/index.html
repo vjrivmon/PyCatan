@@ -401,18 +401,33 @@
         <!-- Overlay para animación de dados -->
         <div id="dice-overlay" class="dice-overlay">
             <div class="text-center">
-                <div class="dice-container">
-                    <div class="dice">
-                        <div class="face face-1 front"></div>
-                        <div class="face face-6 back"></div>
-                        <div class="face face-2 right"></div>
-                        <div class="face face-5 left"></div>
-                        <div class="face face-3 top"></div>
-                        <div class="face face-4 bottom"></div>
+                <div class="dice-container-wrapper d-flex justify-content-center">
+                    <!-- Primer dado -->
+                    <div class="dice-container mx-3">
+                        <div class="dice dice-1">
+                            <div class="face face-1 front"></div>
+                            <div class="face face-6 back"></div>
+                            <div class="face face-2 right"></div>
+                            <div class="face face-5 left"></div>
+                            <div class="face face-3 top"></div>
+                            <div class="face face-4 bottom"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Segundo dado -->
+                    <div class="dice-container mx-3">
+                        <div class="dice dice-2">
+                            <div class="face face-1 front"></div>
+                            <div class="face face-6 back"></div>
+                            <div class="face face-2 right"></div>
+                            <div class="face face-5 left"></div>
+                            <div class="face face-3 top"></div>
+                            <div class="face face-4 bottom"></div>
+                        </div>
                     </div>
                 </div>
                 <div class="dice-result mt-4">
-                    <span id="dice-value">0</span>
+                    <span id="dice-value-1">0</span> + <span id="dice-value-2">0</span> = <span id="dice-total">0</span>
                 </div>
             </div>
         </div>

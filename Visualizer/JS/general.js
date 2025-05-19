@@ -736,11 +736,6 @@ function init_events_with_game_obj() {
                                         } else {
                                             html += ': Accepted | Cannot be completed (lack of materials)';
                                         }
-                                        // cerramos todos los divs de contraoferta
-                                        for (let m = 0; m < counteroffer_counter; m++) {
-                                            html += '</div>'
-                                        }
-
                                     } else {
                                         if (phase_obj[i]['answers'][j][n]['count'] == phase_obj[i]['answers'][j].length) {
                                             // se niega la oferta
@@ -1391,25 +1386,76 @@ function initAnimations() {
     });
 }
 
-// Función para animar los dados
+// Función mejorada para animar los dados - versión con dos dados
 function animateDiceRoll(value) {
+    console.log("Animando dados con valor total: " + value);
+    
+    // Calcular valores para los dos dados
+    // Generamos valores aleatorios que sumen el valor total
+    let dice1Value, dice2Value;
+    
+    if (value <= 7) {
+        // Para valores menores o iguales a 7, tenemos más opciones de combinación
+        dice1Value = Math.max(1, Math.min(6, Math.floor(Math.random() * value)));
+    } else {
+        // Para valores mayores a 7, aseguramos que ningún dado exceda 6
+        dice1Value = Math.max(1, Math.min(6, Math.floor(Math.random() * 6) + 1));
+    }
+    
+    dice2Value = value - dice1Value;
+    
+    // Si el segundo dado excede 6 o es menor que 1, ajustamos ambos valores
+    if (dice2Value > 6) {
+        dice1Value = Math.max(value - 6, 1);
+        dice2Value = value - dice1Value;
+    } else if (dice2Value < 1) {
+        dice1Value = Math.min(value - 1, 6);
+        dice2Value = value - dice1Value;
+    }
+    
+    console.log("Valores de dados: " + dice1Value + " + " + dice2Value + " = " + value);
+    
+    // Verificar que el overlay existe
+    const overlay = document.getElementById('dice-overlay');
+    if (!overlay) {
+        console.error("Error: Elemento 'dice-overlay' no encontrado");
+        return;
+    }
+    
     // Pausar los controles del juego durante la animación
     const controls = document.querySelectorAll('#controles button');
     controls.forEach(button => button.disabled = true);
     
     // Mostrar el overlay
-    const overlay = document.getElementById('dice-overlay');
     overlay.classList.add('active');
+    overlay.style.display = 'flex';
     
-    // Obtener el dado y el resultado
-    const dice = document.querySelector('.dice');
+    // Obtener los dados y sus resultados
+    const dice1 = document.querySelector('.dice-1');
+    const dice2 = document.querySelector('.dice-2');
+    
+    if (!dice1 || !dice2) {
+        console.error("Error: Elementos de dados no encontrados");
+        overlay.classList.remove('active');
+        controls.forEach(button => button.disabled = false);
+        return;
+    }
+    
     const diceResult = document.querySelector('.dice-result');
-    const diceValue = document.getElementById('dice-value');
+    const diceValue1 = document.getElementById('dice-value-1');
+    const diceValue2 = document.getElementById('dice-value-2');
+    const diceTotal = document.getElementById('dice-total');
     
-    // Asignar el valor final del dado
-    diceValue.textContent = value;
+    // Asignar los valores finales
+    if (diceValue1) diceValue1.textContent = dice1Value;
+    if (diceValue2) diceValue2.textContent = dice2Value;
+    if (diceTotal) diceTotal.textContent = value;
     
-    // Valores de rotación para cada resultado del dado
+    // Reset de transformaciones previas
+    dice1.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+    dice2.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+    
+    // Valores de rotación para cada resultado de los dados
     let rotationValues = {
         1: [0, 0, 0],       // Frontal muestra 1
         2: [0, -90, 0],     // Derecha muestra 2
@@ -1419,58 +1465,110 @@ function animateDiceRoll(value) {
         6: [0, 180, 0]      // Atrás muestra 6
     };
     
-    // Configurar la animación del dado con GSAP
-    gsap.to(dice, {
-        duration: 0.1,
-        opacity: 1
-    });
+    // Verificar que GSAP está disponible
+    if (typeof gsap === 'undefined') {
+        console.error("Error: GSAP no está disponible");
+        // Fallback a CSS básico
+        setTimeout(() => {
+            if (diceResult) diceResult.classList.add('show');
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                controls.forEach(button => button.disabled = false);
+            }, 2000);
+        }, 1000);
+        return;
+    }
     
-    // Animación de agitado inicial
-    gsap.to(dice, {
+    // Asegurarnos de que los dados estén visibles
+    dice1.style.opacity = "1";
+    dice1.style.display = "block";
+    dice2.style.opacity = "1";
+    dice2.style.display = "block";
+    
+    // Animación de agitado inicial - Dado 1
+    gsap.to(dice1, {
         duration: 0.5,
-        rotationX: "random(-720, 720)",
-        rotationY: "random(-720, 720)",
-        rotationZ: "random(-720, 720)",
+        rotationX: Math.random() * 720 - 360,
+        rotationY: Math.random() * 720 - 360,
+        rotationZ: Math.random() * 720 - 360,
         ease: "power1.inOut"
     });
     
-    // Animación principal del dado girando
-    gsap.to(dice, {
-        duration: 2,
-        rotationX: "random(-1440, 1440)",
-        rotationY: "random(-1440, 1440)",
-        rotationZ: "random(-1440, 1440)",
-        ease: "power3.inOut",
-        delay: 0.5,
+    // Animación de agitado inicial - Dado 2
+    gsap.to(dice2, {
+        duration: 0.5,
+        rotationX: Math.random() * 720 - 360,
+        rotationY: Math.random() * 720 - 360,
+        rotationZ: Math.random() * 720 - 360,
+        ease: "power1.inOut",
         onComplete: function() {
-            // Animar hasta el resultado final
-            gsap.to(dice, {
-                duration: 1,
-                rotationX: rotationValues[value][0],
-                rotationY: rotationValues[value][1],
-                rotationZ: rotationValues[value][2],
-                ease: "elastic.out(1, 0.8)",
+            console.log("Primera animación completada");
+            
+            // Animación principal del Dado 1
+            gsap.to(dice1, {
+                duration: 2,
+                rotationX: Math.random() * 1440 - 720,
+                rotationY: Math.random() * 1440 - 720,
+                rotationZ: Math.random() * 1440 - 720,
+                ease: "power3.inOut"
+            });
+            
+            // Animación principal del Dado 2
+            gsap.to(dice2, {
+                duration: 2,
+                rotationX: Math.random() * 1440 - 720,
+                rotationY: Math.random() * 1440 - 720,
+                rotationZ: Math.random() * 1440 - 720,
+                ease: "power3.inOut",
                 onComplete: function() {
-                    // Mostrar el resultado
-                    diceResult.classList.add('show');
-                    dice.classList.add('dice-shake');
+                    console.log("Segunda animación completada");
                     
-                    // Esperar un momento y ocultar la animación
-                    setTimeout(function() {
-                        diceResult.classList.remove('show');
-                        overlay.classList.remove('active');
-                        
-                        // Actualizar la visualización del resultado en la interfaz
-                        $('.dice-value').text(value);
-                        $('#diceroll').addClass('animate__animated animate__bounceIn');
-                        
-                        // Habilitar los controles del juego nuevamente
-                        controls.forEach(button => button.disabled = false);
-                        
-                        setTimeout(function() {
-                            $('#diceroll').removeClass('animate__animated animate__bounceIn');
-                        }, 1000);
-                    }, 2000);
+                    // Animar hasta el resultado final - Dado 1
+                    gsap.to(dice1, {
+                        duration: 1,
+                        rotationX: rotationValues[dice1Value][0],
+                        rotationY: rotationValues[dice1Value][1],
+                        rotationZ: rotationValues[dice1Value][2],
+                        ease: "elastic.out(1, 0.8)"
+                    });
+                    
+                    // Animar hasta el resultado final - Dado 2
+                    gsap.to(dice2, {
+                        duration: 1,
+                        rotationX: rotationValues[dice2Value][0],
+                        rotationY: rotationValues[dice2Value][1],
+                        rotationZ: rotationValues[dice2Value][2],
+                        ease: "elastic.out(1, 0.8)",
+                        onComplete: function() {
+                            console.log("Animación final completada");
+                            
+                            // Mostrar el resultado
+                            if (diceResult) {
+                                diceResult.classList.add('show');
+                            }
+                            dice1.classList.add('dice-shake');
+                            dice2.classList.add('dice-shake');
+                            
+                            // Esperar un momento y ocultar la animación
+                            setTimeout(function() {
+                                if (diceResult) {
+                                    diceResult.classList.remove('show');
+                                }
+                                overlay.classList.remove('active');
+                                
+                                // Actualizar la visualización del resultado en la interfaz
+                                $('.dice-value').text(value);
+                                $('#diceroll').addClass('animate__animated animate__bounceIn');
+                                
+                                // Habilitar los controles del juego nuevamente
+                                controls.forEach(button => button.disabled = false);
+                                
+                                setTimeout(function() {
+                                    $('#diceroll').removeClass('animate__animated animate__bounceIn');
+                                }, 1000);
+                            }, 2500);
+                        }
+                    });
                 }
             });
         }
@@ -1752,6 +1850,9 @@ setup = function() {
     
     // Mejorar la animación de los dados
     enhanceDiceRoll();
+    
+    // Aplicar efectos de agua
+    applyWaterEffects();
 }
 
 // Función para renderizar perfiles de jugadores
@@ -1908,4 +2009,324 @@ function enhanceDiceRoll() {
             originalCounterFasesChange.call(contador_fases.get(0), e);
         });
     }
+}
+
+// Función para generar texturas de olas dinámicamente
+function createWaveTexture() {
+    // Crear un canvas para la textura
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    // Limpiar el canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Configurar el estilo
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 2;
+    
+    // Dibujar ondas
+    for (let y = 0; y < canvas.height; y += 20) {
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 5) {
+            const waveHeight = 5 * Math.sin((x / 20) + (y / 30));
+            
+            if (x === 0) {
+                ctx.moveTo(x, y + waveHeight);
+            } else {
+                ctx.lineTo(x, y + waveHeight);
+            }
+        }
+        ctx.stroke();
+    }
+    
+    // Crear una imagen a partir del canvas
+    const image = new Image();
+    image.src = canvas.toDataURL();
+    
+    // Aplicar la textura como fondo
+    document.documentElement.style.setProperty('--wave-texture', `url(${image.src})`);
+    
+    return image.src;
+}
+
+// Función para aplicar efectos adicionales de agua
+function applyWaterEffects() {
+    // Generar la textura de olas
+    const waveTexture = createWaveTexture();
+    
+    // Crear estilos para las olas y añadirlos al documento
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        #gamefield_external::before, .terrain_water::after {
+            background-image: var(--wave-texture) !important;
+        }
+        
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .water-drop {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            z-index: 10;
+            pointer-events: none;
+            animation: ripple 2s ease-out forwards;
+        }
+    `;
+    document.head.appendChild(styleElement);
+    
+    // Añadir gotas de agua aleatorias en el océano
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    
+    setInterval(() => {
+        if (Math.random() > 0.7) { // 30% de probabilidad
+            createWaterDrop(gamefieldExternal);
+        }
+    }, 3000);
+    
+    // Añadir efecto de ondulación al océano
+    animateOceanWaves();
+}
+
+// Función para crear una gota de agua
+function createWaterDrop(container) {
+    const drop = document.createElement('div');
+    drop.className = 'water-drop';
+    
+    // Posición aleatoria
+    const x = Math.random() * container.offsetWidth;
+    const y = Math.random() * container.offsetHeight;
+    
+    // Aplicar estilos
+    drop.style.left = `${x}px`;
+    drop.style.top = `${y}px`;
+    drop.style.animationDuration = `${0.5 + Math.random()}s`;
+    
+    // Añadir al contenedor
+    container.appendChild(drop);
+    
+    // Eliminar después de la animación
+    setTimeout(() => {
+        drop.remove();
+    }, 2000);
+}
+
+// Función para animar las olas del océano
+function animateOceanWaves() {
+    // Seleccionar todos los elementos de terreno de agua
+    const waterTerrains = document.querySelectorAll('.terrain_water, .top_terrain, .bottom_terrain');
+    
+    // Añadir animación con GSAP
+    waterTerrains.forEach((terrain, index) => {
+        // Crear una animación ligeramente diferente para cada terreno
+        gsap.to(terrain, {
+            y: "+=3",
+            duration: 2 + (index % 3),
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            delay: index * 0.1
+        });
+    });
+    
+    // Animar el brillo del agua
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    gsap.to(gamefieldExternal, {
+        backgroundPosition: "+=50px +=30px",
+        duration: 20,
+        ease: "none",
+        repeat: -1,
+        yoyo: true
+    });
+}
+
+// Función para probar la animación de dados
+function testDiceAnimation() {
+    // Obtener un número aleatorio entre 1 y 6
+    const randomValue = Math.floor(Math.random() * 6) + 1;
+    console.log("Probando animación de dados con valor: " + randomValue);
+    
+    // Ejecutar la animación
+    animateDiceRoll(randomValue);
+}
+
+// Añadir evento para probar la animación al cargar la página
+jQuery(document).ready(function($) {
+    console.log("Documento listo, añadiendo botón de prueba de dados");
+    
+    // Botón para probar manualmente
+    $('#load_game').after('<button id="test_dice" class="btn btn-secondary ms-2"><i class="fas fa-dice me-2"></i>Probar dados</button>');
+    
+    // Evento de prueba
+    $(document).on('click', '#test_dice', function() {
+        console.log("Botón de prueba de dados clickeado");
+        testDiceAnimation();
+    });
+    
+    // Verificar que el overlay existe
+    const overlay = document.getElementById('dice-overlay');
+    if (!overlay) {
+        console.error("Error: Elemento 'dice-overlay' no encontrado");
+    } else {
+        console.log("Overlay de dados encontrado correctamente");
+    }
+    
+    // Verificar que el dado existe
+    const dice = document.querySelector('.dice');
+    if (!dice) {
+        console.error("Error: Elemento '.dice' no encontrado");
+    } else {
+        console.log("Elemento dado encontrado correctamente");
+    }
+});
+
+// Función para crear efectos de cursor personalizados
+function initCursorEffects() {
+    // Crear el elemento seguidor del cursor
+    const cursorFollower = document.createElement('div');
+    cursorFollower.className = 'cursor-follower';
+    document.body.appendChild(cursorFollower);
+    
+    // Seguimiento del cursor principal
+    document.addEventListener('mousemove', function(e) {
+        // Actualizar posición del seguidor
+        cursorFollower.style.left = e.clientX + 'px';
+        cursorFollower.style.top = e.clientY + 'px';
+        
+        // Crear efecto de estela
+        if (Math.random() > 0.7) { // Solo crear partículas ocasionalmente
+            createCursorTrail(e.clientX, e.clientY);
+        }
+    });
+    
+    // Efecto al hacer clic
+    document.addEventListener('mousedown', function(e) {
+        cursorFollower.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        // Crear efecto de "construcción"
+        createConstructionEffect(e.clientX, e.clientY);
+    });
+    
+    document.addEventListener('mouseup', function() {
+        cursorFollower.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+    
+    // Cambiar el cursor según el tipo de terreno
+    const terrains = document.querySelectorAll('.terrain');
+    terrains.forEach(terrain => {
+        terrain.addEventListener('mouseenter', function() {
+            // Cambiar el icono según el tipo de terreno
+            if (terrain.classList.contains('terrain_cereal')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23ffd700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_clay')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23a5673f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_wood')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%232ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_wool')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23c3e59a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_mineral')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%238d8d8d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else {
+                // Restaurar a imagen por defecto para otros terrenos
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+            }
+        });
+        
+        terrain.addEventListener('mouseleave', function() {
+            // Restaurar a la imagen por defecto
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+    
+    // Cambiar el cursor al pasar sobre nodos
+    const nodes = document.querySelectorAll('.node');
+    nodes.forEach(node => {
+        node.addEventListener('mouseenter', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+        
+        node.addEventListener('mouseleave', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+    
+    // Cambiar el cursor al pasar sobre carreteras
+    const roads = document.querySelectorAll('.road');
+    roads.forEach(road => {
+        road.addEventListener('mouseenter', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/></svg>\')';
+        });
+        
+        road.addEventListener('mouseleave', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+}
+
+// Función para crear el efecto de estela del cursor
+function createCursorTrail(x, y) {
+    const trail = document.createElement('div');
+    trail.className = 'cursor-trail';
+    trail.style.left = x + 'px';
+    trail.style.top = y + 'px';
+    document.body.appendChild(trail);
+    
+    // Eliminar después de la animación
+    setTimeout(() => {
+        trail.remove();
+    }, 1000);
+}
+
+// Función para crear efecto de construcción al hacer clic
+function createConstructionEffect(x, y) {
+    // Crear círculo de "construcción"
+    const constructEffect = document.createElement('div');
+    constructEffect.className = 'cursor-trail';
+    constructEffect.style.left = x + 'px';
+    constructEffect.style.top = y + 'px';
+    constructEffect.style.background = 'rgba(231, 76, 60, 0.5)';
+    constructEffect.style.width = '6px';
+    constructEffect.style.height = '6px';
+    document.body.appendChild(constructEffect);
+    
+    // Animar y eliminar
+    gsap.to(constructEffect, {
+        duration: 0.5,
+        width: '40px',
+        height: '40px',
+        opacity: 0,
+        onComplete: function() {
+            constructEffect.remove();
+        }
+    });
+    
+    // Sonido de construcción (opcional)
+    // Podríamos agregar un sonido aquí si el juego tiene audio
+}
+
+// Mejorar la función setup para incluir los efectos de cursor
+let originalSetupWithCursor = setup;
+setup = function() {
+    originalSetupWithCursor();
+    initAnimations();
+    
+    // Renderizar jugadores dinámicamente
+    renderPlayerProfiles();
+    
+    // Estilizar mejor los nodos de puerto
+    enhanceHarborNodes();
+    
+    // Mejorar la animación de los dados
+    enhanceDiceRoll();
+    
+    // Aplicar efectos de agua
+    applyWaterEffects();
+    
+    // Inicializar efectos de cursor - desactivado por preferencia del usuario
+    // initCursorEffects();
 }
