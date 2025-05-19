@@ -3,40 +3,44 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Visualizador</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catán - Visualizador</title>
 
     <!-- Stylesheets -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-0evHe/X+R7YkIZDRvuzKMRqM+OrBnVFBL6DOitfPri4tjfHxaWutUpFmBp4vmVor" crossorigin="anonymous">
     <link rel="stylesheet" href="CSS/general.css">
     <link rel="stylesheet" href="CSS/game.css">
+    <!-- Animate.css para animaciones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
 
     <!-- Scripts -->
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.5/dist/umd/popper.min.js" integrity="sha384-Xe+8cL9oJa6tN/veChSP7q+mnSPaj5Bcu9mPX5F5xIGE0DVittaqT5lorf0EI7Vk" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-pprn3073KE6tl6bjs2QrFaJGz5/SUsLqktiwsUTF55Jfv3qYSDhgCecCxMW52nD2" crossorigin="anonymous"></script>
-
+    <!-- Confetti para efectos de victoria -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <!-- GSAP para animaciones avanzadas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    
     <script src="https://kit.fontawesome.com/7c89af0f82.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
     <!-- APP -->
-    <div id="app">
+    <div id="app" class="container-fluid">
+        <header class="py-3 mb-3">
+            <h1 class="text-center animate__animated animate__fadeIn">Catán Visualizador</h1>
+        </header>
+        
         <!-- Partida -->
         <div class="row">
             <div class="col-7">
                 <div class="row">
                     <!-- Col Partida -->
-                    <div id="diceroll" style="position: absolute; z-index: 5; top: 10px; left: 30px;">Diceroll: 0</div>
-                    <div class="rounds" style="position: absolute; z-index: 5; top: 40px; left: 30px;">
-                        <span id="actual_round"></span>
-                        /
-                        <span id="rondas_maximas"></span>
-                    </div>
                     <div class="col-12" style="padding-right: 0" id="gamefield_external">
                         <div class="gamefield" id="gamefield">
                             <div class="nodes">
+                                <!-- Nodos actuales con puertos -->
                                 <div class="node" id="node_0" style="top: 97px; left: 184px;"></div>
                                 <div class="node" id="node_1" style="top: 75px; left: 232px;"></div>
                                 <div class="node" id="node_2" style="top: 97px; left: 282px;"></div>
@@ -290,431 +294,84 @@
                                 <div class="terrain bottom_terrain"></div>
                                 <div class="terrain bottom_terrain"></div>
                             </div>
-
-                            <!--                    <img src="./Images/mapa.png" style="height: 57vh; margin-top: 5em" alt="Juego del Catan">-->
                         </div>
-                    </div> <!-- div.col-6 -->
-                </div> <!-- div.row -->
-                <!-- Controles -->
-                <div class="row" id="controles">
-                    <div class="col-1"></div>
-                    <div class="col-2 text-center">
-                        <div class="btn btn-secondary" id="ronda_previa_btn" data-toggle="tooltip" data-placement="top" title="Ronda anterior"><i class="fa-solid fa-angles-left"></i></div>
                     </div>
-                    <div class="col-1 text-center">
-                        <div class="btn btn-secondary" id="turno_previo_btn" data-toggle="tooltip" data-placement="top" title="Turno anterior"><i class="fa-solid fa-angle-left"></i></div>
-                    </div>
-                    <div class="col-1 text-center">
-<!--                        <div class="btn btn-secondary" id="fase_previa_btn" data-toggle="tooltip" data-placement="top" title="Fase anterior"><i class="fa-solid fa-backward-step"></i></div>-->
-                    </div>
-                    <div class="col text-center">
-                        <input type="number" class="form-control" id="contador_rondas" style="/*display: inline-block*/; width: 100px; display: none;">
-                        <input type="number" class="form-control" id="contador_turnos" style="display: none">
-                        <input type="number" class="form-control" id="contador_fases" style="display: none">
-
-                        <div class="btn btn-secondary" id="play_btn" data-toggle="tooltip" data-placement="top" title="Play"><i class="fa-solid fa-play"></i></div>
-
-                        <input type="range" min="10" max="1000" value="25" class="slider" id="millis_for_play" style="width: 50px;">
-                        <span id="millis_seleccionados"></span>
-
-                    </div>
-                    <div class="col-1 text-center">
-                        <div class="btn btn-secondary" id="fase_siguiente_btn" data-toggle="tooltip" data-placement="top" title="Fase siguiente"><i class="fa-solid fa-forward-step"></i></div>
-                    </div>
-                    <div class="col-1 text-center">
-                        <div class="btn btn-secondary" id="turno_siguiente_btn" data-toggle="tooltip" data-placement="top" title="Turno siguiente"><i class="fa-solid fa-angle-right"></i></div>
-                    </div>
-                    <div class="col-2 text-center">
-                        <div class="btn btn-secondary" id="ronda_siguiente_btn" data-toggle="tooltip" data-placement="top" title="Ronda siguiente"><i class="fa-solid fa-angles-right"></i></div>
-                    </div>
-                    <div class="col-1 dropup">
-                        <div class="btn btn-secondary " id="menu_btn" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical"></i></div>
-                        <ul class="dropdown-menu" aria-labelledby="menu_btn">
-                            <!--                            <li><a class="dropdown-item" href="#" id="choose_phase">Elegir fase</a></li>-->
-                            <!--                            <li><a class="dropdown-item" href="#" id="choose_turn">Elegir turno</a></li>-->
-                            <!--                            <li><a class="dropdown-item" href="#" id="choose_round">Elegir ronda</a></li>-->
-                            <li><a class="dropdown-item" href="#" id="load_game">Cargar partida</a></li>
-                        </ul>
+                    
+                    <!-- Control panel debajo del tablero -->
+                    <div class="col-12 mt-3">
+                        <div class="game-controls-panel d-flex justify-content-between align-items-center">
+                            <div class="game-info d-flex">
+                                <div id="diceroll" class="dice-display animate__animated me-3">
+                                    <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
+                                </div>
+                                <div class="rounds card-stats">
+                                    <i class="fas fa-hourglass-half me-2"></i>Ronda: 
+                                    <span id="actual_round"></span>
+                                    /
+                                    <span id="rondas_maximas"></span>
+                                </div>
+                            </div>
+                            
+                            <div id="controles" class="game-controls">
+                                <div class="btn-group">
+                                    <button id="ronda_previa_btn" class="btn btn-sm">
+                                        <i class="fas fa-step-backward"></i> Ronda
+                                    </button>
+                                    <button id="turno_previo_btn" class="btn btn-sm">
+                                        <i class="fas fa-backward"></i> Turno
+                                    </button>
+                                    <button id="fase_previa_btn" class="btn btn-sm">
+                                        <i class="fas fa-caret-left"></i> Fase
+                                    </button>
+                                    <button id="fase_siguiente_btn" class="btn btn-sm">
+                                        Fase <i class="fas fa-caret-right"></i>
+                                    </button>
+                                    <button id="turno_siguiente_btn" class="btn btn-sm">
+                                        Turno <i class="fas fa-forward"></i>
+                                    </button>
+                                    <button id="ronda_siguiente_btn" class="btn btn-sm">
+                                        Ronda <i class="fas fa-step-forward"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <!-- Log -->
-            <div class="col log">
-                <div id="commerce_log" style="height: 50vh">
-                    <div id="commerce_log_title">Comercios</div>
-                    <div id="commerce_log_text" style="height: 45vh/**height: -webkit-fill-available*/"></div>
-                </div>
-                <div id="other_useful_info">
-                    <div id="other_useful_info_title">Otra información útil</div>
-                    <div id="other_useful_info_text"></div>
-                </div>
-                <input type="file" id="get_file" accept=".json" style="display: none;">
-            </div>
-        </div> <!-- fin partida -->
-
-        <div class="row">
-            <div class="col-12" style="border-top: 3px solid black;">
-                <!-- Col Jugadores -->
+            
+            <!-- Panel lateral -->
+            <div class="col-5">
                 <div class="row">
-                    <div class="col-6">
-                        <div class="row player">
-                            <div style="background: lightcoral; border: 5px solid lightcoral" class="playerprofile col" id="P0">
-                                <div class="row">
-                                    <div class="col">
-                                        <!--                                    <img src="Images/nouser.png" alt="No user" height="80px">-->
-                                        <h1>J1</h1>
-                                        <h3 id="puntos_victoria_J1"></h3>
-                                        <!--                        <textarea class="buildings_textarea" id="buildings_P1" style="width: 100%"></textarea>-->
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="largest_army col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-person-military-rifle fa-2x" data-toggle="tooltip" data-placement="top" title="Mayor ejercito"></i>
-                                    </div>
-                                    <div class="longest_road col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-ruler-horizontal fa-2x" data-toggle="tooltip" data-placement="top" title="Carretera más larga"></i>
-                                    </div>
-                                    <div class="col"></div>
-                                </div>
+                    <!-- Perfiles de jugadores -->
+                    <div class="col-12">
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Jugadores</h5>
                             </div>
-                            <div id="hand_P0" class="hand text-center col-7">
-                                <div class="row top_hand_row">
-                                    <div class="cereal col ms-3 me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wheat-awn" data-toggle="tooltip" data-placement="top" title="Cereal"></i>
-                                        <span>: </span>
-                                        <span class="cereal_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="clay col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trowel-bricks" data-toggle="tooltip" data-placement="top" title="Ladrillos"></i>
-                                        <span>: </span>
-                                        <span class="clay_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wool col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-brands fa-cotton-bureau" data-toggle="tooltip" data-placement="top" title="Lana"></i>
-                                        <span>: </span>
-                                        <span class="wool_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wood col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wand-sparkles" data-toggle="tooltip" data-placement="top" title="Madera"></i>
-                                        <span>: </span>
-                                        <span class="wood_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="mineral col me-3 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-mountain-sun" data-toggle="tooltip" data-placement="top" title="Mineral"></i>
-                                        <span>: </span>
-                                        <span class="mineral_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                </div>
-                                <div class="row bottom_hand_row">
-                                    <div class="knight col ms-3 me-1 px-1" data-id="knight" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-chess-knight" data-toggle="tooltip" data-placement="top" title="Caballero"></i>
-                                        <span>: </span>
-                                        <span class="knight_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="victory_point col me-1 px-1" data-id="victory_point" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trophy" data-toggle="tooltip" data-placement="top" title="Puntos de victoria"></i>
-                                        <span>: </span>
-                                        <span class="victory_point_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="road_building col me-1 px-1" data-id="road_building" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-road" data-toggle="tooltip" data-placement="top" title="Construcción de carreteras"></i>
-                                        <span>: </span>
-                                        <span class="road_building_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="year_of_plenty col me-1 px-1" data-id="year_of_plenty" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-regular fa-calendar-days" data-toggle="tooltip" data-placement="top" title="Año de cosecha"></i>
-                                        <span>: </span>
-                                        <span class="year_of_plenty_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="monopoly col me-3 px-1" data-id="monopoly" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-hand-holding-dollar" data-toggle="tooltip" data-placement="top" title="Monopolio"></i>
-                                        <span>: </span>
-                                        <span class="monopoly_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="row player">
-                            <div style="background: lightblue; border: 5px solid lightblue" class="playerprofile col" id="P1">
-                                <div class="row">
-                                    <div class="col">
-                                        <!--                                <img src="Images/nouser.png" alt="No user" height="80px">-->
-                                        <h1>J2</h1>
-                                        <h3 id="puntos_victoria_J2"></h3>
-                                        <!--                    <textarea class="buildings_textarea" id="buildings_P2" style="width: 100%"></textarea>-->
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="largest_army col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-person-military-rifle fa-2x" data-toggle="tooltip" data-placement="top" title="Mayor ejercito"></i>
-                                    </div>
-                                    <div class="longest_road col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-ruler-horizontal fa-2x" data-toggle="tooltip" data-placement="top" title="Carretera más larga"></i>
-                                    </div>
-                                    <div class="col"></div>
-                                </div>
-                            </div>
-                            <div id="hand_P1" class="hand text-center col-7">
-                                <div class="row top_hand_row">
-                                    <div class="cereal col ms-3 me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wheat-awn" data-toggle="tooltip" data-placement="top" title="Cereal"></i>
-                                        <span>: </span>
-                                        <span class="cereal_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="clay col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trowel-bricks" data-toggle="tooltip" data-placement="top" title="Ladrillos"></i>
-                                        <span>: </span>
-                                        <span class="clay_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wool col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-brands fa-cotton-bureau" data-toggle="tooltip" data-placement="top" title="Lana"></i>
-                                        <span>: </span>
-                                        <span class="wool_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wood col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wand-sparkles" data-toggle="tooltip" data-placement="top" title="Madera"></i>
-                                        <span>: </span>
-                                        <span class="wood_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="mineral col me-3 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-mountain-sun" data-toggle="tooltip" data-placement="top" title="Mineral"></i>
-                                        <span>: </span>
-                                        <span class="mineral_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                </div>
-                                <div class="row bottom_hand_row">
-                                    <div class="knight col ms-3 me-1 px-1" data-id="knight" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-chess-knight" data-toggle="tooltip" data-placement="top" title="Caballero"></i>
-                                        <span>: </span>
-                                        <span class="knight_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="victory_point col me-1 px-1" data-id="victory_point" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trophy" data-toggle="tooltip" data-placement="top" title="Puntos de victoria"></i>
-                                        <span>: </span>
-                                        <span class="victory_point_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="road_building col me-1 px-1" data-id="road_building" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-road" data-toggle="tooltip" data-placement="top" title="Construcción de carreteras"></i>
-                                        <span>: </span>
-                                        <span class="road_building_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="year_of_plenty col me-1 px-1" data-id="year_of_plenty" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-regular fa-calendar-days" data-toggle="tooltip" data-placement="top" title="Año de cosecha"></i>
-                                        <span>: </span>
-                                        <span class="year_of_plenty_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="monopoly col me-3 px-1" data-id="monopoly" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-hand-holding-dollar" data-toggle="tooltip" data-placement="top" title="Monopolio"></i>
-                                        <span>: </span>
-                                        <span class="monopoly_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
+                            <div class="card-body">
+                                <div class="row" id="players-container">
+                                    <!-- Contenido de jugadores se añade dinámicamente -->
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Col Jugadores -->
-            <div class="col-12">
+                
+                <!-- Logs del juego -->
                 <div class="row">
-                    <div class="col-6">
-                        <div class="row player">
-                            <div style="background: lightgreen; border: 5px solid lightgreen" class="playerprofile col" id="P2">
-                                <div class="row">
-                                    <div class="col">
-                                        <!--                                <img src="Images/nouser.png" alt="No user" height="80px">-->
-                                        <h1>J3</h1>
-                                        <h3 id="puntos_victoria_J3"></h3>
-                                        <!--                                <textarea class="buildings_textarea" id="buildings_P3" style="width: 100%"></textarea>-->
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="largest_army col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-person-military-rifle fa-2x" data-toggle="tooltip" data-placement="top" title="Mayor ejercito"></i>
-                                    </div>
-                                    <div class="longest_road col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-ruler-horizontal fa-2x" data-toggle="tooltip" data-placement="top" title="Carretera más larga"></i>
-                                    </div>
-                                    <div class="col"></div>
-                                </div>
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0">Log del Juego</h5>
                             </div>
-                            <div id="hand_P2" class="hand text-center col-7">
-                                <div class="row top_hand_row">
-                                    <div class="cereal col ms-3 me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wheat-awn" data-toggle="tooltip" data-placement="top" title="Cereal"></i>
-                                        <span>: </span>
-                                        <span class="cereal_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="clay col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trowel-bricks" data-toggle="tooltip" data-placement="top" title="Ladrillos"></i>
-                                        <span>: </span>
-                                        <span class="clay_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wool col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-brands fa-cotton-bureau" data-toggle="tooltip" data-placement="top" title="Lana"></i>
-                                        <span>: </span>
-                                        <span class="wool_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="wood col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wand-sparkles" data-toggle="tooltip" data-placement="top" title="Madera"></i>
-                                        <span>: </span>
-                                        <span class="wood_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                    <div class="mineral col me-3 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-mountain-sun" data-toggle="tooltip" data-placement="top" title="Mineral"></i>
-                                        <span>: </span>
-                                        <span class="mineral_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
+                            <div class="card-body">
+                                <div id="commerce_log">
+                                    <span id="commerce_log_title">Comercio</span>
+                                    <div id="commerce_log_text"></div>
                                 </div>
-                                <div class="row bottom_hand_row">
-                                    <div class="knight col ms-3 me-1 px-1" data-id="knight" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-chess-knight" data-toggle="tooltip" data-placement="top" title="Caballero"></i>
-                                        <span>: </span>
-                                        <span class="knight_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="victory_point col me-1 px-1" data-id="victory_point" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trophy" data-toggle="tooltip" data-placement="top" title="Puntos de victoria"></i>
-                                        <span>: </span>
-                                        <span class="victory_point_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="road_building col me-1 px-1" data-id="road_building" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-road" data-toggle="tooltip" data-placement="top" title="Construcción de carreteras"></i>
-                                        <span>: </span>
-                                        <span class="road_building_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="year_of_plenty col me-1 px-1" data-id="year_of_plenty" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-regular fa-calendar-days" data-toggle="tooltip" data-placement="top" title="Año de cosecha"></i>
-                                        <span>: </span>
-                                        <span class="year_of_plenty_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="monopoly col me-3 px-1" data-id="monopoly" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-hand-holding-dollar" data-toggle="tooltip" data-placement="top" title="Monopolio"></i>
-                                        <span>: </span>
-                                        <span class="monopoly_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="row player">
-                            <div style="background: lightyellow; border: 5px solid lightyellow" class="playerprofile col" id="P3">
-
-                                <div class="row">
-                                    <div class="col">
-                                        <!--                                <img src="Images/nouser.png" alt="No user" height="80px">-->
-                                        <h1>J4</h1>
-                                        <h3 id="puntos_victoria_J4">3</h3>
-                                        <!--                    <textarea class="buildings_textarea" id="buildings_P4" style="width: 100%"></textarea>-->
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="largest_army col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-person-military-rifle fa-2x" data-toggle="tooltip" data-placement="top" title="Mayor ejercito"></i>
-                                    </div>
-                                    <div class="longest_road col-2" style="display: inline-block;">
-                                        <i class="fa-solid fa-ruler-horizontal fa-2x" data-toggle="tooltip" data-placement="top" title="Carretera más larga"></i>
-                                    </div>
-                                    <div class="col"></div>
-                                </div>
-                            </div>
-                            <div id="hand_P3" class="hand text-center col-7">
-                                <div class="row top_hand_row">
-                                    <div class="cereal col ms-3 me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wheat-awn" data-toggle="tooltip" data-placement="top" title="Cereal"></i>
-                                        <span>: </span>
-                                        <span class="cereal_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="clay col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trowel-bricks" data-toggle="tooltip" data-placement="top" title="Ladrillos"></i>
-                                        <span>: </span>
-                                        <span class="clay_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="wool col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-brands fa-cotton-bureau" data-toggle="tooltip" data-placement="top" title="Lana"></i>
-                                        <span>: </span>
-                                        <span class="wool_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="wood col me-1 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-wand-sparkles" data-toggle="tooltip" data-placement="top" title="Madera"></i>
-                                        <span>: </span>
-                                        <span class="wood_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="mineral col me-3 px-1" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-mountain-sun" data-toggle="tooltip" data-placement="top" title="Mineral"></i>
-                                        <span>: </span>
-                                        <span class="mineral_quantity">0</span>
-                                        <i class="fa-solid increment fa-solid"></i>
-                                    </div>
-                                </div>
-                                <div class="row bottom_hand_row">
-                                    <div class="knight col ms-3 me-1 px-1" data-id="knight" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-chess-knight" data-toggle="tooltip" data-placement="top" title="Caballero"></i>
-                                        <span>: </span>
-                                        <span class="knight_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="victory_point col me-1 px-1" data-id="victory_point" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-trophy" data-toggle="tooltip" data-placement="top" title="Puntos de victoria"></i>
-                                        <span>: </span>
-                                        <span class="victory_point_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="road_building col me-1 px-1" data-id="road_building" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-road" data-toggle="tooltip" data-placement="top" title="Construcción de carreteras"></i>
-                                        <span>: </span>
-                                        <span class="road_building_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="year_of_plenty col me-1 px-1" data-id="year_of_plenty" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-regular fa-calendar-days" data-toggle="tooltip" data-placement="top" title="Año de cosecha"></i>
-                                        <span>: </span>
-                                        <span class="year_of_plenty_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
-                                    <div class="monopoly col me-3 px-1" data-id="monopoly" style="border-right: 1px solid black; border-left: 1px solid black;">
-                                        <i class="fa-solid fa-hand-holding-dollar" data-toggle="tooltip" data-placement="top" title="Monopolio"></i>
-                                        <span>: </span>
-                                        <span class="monopoly_quantity">0</span>
-                                        <i class="increment fa-solid"></i>
-                                    </div>
+                                <div id="other_useful_info" class="mt-3">
+                                    <span id="other_useful_info_title">Información Adicional</span>
+                                    <div id="other_useful_info_text"></div>
                                 </div>
                             </div>
                         </div>
@@ -722,14 +379,85 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Modals y elementos flotantes -->
+        <div id="victory-modal" class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">¡Victoria!</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <h2 id="winner-name" class="mb-4 animate__animated animate__bounceIn"></h2>
+                        <div class="victory-animation-container">
+                            <div id="confetti-canvas"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Overlay para animación de dados -->
+        <div id="dice-overlay" class="dice-overlay">
+            <div class="text-center">
+                <div class="dice-container-wrapper d-flex justify-content-center">
+                    <!-- Primer dado -->
+                    <div class="dice-container mx-3">
+                        <div class="dice dice-1">
+                            <div class="face face-1 front"></div>
+                            <div class="face face-6 back"></div>
+                            <div class="face face-2 right"></div>
+                            <div class="face face-5 left"></div>
+                            <div class="face face-3 top"></div>
+                            <div class="face face-4 bottom"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Segundo dado -->
+                    <div class="dice-container mx-3">
+                        <div class="dice dice-2">
+                            <div class="face face-1 front"></div>
+                            <div class="face face-6 back"></div>
+                            <div class="face face-2 right"></div>
+                            <div class="face face-5 left"></div>
+                            <div class="face face-3 top"></div>
+                            <div class="face face-4 bottom"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="dice-result mt-4">
+                    <span id="dice-value-1">0</span> + <span id="dice-value-2">0</span> = <span id="dice-total">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Carga de archivo -->
+        <div class="position-fixed bottom-0 end-0 p-3">
+            <div class="btn-group">
+                <button id="load_game" class="btn btn-primary">
+                    <i class="fas fa-file-upload me-2"></i>Cargar partida
+                </button>
+                <input type="file" id="get_file" style="display: none;" />
+            </div>
+        </div>
     </div>
 
-    <script src="./JS/general.js"></script>
-    <!--
-    <script type="text/javascript">
-        
+    <!-- Script para funcionalidades extendidas -->
+    <script src="JS/general.js"></script>
+    <script>
+        // Script para inicializar efectos visuales
+        document.addEventListener('DOMContentLoaded', function() {
+            init_events();
+            initAnimations();
+            
+            // Inicializar tooltips de Bootstrap
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+              return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        });
     </script>
--->
 </body>
 
 </html>
