@@ -132,37 +132,80 @@ function terrainSetup() {
     }
 }
 
+// Función mejorada para la visualización de puertos
+function fromHarborNumberToMaterials(harborNumber) {
+    switch (harborNumber) {
+        case 0:
+            return '<div class="harbor-content harbor-cereal"><i class="fa-solid fa-wheat-awn"></i><span>2:1</span></div>';
+        case 1:
+            return '<div class="harbor-content harbor-mineral"><i class="fa-solid fa-mountain-sun"></i><span>2:1</span></div>';
+        case 2:
+            return '<div class="harbor-content harbor-clay"><i class="fa-solid fa-trowel-bricks"></i><span>2:1</span></div>';
+        case 3:
+            return '<div class="harbor-content harbor-wood"><i class="fa-solid fa-wand-sparkles"></i><span>2:1</span></div>';
+        case 4:
+            return '<div class="harbor-content harbor-wool"><i class="fa-brands fa-cotton-bureau"></i><span>2:1</span></div>';
+        case 5:
+            return '<div class="harbor-content"><span>3:1</span></div>';
+        case -1:
+            return '';
+        default:
+            return '';
+    }
+}
+
+// Función mejorada para configurar los nodos y sus puertos
 function nodeSetup() {
     nodes = game_obj['setup']['board']['board_nodes'];
 
     for (let i = 0; i < nodes.length; i++) {
         let node = jQuery('#node_' + i);
-
-        // TODO: Mejora a futuro: Añadir icono de puerto a las costeras O añadir un icono en el mar
+        
+        // Si el nodo tiene un valor de puerto, añadirlo
+        if (nodes[i]['harbor'] !== -1) {
+            node.addClass('is-harbor');
+            node.attr('data-bs-toggle', 'tooltip');
+            
+            // Establecer título según el tipo de puerto
+            let tooltipTitle = '';
+            switch (nodes[i]['harbor']) {
+                case 0:
+                    tooltipTitle = 'Puerto de Cereal 2:1';
+                    break;
+                case 1:
+                    tooltipTitle = 'Puerto de Mineral 2:1';
+                    break;
+                case 2:
+                    tooltipTitle = 'Puerto de Ladrillo 2:1';
+                    break;
+                case 3:
+                    tooltipTitle = 'Puerto de Madera 2:1';
+                    break;
+                case 4:
+                    tooltipTitle = 'Puerto de Lana 2:1';
+                    break;
+                case 5:
+                    tooltipTitle = 'Puerto 3:1';
+                    break;
+            }
+            node.attr('title', tooltipTitle);
+            
+            // Añadir animación sutil al puerto
+            gsap.to(node, {
+                duration: 2,
+                repeat: -1,
+                yoyo: true,
+                boxShadow: '0 0 15px rgba(52, 152, 219, 0.7)',
+                ease: "sine.inOut"
+            });
+        }
+        
+        // Añadir contenido al nodo
         node.html(fromHarborNumberToMaterials(nodes[i]['harbor']));
     }
-}
-
-function fromHarborNumberToMaterials(harborNumber) {
-    switch (harborNumber) {
-        case 0:
-            return '<i class="fa-solid fa-wheat-awn"></i><span>2:1</span>';
-        case 1:
-            return '<i class="fa-solid fa-mountain-sun"></i><span>2:1</span>';
-        case 2:
-            return '<i class="fa-solid fa-trowel-bricks"></i><span>2:1</span>';
-        case 3:
-            return '<i class="fa-solid fa-wand-sparkles"></i><span>2:1</span>';
-        case 4:
-            return '<i class="fa-brands fa-cotton-bureau"></i><span>2:1</span>';
-        case 5:
-            return '<span>3:1</span>'
-        case -1:
-            return '';
-        default:
-            //            alert('Caso ilegal de terreno');
-            break;
-    }
+    
+    // Inicializar tooltips para los puertos
+    $('[data-bs-toggle="tooltip"]').tooltip();
 }
 
 function getTerrainTypeClass(terrainType) {
@@ -693,11 +736,6 @@ function init_events_with_game_obj() {
                                         } else {
                                             html += ': Accepted | Cannot be completed (lack of materials)';
                                         }
-                                        // cerramos todos los divs de contraoferta
-                                        for (let m = 0; m < counteroffer_counter; m++) {
-                                            html += '</div>'
-                                        }
-
                                     } else {
                                         if (phase_obj[i]['answers'][j][n]['count'] == phase_obj[i]['answers'][j].length) {
                                             // se niega la oferta
@@ -1312,3 +1350,983 @@ function setup() {
 window.addEventListener('load', function () {
     init_events();
 }, false);
+
+// Funciones para animaciones y efectos especiales
+function initAnimations() {
+    // Configuración de animaciones
+    $('.terrain').each(function(index) {
+        // Añadimos un pequeño retraso a la animación de cada terreno para crear un efecto cascada
+        gsap.from(this, {
+            duration: 0.8,
+            delay: index * 0.05,
+            y: -50,
+            opacity: 0,
+            ease: "power2.out"
+        });
+    });
+
+    // Animación de los nodos
+    gsap.from('.node', {
+        duration: 0.5,
+        delay: 0.8,
+        scale: 0,
+        opacity: 0,
+        stagger: 0.01,
+        ease: "back.out(1.7)"
+    });
+
+    // Animación de las carreteras
+    gsap.from('.road', {
+        duration: 0.5,
+        delay: 1,
+        scaleX: 0,
+        opacity: 0,
+        stagger: 0.01,
+        ease: "power1.out"
+    });
+}
+
+// Función mejorada para animar los dados - versión con dos dados
+function animateDiceRoll(value) {
+    console.log("Animando dados con valor total: " + value);
+    
+    // Calcular valores para los dos dados
+    // Generamos valores aleatorios que sumen el valor total
+    let dice1Value, dice2Value;
+    
+    if (value <= 7) {
+        // Para valores menores o iguales a 7, tenemos más opciones de combinación
+        dice1Value = Math.max(1, Math.min(6, Math.floor(Math.random() * value)));
+    } else {
+        // Para valores mayores a 7, aseguramos que ningún dado exceda 6
+        dice1Value = Math.max(1, Math.min(6, Math.floor(Math.random() * 6) + 1));
+    }
+    
+    dice2Value = value - dice1Value;
+    
+    // Si el segundo dado excede 6 o es menor que 1, ajustamos ambos valores
+    if (dice2Value > 6) {
+        dice1Value = Math.max(value - 6, 1);
+        dice2Value = value - dice1Value;
+    } else if (dice2Value < 1) {
+        dice1Value = Math.min(value - 1, 6);
+        dice2Value = value - dice1Value;
+    }
+    
+    console.log("Valores de dados: " + dice1Value + " + " + dice2Value + " = " + value);
+    
+    // Verificar que el overlay existe
+    const overlay = document.getElementById('dice-overlay');
+    if (!overlay) {
+        console.error("Error: Elemento 'dice-overlay' no encontrado");
+        return;
+    }
+    
+    // Pausar los controles del juego durante la animación
+    const controls = document.querySelectorAll('#controles button');
+    controls.forEach(button => button.disabled = true);
+    
+    // Mostrar el overlay
+    overlay.classList.add('active');
+    overlay.style.display = 'flex';
+    
+    // Obtener los dados y sus resultados
+    const dice1 = document.querySelector('.dice-1');
+    const dice2 = document.querySelector('.dice-2');
+    
+    if (!dice1 || !dice2) {
+        console.error("Error: Elementos de dados no encontrados");
+        overlay.classList.remove('active');
+        controls.forEach(button => button.disabled = false);
+        return;
+    }
+    
+    const diceResult = document.querySelector('.dice-result');
+    const diceValue1 = document.getElementById('dice-value-1');
+    const diceValue2 = document.getElementById('dice-value-2');
+    const diceTotal = document.getElementById('dice-total');
+    
+    // Asignar los valores finales
+    if (diceValue1) diceValue1.textContent = dice1Value;
+    if (diceValue2) diceValue2.textContent = dice2Value;
+    if (diceTotal) diceTotal.textContent = value;
+    
+    // Reset de transformaciones previas
+    dice1.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+    dice2.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+    
+    // Valores de rotación para cada resultado de los dados
+    let rotationValues = {
+        1: [0, 0, 0],       // Frontal muestra 1
+        2: [0, -90, 0],     // Derecha muestra 2
+        3: [-90, 0, 0],     // Arriba muestra 3
+        4: [90, 0, 0],      // Abajo muestra 4
+        5: [0, 90, 0],      // Izquierda muestra 5
+        6: [0, 180, 0]      // Atrás muestra 6
+    };
+    
+    // Verificar que GSAP está disponible
+    if (typeof gsap === 'undefined') {
+        console.error("Error: GSAP no está disponible");
+        // Fallback a CSS básico
+        setTimeout(() => {
+            if (diceResult) diceResult.classList.add('show');
+            setTimeout(() => {
+                overlay.classList.remove('active');
+                controls.forEach(button => button.disabled = false);
+            }, 2000);
+        }, 1000);
+        return;
+    }
+    
+    // Asegurarnos de que los dados estén visibles
+    dice1.style.opacity = "1";
+    dice1.style.display = "block";
+    dice2.style.opacity = "1";
+    dice2.style.display = "block";
+    
+    // Animación de agitado inicial - Dado 1
+    gsap.to(dice1, {
+        duration: 0.5,
+        rotationX: Math.random() * 720 - 360,
+        rotationY: Math.random() * 720 - 360,
+        rotationZ: Math.random() * 720 - 360,
+        ease: "power1.inOut"
+    });
+    
+    // Animación de agitado inicial - Dado 2
+    gsap.to(dice2, {
+        duration: 0.5,
+        rotationX: Math.random() * 720 - 360,
+        rotationY: Math.random() * 720 - 360,
+        rotationZ: Math.random() * 720 - 360,
+        ease: "power1.inOut",
+        onComplete: function() {
+            console.log("Primera animación completada");
+            
+            // Animación principal del Dado 1
+            gsap.to(dice1, {
+                duration: 2,
+                rotationX: Math.random() * 1440 - 720,
+                rotationY: Math.random() * 1440 - 720,
+                rotationZ: Math.random() * 1440 - 720,
+                ease: "power3.inOut"
+            });
+            
+            // Animación principal del Dado 2
+            gsap.to(dice2, {
+                duration: 2,
+                rotationX: Math.random() * 1440 - 720,
+                rotationY: Math.random() * 1440 - 720,
+                rotationZ: Math.random() * 1440 - 720,
+                ease: "power3.inOut",
+                onComplete: function() {
+                    console.log("Segunda animación completada");
+                    
+                    // Animar hasta el resultado final - Dado 1
+                    gsap.to(dice1, {
+                        duration: 1,
+                        rotationX: rotationValues[dice1Value][0],
+                        rotationY: rotationValues[dice1Value][1],
+                        rotationZ: rotationValues[dice1Value][2],
+                        ease: "elastic.out(1, 0.8)"
+                    });
+                    
+                    // Animar hasta el resultado final - Dado 2
+                    gsap.to(dice2, {
+                        duration: 1,
+                        rotationX: rotationValues[dice2Value][0],
+                        rotationY: rotationValues[dice2Value][1],
+                        rotationZ: rotationValues[dice2Value][2],
+                        ease: "elastic.out(1, 0.8)",
+                        onComplete: function() {
+                            console.log("Animación final completada");
+                            
+                            // Mostrar el resultado
+                            if (diceResult) {
+                                diceResult.classList.add('show');
+                            }
+                            dice1.classList.add('dice-shake');
+                            dice2.classList.add('dice-shake');
+                            
+                            // Esperar un momento y ocultar la animación
+                            setTimeout(function() {
+                                if (diceResult) {
+                                    diceResult.classList.remove('show');
+                                }
+                                overlay.classList.remove('active');
+                                
+                                // Actualizar la visualización del resultado en la interfaz
+                                $('.dice-value').text(value);
+                                $('#diceroll').addClass('animate__animated animate__bounceIn');
+                                
+                                // Habilitar los controles del juego nuevamente
+                                controls.forEach(button => button.disabled = false);
+                                
+                                setTimeout(function() {
+                                    $('#diceroll').removeClass('animate__animated animate__bounceIn');
+                                }, 1000);
+                            }, 2500);
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+
+// Función para mostrar confeti de victoria
+function showVictoryConfetti(playerIndex) {
+    // Obtener los colores según el jugador
+    let colors = getPlayerColors(playerIndex);
+    
+    // Mostrar el modal de victoria
+    $('#winner-name').text('¡Jugador ' + (playerIndex + 1) + ' ha ganado!');
+    $('#victory-modal').modal('show');
+    
+    // Disparar confeti
+    let duration = 5 * 1000;
+    let animationEnd = Date.now() + duration;
+    let defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+    }
+
+    let interval = setInterval(function() {
+        let timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+            return clearInterval(interval);
+        }
+
+        let particleCount = 50 * (timeLeft / duration);
+        
+        // Disparar confeti desde posiciones aleatorias
+        confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+            colors: colors
+        });
+        confetti({
+            ...defaults,
+            particleCount,
+            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+            colors: colors
+        });
+    }, 250);
+}
+
+// Función para obtener colores según el jugador
+function getPlayerColors(playerIndex) {
+    switch(playerIndex) {
+        case 0: return ['#e74c3c', '#c0392b', '#f5b7b1']; // Rojo
+        case 1: return ['#3498db', '#2980b9', '#aed6f1']; // Azul
+        case 2: return ['#2ecc71', '#27ae60', '#abebc6']; // Verde
+        case 3: return ['#f39c12', '#d35400', '#fad7a0']; // Amarillo
+        default: return ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+    }
+}
+
+// Función para animar adquisición de recursos
+function animateResourceGain(playerIndex, resourceType, quantity) {
+    // Seleccionar el elemento a animar
+    let element = $('#hand_P' + playerIndex + ' .' + resourceType + '_quantity');
+    let icon = element.siblings('i.fa-solid').first();
+    
+    // Actualizar el texto
+    let currentValue = parseInt(element.text());
+    element.text(currentValue + quantity);
+    
+    // Animar el incremento
+    if (quantity > 0) {
+        icon.addClass('increased fa-bounce');
+        setTimeout(() => icon.removeClass('increased fa-bounce'), 1000);
+    } else if (quantity < 0) {
+        icon.addClass('decreased fa-shake');
+        setTimeout(() => icon.removeClass('decreased fa-shake'), 1000);
+    }
+}
+
+// Función para animar construcciones
+function animateBuilding(nodeId, buildingType, playerIndex) {
+    let node = $('#node_' + nodeId);
+    let icon;
+    
+    // Asignar el icono según el tipo de construcción
+    if (buildingType === 'settlement') {
+        icon = '<i class="fa-solid fa-house"></i>';
+    } else if (buildingType === 'city') {
+        icon = '<i class="fa-solid fa-building"></i>';
+    }
+    
+    // Aplicar animación
+    node.html(icon);
+    node.css('transform', 'scale(0)');
+    gsap.to(node[0], {
+        duration: 0.5,
+        scale: 1,
+        ease: "elastic.out(1, 0.3)",
+        onComplete: function() {
+            paint_it_player_color(playerIndex, node);
+        }
+    });
+}
+
+// Función para animar la construcción de carreteras
+function animateRoadBuilding(roadId, playerIndex) {
+    let road = $('#' + roadId);
+    
+    // Animar la construcción
+    road.css('transform', 'scaleX(0)');
+    gsap.to(road[0], {
+        duration: 0.5,
+        scaleX: 1,
+        ease: "power1.out",
+        onComplete: function() {
+            paint_it_player_color(playerIndex, road);
+        }
+    });
+}
+
+// Función para animar el movimiento del ladrón
+function animateThiefMovement(fromTerrainId, toTerrainId) {
+    // Obtener las posiciones iniciales y finales
+    let fromTerrain = $('#terrain_' + fromTerrainId);
+    let toTerrain = $('#terrain_' + toTerrainId);
+    
+    // Animar el ladrón
+    let thief = $('.fa-user-ninja');
+    
+    gsap.to(thief, {
+        duration: 1,
+        y: 50,
+        opacity: 0,
+        scale: 0.5,
+        ease: "power2.in",
+        onComplete: function() {
+            // Mover el ladrón al nuevo terreno
+            fromTerrain.find('.terrain_number').html('');
+            thief.appendTo(toTerrain.find('.terrain_number'));
+            
+            // Animar la aparición en el nuevo terreno
+            gsap.fromTo(thief, 
+                { y: -50, opacity: 0, scale: 0.5 },
+                { duration: 1, y: 0, opacity: 1, scale: 1, ease: "bounce.out" }
+            );
+        }
+    });
+}
+
+// Función para animar jugada de carta de desarrollo
+function animateCardPlay(playerIndex, cardType) {
+    // Seleccionar el elemento de la carta
+    let card = $('#hand_P' + playerIndex + ' .' + cardType);
+    
+    // Animar la carta jugada
+    gsap.to(card, {
+        duration: 0.5,
+        y: -20,
+        opacity: 0.5,
+        ease: "power1.out",
+        onComplete: function() {
+            gsap.to(card, {
+                duration: 0.5,
+                y: 0,
+                opacity: 1,
+                ease: "power1.in"
+            });
+            
+            // Actualizar contador
+            let quantityElement = card.find('.' + cardType + '_quantity');
+            let currentValue = parseInt(quantityElement.text());
+            quantityElement.text(currentValue - 1);
+        }
+    });
+}
+
+// Función para animar comercio entre jugadores
+function animateTrade(fromPlayerIndex, toPlayerIndex, givenResources, receivedResources) {
+    // Crear elementos visuales para el comercio
+    let tradeAnimation = $('<div class="trade-animation"></div>');
+    $('body').append(tradeAnimation);
+    
+    // Posicionar la animación entre los dos jugadores
+    let fromPlayer = $('#P' + fromPlayerIndex);
+    let toPlayer = $('#P' + toPlayerIndex);
+    
+    // Animar intercambio
+    gsap.from(tradeAnimation, {
+        duration: 1,
+        x: fromPlayer.offset().left,
+        y: fromPlayer.offset().top,
+        ease: "power2.out",
+        onComplete: function() {
+            gsap.to(tradeAnimation, {
+                duration: 1,
+                x: toPlayer.offset().left,
+                y: toPlayer.offset().top,
+                ease: "power2.in",
+                onComplete: function() {
+                    tradeAnimation.remove();
+                }
+            });
+        }
+    });
+}
+
+// Mejora de la función existente
+function paint_it_player_color(player, object_to_paint) {
+    let colorClass;
+    
+    switch (player) {
+        case 0:
+            colorClass = 'player-red';
+            object_to_paint.css('background', '#e74c3c');
+            object_to_paint.css('border', '2px solid #c0392b');
+            break;
+        case 1:
+            colorClass = 'player-blue';
+            object_to_paint.css('background', '#3498db');
+            object_to_paint.css('border', '2px solid #2980b9');
+            break;
+        case 2:
+            colorClass = 'player-green';
+            object_to_paint.css('background', '#2ecc71');
+            object_to_paint.css('border', '2px solid #27ae60');
+            break;
+        case 3:
+            colorClass = 'player-yellow';
+            object_to_paint.css('background', '#f39c12');
+            object_to_paint.css('border', '2px solid #d35400');
+            break;
+    }
+    
+    // Añadir clase para futuras referencias
+    object_to_paint.addClass(colorClass);
+    
+    // Añadir efecto de iluminación
+    object_to_paint.css('box-shadow', '0 0 10px ' + object_to_paint.css('background-color'));
+    
+    // Animar la aparición
+    gsap.from(object_to_paint, {
+        duration: 0.5,
+        opacity: 0,
+        ease: "power1.out"
+    });
+}
+
+// Modificar función de tirar dados para incluir animación
+let originalDiceroll = $('#diceroll').text();
+function updateDiceRoll(value) {
+    // Animar el dado
+    animateDiceRoll(value);
+}
+
+// Función para comprobar victoria
+function checkVictory() {
+    for (let i = 0; i < 4; i++) {
+        let points = parseInt($('#puntos_victoria_J' + (i + 1)).text());
+        if (points >= 10) {
+            showVictoryConfetti(i);
+            return true;
+        }
+    }
+    return false;
+}
+
+// Modificar función existente para incluir verificación de victoria
+let originalSetup = setup;
+setup = function() {
+    originalSetup();
+    initAnimations();
+    
+    // Renderizar jugadores dinámicamente
+    renderPlayerProfiles();
+    
+    // Estilizar mejor los nodos de puerto
+    enhanceHarborNodes();
+    
+    // Mejorar la animación de los dados
+    enhanceDiceRoll();
+    
+    // Aplicar efectos de agua
+    applyWaterEffects();
+}
+
+// Función para renderizar perfiles de jugadores
+function renderPlayerProfiles() {
+    const playerColors = [
+        { bg: '#e74c3c', border: '#c0392b' },  // Rojo
+        { bg: '#3498db', border: '#2980b9' },  // Azul
+        { bg: '#2ecc71', border: '#27ae60' },  // Verde
+        { bg: '#f39c12', border: '#d35400' }   // Amarillo
+    ];
+    
+    let playersContainer = $('#players-container');
+    playersContainer.empty();
+    
+    for (let i = 0; i < 4; i++) {
+        let playerHtml = `
+            <div class="col-6 mb-3">
+                <div class="player" id="player-card-${i}">
+                    <div class="playerprofile" id="P${i}" style="background: ${playerColors[i].bg}; border-bottom: 3px solid ${playerColors[i].border}">
+                        <div class="row align-items-center">
+                            <div class="col-4">
+                                <i class="fas fa-user-circle fa-3x"></i>
+                            </div>
+                            <div class="col-8">
+                                <h3>J${i+1}</h3>
+                                <div class="victory-points">
+                                    <i class="fas fa-trophy me-2"></i>
+                                    <span id="puntos_victoria_J${i+1}">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="hand_P${i}" class="hand text-center">
+                        <div class="row top_hand_row">
+                            <div class="cereal col">
+                                <i class="fa-solid fa-wheat-awn"></i>
+                                <span class="cereal_quantity">0</span>
+                            </div>
+                            <div class="clay col">
+                                <i class="fa-solid fa-trowel-bricks"></i>
+                                <span class="clay_quantity">0</span>
+                            </div>
+                            <div class="wool col">
+                                <i class="fa-brands fa-cotton-bureau"></i>
+                                <span class="wool_quantity">0</span>
+                            </div>
+                            <div class="wood col">
+                                <i class="fa-solid fa-wand-sparkles"></i>
+                                <span class="wood_quantity">0</span>
+                            </div>
+                            <div class="mineral col">
+                                <i class="fa-solid fa-mountain-sun"></i>
+                                <span class="mineral_quantity">0</span>
+                            </div>
+                        </div>
+                        <div class="row bottom_hand_row mt-2">
+                            <div class="knight col" data-id="knight">
+                                <i class="fa-solid fa-chess-knight"></i>
+                                <span class="knight_quantity">0</span>
+                            </div>
+                            <div class="victory_point col" data-id="victory_point">
+                                <i class="fa-solid fa-trophy"></i>
+                                <span class="victory_point_quantity">0</span>
+                            </div>
+                            <div class="road_building col" data-id="road_building">
+                                <i class="fa-solid fa-road"></i>
+                                <span class="road_building_quantity">0</span>
+                            </div>
+                            <div class="year_of_plenty col" data-id="year_of_plenty">
+                                <i class="fa-regular fa-calendar-days"></i>
+                                <span class="year_of_plenty_quantity">0</span>
+                            </div>
+                            <div class="monopoly col" data-id="monopoly">
+                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                                <span class="monopoly_quantity">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        playersContainer.append(playerHtml);
+    }
+    
+    // Aplicar animación de entrada
+    gsap.from('.player', {
+        duration: 0.8,
+        y: 50,
+        opacity: 0,
+        stagger: 0.2,
+        ease: "power2.out"
+    });
+}
+
+// Función para mejorar visualmente los nodos de puerto
+function enhanceHarborNodes() {
+    // Esperar un segundo para asegurarse de que todo esté cargado
+    setTimeout(function() {
+        $('.is-harbor').each(function() {
+            // Añadir un efecto de brillo para destacar los puertos
+            $(this).css('box-shadow', '0 0 15px rgba(52, 152, 219, 0.5)');
+            
+            // Agregar animación de pulsación
+            gsap.to(this, {
+                duration: 2,
+                repeat: -1,
+                yoyo: true,
+                scale: 1.1,
+                ease: "sine.inOut"
+            });
+        });
+    }, 1000);
+}
+
+// Interceptar las llamadas al método de cambio de fase para animar tiradas de dados
+let originalCounterFasesChange = null;
+
+// Después de iniciar el juego
+function enhanceDiceRoll() {
+    // Capturar la función original si aún no se ha hecho
+    if (!originalCounterFasesChange) {
+        const contador_fases = jQuery('#contador_fases');
+        originalCounterFasesChange = contador_fases.off('change').get(0).onchange;
+        
+        // Reemplazar con nuestra función mejorada
+        contador_fases.on('change', function(e) {
+            if (contador_fases.val() === '') {
+                return;
+            }
+            
+            let actual_player_json = parseInt(jQuery('#contador_turnos').val()) - 1;
+            
+            // Si estamos en la fase 0 (inicio del turno) y avanzando
+            if (parseInt(contador_fases.val()) === 1 && game_direction === 'forward') {
+                // Obtener el objeto de fase
+                const phase_obj = turn_obj['start_turn'];
+                
+                // Si hay un valor de dado, lanzar la animación
+                if (phase_obj && phase_obj['dice']) {
+                    animateDiceRoll(phase_obj['dice']);
+                    
+                    // Continuar con el resto del procesamiento después de la animación
+                    setTimeout(function() {
+                        // Llamar a la función original después de la animación
+                        originalCounterFasesChange.call(contador_fases.get(0), e);
+                    }, 3500); // Ajustar según la duración de la animación
+                    
+                    return; // Evitar la ejecución inmediata
+                }
+            }
+            
+            // Para otros casos, llamar a la función original directamente
+            originalCounterFasesChange.call(contador_fases.get(0), e);
+        });
+    }
+}
+
+// Función para generar texturas de olas dinámicamente
+function createWaveTexture() {
+    // Crear un canvas para la textura
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    // Limpiar el canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Configurar el estilo
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 2;
+    
+    // Dibujar ondas
+    for (let y = 0; y < canvas.height; y += 20) {
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x += 5) {
+            const waveHeight = 5 * Math.sin((x / 20) + (y / 30));
+            
+            if (x === 0) {
+                ctx.moveTo(x, y + waveHeight);
+            } else {
+                ctx.lineTo(x, y + waveHeight);
+            }
+        }
+        ctx.stroke();
+    }
+    
+    // Crear una imagen a partir del canvas
+    const image = new Image();
+    image.src = canvas.toDataURL();
+    
+    // Aplicar la textura como fondo
+    document.documentElement.style.setProperty('--wave-texture', `url(${image.src})`);
+    
+    return image.src;
+}
+
+// Función para aplicar efectos adicionales de agua
+function applyWaterEffects() {
+    // Generar la textura de olas
+    const waveTexture = createWaveTexture();
+    
+    // Crear estilos para las olas y añadirlos al documento
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+        #gamefield_external::before, .terrain_water::after {
+            background-image: var(--wave-texture) !important;
+        }
+        
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        
+        .water-drop {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            z-index: 10;
+            pointer-events: none;
+            animation: ripple 2s ease-out forwards;
+        }
+    `;
+    document.head.appendChild(styleElement);
+    
+    // Añadir gotas de agua aleatorias en el océano
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    
+    setInterval(() => {
+        if (Math.random() > 0.7) { // 30% de probabilidad
+            createWaterDrop(gamefieldExternal);
+        }
+    }, 3000);
+    
+    // Añadir efecto de ondulación al océano
+    animateOceanWaves();
+}
+
+// Función para crear una gota de agua
+function createWaterDrop(container) {
+    const drop = document.createElement('div');
+    drop.className = 'water-drop';
+    
+    // Posición aleatoria
+    const x = Math.random() * container.offsetWidth;
+    const y = Math.random() * container.offsetHeight;
+    
+    // Aplicar estilos
+    drop.style.left = `${x}px`;
+    drop.style.top = `${y}px`;
+    drop.style.animationDuration = `${0.5 + Math.random()}s`;
+    
+    // Añadir al contenedor
+    container.appendChild(drop);
+    
+    // Eliminar después de la animación
+    setTimeout(() => {
+        drop.remove();
+    }, 2000);
+}
+
+// Función para animar las olas del océano
+function animateOceanWaves() {
+    // Seleccionar todos los elementos de terreno de agua
+    const waterTerrains = document.querySelectorAll('.terrain_water, .top_terrain, .bottom_terrain');
+    
+    // Añadir animación con GSAP
+    waterTerrains.forEach((terrain, index) => {
+        // Crear una animación ligeramente diferente para cada terreno
+        gsap.to(terrain, {
+            y: "+=3",
+            duration: 2 + (index % 3),
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            delay: index * 0.1
+        });
+    });
+    
+    // Animar el brillo del agua
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    gsap.to(gamefieldExternal, {
+        backgroundPosition: "+=50px +=30px",
+        duration: 20,
+        ease: "none",
+        repeat: -1,
+        yoyo: true
+    });
+}
+
+// Función para probar la animación de dados
+function testDiceAnimation() {
+    // Obtener un número aleatorio entre 1 y 6
+    const randomValue = Math.floor(Math.random() * 6) + 1;
+    console.log("Probando animación de dados con valor: " + randomValue);
+    
+    // Ejecutar la animación
+    animateDiceRoll(randomValue);
+}
+
+// Añadir evento para probar la animación al cargar la página
+jQuery(document).ready(function($) {
+    console.log("Documento listo, añadiendo botón de prueba de dados");
+    
+    // Botón para probar manualmente
+    $('#load_game').after('<button id="test_dice" class="btn btn-secondary ms-2"><i class="fas fa-dice me-2"></i>Probar dados</button>');
+    
+    // Evento de prueba
+    $(document).on('click', '#test_dice', function() {
+        console.log("Botón de prueba de dados clickeado");
+        testDiceAnimation();
+    });
+    
+    // Verificar que el overlay existe
+    const overlay = document.getElementById('dice-overlay');
+    if (!overlay) {
+        console.error("Error: Elemento 'dice-overlay' no encontrado");
+    } else {
+        console.log("Overlay de dados encontrado correctamente");
+    }
+    
+    // Verificar que el dado existe
+    const dice = document.querySelector('.dice');
+    if (!dice) {
+        console.error("Error: Elemento '.dice' no encontrado");
+    } else {
+        console.log("Elemento dado encontrado correctamente");
+    }
+});
+
+// Función para crear efectos de cursor personalizados
+function initCursorEffects() {
+    // Crear el elemento seguidor del cursor
+    const cursorFollower = document.createElement('div');
+    cursorFollower.className = 'cursor-follower';
+    document.body.appendChild(cursorFollower);
+    
+    // Seguimiento del cursor principal
+    document.addEventListener('mousemove', function(e) {
+        // Actualizar posición del seguidor
+        cursorFollower.style.left = e.clientX + 'px';
+        cursorFollower.style.top = e.clientY + 'px';
+        
+        // Crear efecto de estela
+        if (Math.random() > 0.7) { // Solo crear partículas ocasionalmente
+            createCursorTrail(e.clientX, e.clientY);
+        }
+    });
+    
+    // Efecto al hacer clic
+    document.addEventListener('mousedown', function(e) {
+        cursorFollower.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        // Crear efecto de "construcción"
+        createConstructionEffect(e.clientX, e.clientY);
+    });
+    
+    document.addEventListener('mouseup', function() {
+        cursorFollower.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+    
+    // Cambiar el cursor según el tipo de terreno
+    const terrains = document.querySelectorAll('.terrain');
+    terrains.forEach(terrain => {
+        terrain.addEventListener('mouseenter', function() {
+            // Cambiar el icono según el tipo de terreno
+            if (terrain.classList.contains('terrain_cereal')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23ffd700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_clay')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23a5673f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_wood')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%232ecc71" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_wool')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23c3e59a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else if (terrain.classList.contains('terrain_mineral')) {
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%238d8d8d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg>\')';
+            } else {
+                // Restaurar a imagen por defecto para otros terrenos
+                cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+            }
+        });
+        
+        terrain.addEventListener('mouseleave', function() {
+            // Restaurar a la imagen por defecto
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+    
+    // Cambiar el cursor al pasar sobre nodos
+    const nodes = document.querySelectorAll('.node');
+    nodes.forEach(node => {
+        node.addEventListener('mouseenter', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+        
+        node.addEventListener('mouseleave', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+    
+    // Cambiar el cursor al pasar sobre carreteras
+    const roads = document.querySelectorAll('.road');
+    roads.forEach(road => {
+        road.addEventListener('mouseenter', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%23f39c12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/></svg>\')';
+        });
+        
+        road.addEventListener('mouseleave', function() {
+            cursorFollower.style.backgroundImage = 'url(\'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="%233498db" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>\')';
+        });
+    });
+}
+
+// Función para crear el efecto de estela del cursor
+function createCursorTrail(x, y) {
+    const trail = document.createElement('div');
+    trail.className = 'cursor-trail';
+    trail.style.left = x + 'px';
+    trail.style.top = y + 'px';
+    document.body.appendChild(trail);
+    
+    // Eliminar después de la animación
+    setTimeout(() => {
+        trail.remove();
+    }, 1000);
+}
+
+// Función para crear efecto de construcción al hacer clic
+function createConstructionEffect(x, y) {
+    // Crear círculo de "construcción"
+    const constructEffect = document.createElement('div');
+    constructEffect.className = 'cursor-trail';
+    constructEffect.style.left = x + 'px';
+    constructEffect.style.top = y + 'px';
+    constructEffect.style.background = 'rgba(231, 76, 60, 0.5)';
+    constructEffect.style.width = '6px';
+    constructEffect.style.height = '6px';
+    document.body.appendChild(constructEffect);
+    
+    // Animar y eliminar
+    gsap.to(constructEffect, {
+        duration: 0.5,
+        width: '40px',
+        height: '40px',
+        opacity: 0,
+        onComplete: function() {
+            constructEffect.remove();
+        }
+    });
+    
+    // Sonido de construcción (opcional)
+    // Podríamos agregar un sonido aquí si el juego tiene audio
+}
+
+// Mejorar la función setup para incluir los efectos de cursor
+let originalSetupWithCursor = setup;
+setup = function() {
+    originalSetupWithCursor();
+    initAnimations();
+    
+    // Renderizar jugadores dinámicamente
+    renderPlayerProfiles();
+    
+    // Estilizar mejor los nodos de puerto
+    enhanceHarborNodes();
+    
+    // Mejorar la animación de los dados
+    enhanceDiceRoll();
+    
+    // Aplicar efectos de agua
+    applyWaterEffects();
+    
+    // Inicializar efectos de cursor - desactivado por preferencia del usuario
+    // initCursorEffects();
+}
