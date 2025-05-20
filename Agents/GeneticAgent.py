@@ -305,80 +305,79 @@ class GeneticAgent(AgentInterface):
 
     def on_game_start(self, board_instance):
         self.board = board_instance
-        valid_nodes = [n['id'] for n in self.board.nodes if self.board.can_place_settlement(self.id, n['id'], is_initial_settlement=True)]
+        # MODIFICADO: Usar valid_starting_nodes() para obtener los nodos válidos para la colocación inicial.
+        valid_nodes_ids = self.board.valid_starting_nodes()
 
-        if not valid_nodes:
-            # Fallback si no hay nodos válidos (extremadamente improbable)
-            # Esto podría indicar un error en la lógica de can_place_settlement o en el estado del tablero.
-            # Devolvemos una opción aleatoria o fija para evitar un crash.
+        if not valid_nodes_ids:
             all_nodes_ids = [n['id'] for n in self.board.nodes]
             fallback_node_id = random.choice(all_nodes_ids) if all_nodes_ids else 0
-            # Intentar encontrar una carretera válida desde el fallback_node_id
             adj_nodes = self.board.nodes[fallback_node_id]['adjacent']
-            fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes) # Absurdo pero evita error
+            fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes)
             return fallback_node_id, fallback_road_to
-
 
         best_settlement_node_id = -1
         max_settlement_score = -float('inf')
 
         scored_settlements = []
-        for node_id in valid_nodes:
+        for node_id in valid_nodes_ids:
             score = self._heuristic_initial_settlement_location(node_id)
             scored_settlements.append({"id": node_id, "score": score})
         
-        if not scored_settlements: # Si por alguna razón no se puntuó ninguno
-             fallback_node_id = random.choice(valid_nodes)
+        if not scored_settlements: 
+             fallback_node_id = random.choice(valid_nodes_ids)
              adj_nodes = self.board.nodes[fallback_node_id]['adjacent']
              fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes)
              return fallback_node_id, fallback_road_to
 
-        # Ordenar por puntuación y tomar el mejor
         best_settlement_options = sorted(scored_settlements, key=lambda x: x["score"], reverse=True)
-        # Podríamos añadir una pizca de aleatoriedad aquí si hay varios "mejores" o para exploración.
-        # Por ejemplo, elegir entre los N mejores. Para esta V1, tomamos el mejor absoluto.
         best_settlement_node_id = best_settlement_options[0]["id"]
         
-        # Extraer información del mejor nodo de asentamiento para la heurística de carretera
         first_settlement_resources = set()
         first_settlement_numbers = set()
         for terrain_idx in self.board.nodes[best_settlement_node_id]['contacting_terrain']:
             terrain = self.board.terrain[terrain_idx]
-            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
             if not self._is_terrain_desert(terrain):
                 resource_type = terrain.get('terrain_type')
-                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                if resource_type is not None: 
                     first_settlement_resources.add(resource_type)
-                
-                # Aunque _is_terrain_desert maneja la probabilidad 7 para desiertos,
-                # aquí queremos específicamente los números de producción si NO es desierto.
                 terrain_number = terrain.get('probability')
                 if terrain_number is not None and terrain_number != 7:
                     first_settlement_numbers.add(terrain_number)
 
         # Ahora, encontrar la mejor carretera desde este asentamiento
         possible_roads = []
+        # INICIO DE LA SECCIÓN MODIFICADA PARA VALIDAR CARRETERA INICIAL
         for neighbor_node_id in self.board.nodes[best_settlement_node_id]['adjacent']:
-            if self.board.can_place_road(self.id, best_settlement_node_id, neighbor_node_id, is_initial_road=True):
+            is_road_path_free = True
+            # Verificar si ya existe una carretera entre best_settlement_node_id y neighbor_node_id
+            # en la lista de carreteras del nodo de origen.
+            for road_segment in self.board.nodes[best_settlement_node_id]['roads']:
+                if road_segment['node_id'] == neighbor_node_id:
+                    is_road_path_free = False
+                    break
+            
+            if is_road_path_free:
+                # Adicionalmente, verificar en la lista de carreteras del nodo destino
+                # para asegurar consistencia y que no haya una carretera en la dirección opuesta.
+                for road_segment in self.board.nodes[neighbor_node_id]['roads']:
+                    if road_segment['node_id'] == best_settlement_node_id:
+                        is_road_path_free = False
+                        break
+            
+            if is_road_path_free:
+                # Si el camino está libre, se considera una carretera válida para la heurística.
+                # La lógica de la carretera inicial (is_initial_road=True) se maneja aquí
+                # al no verificar costos de recursos y al partir del asentamiento inicial.
                 score = self._heuristic_initial_road_location(best_settlement_node_id, neighbor_node_id, first_settlement_resources, first_settlement_numbers)
                 possible_roads.append({"to_node": neighbor_node_id, "score": score})
-        
+        # FIN DE LA SECCIÓN MODIFICADA
+
         if not possible_roads:
-            # Fallback si no hay carreteras válidas (improbable si el asentamiento fue válido)
-            # Tomar cualquier adyacente, o el primero si solo hay uno.
             adj_nodes = self.board.nodes[best_settlement_node_id]['adjacent']
-            # Es vital que can_place_road con is_initial_road=True no falle si el nodo de asentamiento es válido.
-            # Si adj_nodes está vacío, es un error de tablero.
-            # Si no hay carreteras construibles, esto es un problema.
-            # Para un fallback robusto, deberíamos re-evaluar asentamientos si no hay carreteras.
-            # Por ahora, un random si falla todo.
             if adj_nodes:
-                # Para el fallback, no podemos usar la heurística si falló, solo tomar uno.
-                # En un caso real, esto indicaría un problema con `can_place_road` o el estado del tablero.
-                # Se elige un vecino aleatorio como carretera si la heurística no produjo opciones válidas.
                 road_to_node_id = random.choice(adj_nodes)
-            else: # Nodo aislado, imposible en Catan estándar.
-                road_to_node_id = (best_settlement_node_id + 1) % len(self.board.nodes) # Absurdo, pero evita crash
+            else: 
+                road_to_node_id = (best_settlement_node_id + 1) % len(self.board.nodes)
             return best_settlement_node_id, road_to_node_id
 
         best_road_options = sorted(possible_roads, key=lambda x: x["score"], reverse=True)
@@ -1139,7 +1138,7 @@ class GeneticAgent(AgentInterface):
         heuristic_score = 0.0
         terrain_data = self.board.terrain[terrain_id]
         robber_heuristics = self.chromosome.get("robber_placement_heuristics", {})
-        dice_roll_to_dots = self._get_dice_roll_to_dots_map()
+        dice_roll_to_dots_map = self._get_dice_roll_to_dots_map()
 
         # MODIFICADO: Usar el método auxiliar _is_terrain_desert
         if self._is_terrain_desert(terrain_data):
@@ -1154,7 +1153,7 @@ class GeneticAgent(AgentInterface):
         for node_id in terrain_data["contacting_nodes"]:
             node_data = self.board.nodes[node_id]
             terrain_number_on_node = terrain_data['probability'] # El número del terreno en sí
-            terrain_production_potential += dice_roll_to_dots.get(terrain_number_on_node, 0)
+            terrain_production_potential += dice_roll_to_dots_map.get(terrain_number_on_node, 0)
             
             if node_data['player'] == self.id:
                 has_my_node = True
