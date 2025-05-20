@@ -49,7 +49,7 @@ class GeneticAgent(AgentInterface):
                 "resource_value_base": 1.0,
                 "resource_priority": {
                     MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.SHEEP: 0.7, MaterialConstants.WHEAT: 0.9, MaterialConstants.STONE: 1.0
+                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 0.9, MaterialConstants.MINERAL: 1.0
                 },
                 "production_probability_exponent": 1.0,
                 "new_resource_type_bonus": 0.5,
@@ -68,7 +68,7 @@ class GeneticAgent(AgentInterface):
                 "resource_value_base": 1.2,
                 "resource_priority": {
                     MaterialConstants.WOOD: 0.5, MaterialConstants.CLAY: 0.5,
-                    MaterialConstants.SHEEP: 0.6, MaterialConstants.WHEAT: 1.0, MaterialConstants.STONE: 1.2
+                    MaterialConstants.WOOL: 0.6, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.2
                 },
                 "production_probability_exponent": 1.1,
             },
@@ -85,7 +85,7 @@ class GeneticAgent(AgentInterface):
                 "resource_production_base": 1.0,
                 "resource_priority": {
                     MaterialConstants.WOOD: 1.0, MaterialConstants.CLAY: 1.0,
-                    MaterialConstants.SHEEP: 0.8, MaterialConstants.WHEAT: 0.9, MaterialConstants.STONE: 0.7
+                    MaterialConstants.WOOL: 0.8, MaterialConstants.CEREAL: 0.9, MaterialConstants.MINERAL: 0.7
                 },
                 "production_probability_exponent": 1.0,
                 "new_resource_type_bonus": 1.5, # Muy importante al inicio
@@ -105,7 +105,7 @@ class GeneticAgent(AgentInterface):
                 "target_high_production_node_multiplier": 1.0, # Multiplicador para el valor de producción del nodo
                 "block_specific_resource_priority": { # Prioridad de recurso a bloquear
                     MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.SHEEP: 0.7, MaterialConstants.WHEAT: 1.0, MaterialConstants.STONE: 1.0
+                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.0
                 },
                 "target_opponent_with_most_vps_bias": 0.5, # Un pequeño extra si se puede identificar al líder
                 "avoid_own_nodes_penalty": -5.0, # Fuerte penalización por bloquearse a sí mismo
@@ -115,8 +115,8 @@ class GeneticAgent(AgentInterface):
             "discard_heuristics": {
                 "resource_value_priority": { # Cuanto más bajo, más probable descartar
                     MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.SHEEP: 1.0, # La lana a menudo es más fácil de descartar
-                    MaterialConstants.WHEAT: 0.7, MaterialConstants.STONE: 0.6
+                    MaterialConstants.WOOL: 1.0, # La lana a menudo es más fácil de descartar
+                    MaterialConstants.CEREAL: 0.7, MaterialConstants.MINERAL: 0.6
                 },
                 "keep_for_settlement_bonus": -0.5, # Bonus negativo (hace menos probable descartar) si se acerca a un poblado
                 "keep_for_city_bonus": -0.6,
@@ -127,16 +127,17 @@ class GeneticAgent(AgentInterface):
                 "willingness_to_trade_general": 0.5, # Factor base
                 "resource_surplus_importance": { # Qué tan importante es tener excedente para comerciar (más alto = más dispuesto)
                     MaterialConstants.WOOD: 0.6, MaterialConstants.CLAY: 0.6,
-                    MaterialConstants.SHEEP: 0.8, MaterialConstants.WHEAT: 0.5, MaterialConstants.STONE: 0.5
+                    MaterialConstants.WOOL: 0.8, MaterialConstants.CEREAL: 0.5, MaterialConstants.MINERAL: 0.5
                 },
                 "resource_needed_importance": { # Qué tan importante es obtener un recurso necesitado
                      MaterialConstants.WOOD: 1.2, MaterialConstants.CLAY: 1.2,
-                    MaterialConstants.SHEEP: 1.0, MaterialConstants.WHEAT: 1.3, MaterialConstants.STONE: 1.3
+                    MaterialConstants.WOOL: 1.0, MaterialConstants.CEREAL: 1.3, MaterialConstants.MINERAL: 1.3
                 },
                 "bank_trade_ratio_modifier": -0.2, # Penalización por comerciar 4:1 con el banco
                 "port_trade_ratio_modifier": -0.1, # Penalización menor por comerciar 3:1 o 2:1 con puerto
                 "accept_offer_resource_gain_factor": 1.0,
-                "accept_offer_fairness_threshold": 0.8 # Si la oferta es al menos 80% "justa" en valor
+                "accept_offer_fairness_threshold": 0.8, # Si la oferta es al menos 80% "justa" en valor
+                "min_score_for_self_initiated_trade": 0.5
             },
             # Heurísticas para jugar cartas de desarrollo
             "play_dev_card_heuristics":{
@@ -148,6 +149,29 @@ class GeneticAgent(AgentInterface):
                 "min_score_to_play_knight_on_start": 0.75 # Ejemplo de umbral del cromosoma
             }
         }
+
+    def _is_terrain_desert(self, terrain_dict):
+        """
+        Determina si un terreno es desértico de forma robusta.
+
+        Un terreno se considera desierto si:
+        1. El atributo `MaterialConstants.DESERT` está definido y el tipo de terreno
+           coincide con él.
+        2. El atributo `MaterialConstants.DESERT` NO está definido Y la probabilidad
+           del terreno es 7 (heurística común para el desierto).
+
+        Args:
+            terrain_dict (dict): El diccionario de información del terreno.
+
+        Returns:
+            bool: True si el terreno se considera desértico, False en caso contrario.
+        """
+        if hasattr(MaterialConstants, 'DESERT'):
+            # Si MaterialConstants.DESERT existe, esa es la fuente autoritativa.
+            return terrain_dict.get('terrain_type') == MaterialConstants.DESERT
+        else:
+            # Si MaterialConstants.DESERT no existe, usamos la heurística de la probabilidad 7.
+            return terrain_dict.get('probability') == 7
 
     def _get_dice_roll_to_dots_map(self):
         """
@@ -184,13 +208,14 @@ class GeneticAgent(AgentInterface):
 
         for terrain_idx in node_data['contacting_terrain']:
             terrain = self.board.terrain[terrain_idx]
-            if terrain['terrain_type'] != MaterialConstants.DESERT:
-                resource_type = terrain['terrain_type']
-                resource_types_at_node.add(resource_type)
-                terrain_types_count[resource_type] = terrain_types_count.get(resource_type, 0) + 1
+            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+            if not self._is_terrain_desert(terrain):
+                resource_type = terrain.get('terrain_type')
+                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                    resource_types_at_node.add(resource_type)
 
-                terrain_number = terrain['probability']
-                if terrain_number != 7:
+                terrain_number = terrain.get('probability') # Usar .get para seguridad
+                if terrain_number is not None and terrain_number != 7: # Excluir 7 explícitamente
                     numbers_at_node.add(terrain_number)
                     prob_dots = dice_roll_to_dots.get(terrain_number, 0)
                     prob_real = prob_dots / 36.0
@@ -256,10 +281,11 @@ class GeneticAgent(AgentInterface):
         if self.board.nodes[to_node_id]['player'] == -1: # Solo si es un nodo libre
             for terrain_idx in self.board.nodes[to_node_id]['contacting_terrain']:
                 terrain = self.board.terrain[terrain_idx]
-                if terrain['terrain_type'] != MaterialConstants.DESERT:
-                    resources_at_road_end.add(terrain['terrain_type'])
-                    if terrain['probability'] != 7:
-                        numbers_at_road_end.add(terrain['probability'])
+                # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+                if not self._is_terrain_desert(terrain):
+                    resources_at_road_end.add(terrain.get('terrain_type'))
+                    if terrain.get('probability') != 7:
+                        numbers_at_road_end.add(terrain.get('probability'))
             
             new_resources_by_road = resources_at_road_end - first_settlement_resources
             new_numbers_by_road = numbers_at_road_end - first_settlement_numbers
@@ -318,10 +344,17 @@ class GeneticAgent(AgentInterface):
         first_settlement_numbers = set()
         for terrain_idx in self.board.nodes[best_settlement_node_id]['contacting_terrain']:
             terrain = self.board.terrain[terrain_idx]
-            if terrain['terrain_type'] != MaterialConstants.DESERT:
-                first_settlement_resources.add(terrain['terrain_type'])
-                if terrain['probability'] != 7:
-                    first_settlement_numbers.add(terrain['probability'])
+            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+            if not self._is_terrain_desert(terrain):
+                resource_type = terrain.get('terrain_type')
+                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                    first_settlement_resources.add(resource_type)
+                
+                # Aunque _is_terrain_desert maneja la probabilidad 7 para desiertos,
+                # aquí queremos específicamente los números de producción si NO es desierto.
+                terrain_number = terrain.get('probability')
+                if terrain_number is not None and terrain_number != 7:
+                    first_settlement_numbers.add(terrain_number)
 
         # Ahora, encontrar la mejor carretera desde este asentamiento
         possible_roads = []
@@ -362,16 +395,12 @@ class GeneticAgent(AgentInterface):
         :return: DevelopmentCard (ej. DevelopmentCard.KNIGHT) a jugar o None si no se juega ninguna.
         """
         # Verificar si tenemos cartas de caballero jugables.
-        # Asumimos que self.hand.development_cards es una instancia de DevelopmentCardsHand
-        # y que tiene un método para ver las cartas o podemos iterar sobre ellas.
-        # También necesitamos una forma de saber si una carta es jugable en este turno.
-        # Por ahora, vamos a asumir que podemos obtener una lista de cartas jugables.
+        # Solo proceder si self.hand tiene el atributo 'development_cards' y este, a su vez,
+        # tiene el método 'has_development_card'.
+        can_check_dev_cards = hasattr(self.hand, 'development_cards') and \
+                              hasattr(self.hand.development_cards, 'has_development_card')
 
-        # TODO: El GameDirector o GameManager es quien realmente valida si se puede jugar la carta.
-        # El agente solo decide si quiere INTENTAR jugar una carta.
-
-        # Prioridad 1: Jugar Caballero si es ventajoso
-        if self.hand.has_development_card(DevelopmentCard.KNIGHT):
+        if can_check_dev_cards and self.hand.development_cards.has_development_card(DevelopmentCard.KNIGHT):
             # Comprobar si la carta de caballero es jugable (no comprada este turno)
             # Esta lógica podría estar en self.hand.development_cards.can_play(DevelopmentCard.KNIGHT, self.board.turn_number)
             # o ser manejada por el GameManager. Aquí asumimos que si la tiene, podría querer jugarla.
@@ -428,29 +457,230 @@ class GeneticAgent(AgentInterface):
 
     def on_commerce_phase(self):
         """
-        Se llama al inicio de la fase de comercio para realizar una oferta.
-        Esta implementación es un placeholder.
+        Se llama al inicio de la fase de comercio para realizar una oferta (con banco/puerto).
+        Evalúa necesidades y excedentes para proponer el mejor intercambio posible.
 
-        :return: TradeOffer, dict{'gives': int, 'receives': int}, o None.
+        :return: Dict {'gives': material_id, 'receives': material_id, 'quantity_gives': int, 'quantity_receives': 1} 
+                 o None si no se propone ningún intercambio.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome
-        # para proponer intercambios.
+        best_trade_offer = None
+        max_trade_score = -float('inf')
+        
+        trade_heuristics = self.chromosome.get("trade_heuristics", {})
+        if not trade_heuristics: # Si no hay heurísticas de comercio, no hacer nada.
+            return None
+
+        # Definir el orden de los materiales según la NamedTuple Materials y las constantes.
+        # MaterialConstants: CEREAL=0, MINERAL=1, CLAY=2, WOOD=3, WOOL=4
+        # NamedTuple Materials(cereal, mineral, clay, wood, wool)
+        ordered_material_constants = [
+            MaterialConstants.CEREAL, 
+            MaterialConstants.MINERAL, 
+            MaterialConstants.CLAY, 
+            MaterialConstants.WOOD, 
+            MaterialConstants.WOOL
+        ]
+        # Mapeo inverso para facilitar la obtención del índice desde la constante
+        material_to_index_map = {const: i for i, const in enumerate(ordered_material_constants)}
+
+        needed_resources = []
+        # Esta lista se usaba para crear `all_material_ids`, pero ahora tenemos ordered_material_constants
+        # all_material_ids = [MaterialConstants.WOOD, MaterialConstants.CLAY, MaterialConstants.WOOL, MaterialConstants.CEREAL, MaterialConstants.MINERAL]
+        
+        next_build_goal_cost = None
+        num_settlements = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and not n_data['has_city'])
+        num_cities = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and n_data['has_city'])
+
+        if num_settlements > 0 and num_cities < 4:
+            next_build_goal_cost = self._get_cost_of_buildable(BuildConstants.CITY)
+        elif num_settlements < 5:
+            next_build_goal_cost = self._get_cost_of_buildable(BuildConstants.TOWN)
+        else: 
+            next_build_goal_cost = self._get_cost_of_buildable(BuildConstants.CARD)
+        
+        if next_build_goal_cost:
+            # next_build_goal_cost es un objeto Materials (NamedTuple)
+            # Iteramos sobre él usando enumerate para obtener el índice y la cantidad (count_needed)
+            for i, count_needed in enumerate(next_build_goal_cost):
+                if count_needed > 0: # Solo si se necesita este material para el objetivo
+                    material_id = ordered_material_constants[i] # El MaterialConstant actual
+                    
+                    # self.hand.resources es también un objeto Materials. Accedemos por índice.
+                    count_has = self.hand.resources[i]
+                    
+                if count_has < count_needed:
+                        for _ in range(count_needed - count_has): 
+                            needed_resources.append(material_id)
+        
+        if not needed_resources: 
+            # Rellenar con lo que menos tengamos si no hay un objetivo claro
+            # o ya tenemos todo para él.
+            # Crear una lista de tuplas (cantidad, material_id)
+            hand_material_quantities = []
+            for i, count_in_hand in enumerate(self.hand.resources):
+                hand_material_quantities.append((count_in_hand, ordered_material_constants[i]))
+            
+            hand_material_quantities.sort(key=lambda item: item[0]) # Ordenar por cantidad ascendente
+
+            # Añadir los que no tiene en absoluto
+            for material_const in ordered_material_constants:
+                idx = material_to_index_map[material_const]
+                if self.hand.resources[idx] == 0:
+                    needed_resources.append(material_const)
+            
+            # Añadir los que tiene menos hasta tener al menos 2 tipos en la lista de necesitados
+            for _, mat_id_sorted in hand_material_quantities:
+                if len(needed_resources) < 2 and mat_id_sorted not in needed_resources:
+                    needed_resources.append(mat_id_sorted)
+                elif len(needed_resources) >= 2:
+                    break
+            
+            if not needed_resources: 
+                 needed_resources = random.sample(ordered_material_constants, min(2, len(ordered_material_constants)))
+
+
+        # 2. Iterar sobre los recursos que podríamos dar (excedentes)
+        # self.hand.resources es un objeto Materials.
+        for i, count_we_have in enumerate(self.hand.resources):
+            if count_we_have == 0: continue # No podemos dar lo que no tenemos
+
+            material_to_give_id = ordered_material_constants[i]
+            if material_to_give_id is None: continue # Salvaguarda, aunque no debería ocurrir
+
+            qty_to_give, qty_to_receive, port_type = self._get_best_trade_ratio(material_to_give_id)
+            
+            if count_we_have >= qty_to_give: 
+                for material_to_receive_id in needed_resources:
+                    if material_to_receive_id is None or material_to_receive_id == material_to_give_id: 
+                        continue
+
+                    current_trade_score = trade_heuristics.get("willingness_to_trade_general", 0.5)
+                    
+                    surplus_factor = count_we_have - qty_to_give 
+                    surplus_value = surplus_factor * trade_heuristics.get("resource_surplus_importance", {}).get(material_to_give_id, 0.1)
+                    current_trade_score += surplus_value
+
+                    need_intensity = needed_resources.count(material_to_receive_id)
+                    needed_value = need_intensity * trade_heuristics.get("resource_needed_importance", {}).get(material_to_receive_id, 1.0)
+                    current_trade_score += needed_value
+
+                    if qty_to_give == 4:
+                        current_trade_score += trade_heuristics.get("bank_trade_ratio_modifier", -0.2)
+                    elif qty_to_give == 3 or qty_to_give == 2:
+                        current_trade_score += trade_heuristics.get("port_trade_ratio_modifier", -0.1)
+                    
+                    if current_trade_score > max_trade_score:
+                        max_trade_score = current_trade_score
+                        best_trade_offer = {
+                            'gives': material_to_give_id,
+                            'receives': material_to_receive_id,
+                            'quantity_gives': qty_to_give,
+                            'quantity_receives': qty_to_receive 
+                        }
+        
+        min_score_for_trade = trade_heuristics.get("min_score_for_self_initiated_trade", 0.5) 
+        if max_trade_score > min_score_for_trade and best_trade_offer is not None:
+            return best_trade_offer
+        
         return None
 
-    def on_trade_offer(self, board_instance, incoming_trade_offer=TradeOffer(), player_making_offer=int):
+    def on_trade_offer(self, board_instance, incoming_trade_offer=None, player_making_offer=None):
         """
-        Se llama cuando se recibe una oferta de comercio de otro jugador.
-        Esta implementación es un placeholder.
+        Gestiona la recepción de una oferta de comercio de otro jugador.
 
-        :param board_instance: Estado actual del tablero.
-        :param incoming_trade_offer: La oferta recibida.
-        :param player_making_offer: ID del jugador que hace la oferta.
-        :return: True para aceptar, un nuevo TradeOffer para contraoferta, o False para rechazar.
+        Esta función se invoca cuando otro jugador propone un intercambio. El agente
+        evalúa la oferta basándose en las heurísticas de comercio definidas en su
+        cromosoma genético y decide si aceptarla o rechazarla. Actualmente, no
+        implementa la capacidad de realizar contraofertas, centrándose en la
+        aceptación o el rechazo directo.
+
+        Args:
+            board_instance (Board): La instancia actual del tablero, que proporciona
+                                    el contexto del estado del juego.
+            incoming_trade_offer (TradeOffer, optional): El objeto TradeOffer que
+                                                        representa la oferta recibida.
+                                                        Por defecto es None.
+            player_making_offer (int, optional): El ID del jugador que realiza la
+                                                 oferta. Por defecto es None.
+
+        Returns:
+            bool: True si el agente decide aceptar la oferta, False en caso contrario.
         """
-        self.board = board_instance
-        # TODO: Implementar lógica de decisión basada en self.chromosome
-        # para aceptar, rechazar o contraofertar.
-        return False
+        self.board = board_instance  # Actualiza la referencia al tablero
+
+        # Validación inicial de la oferta
+        if not incoming_trade_offer or not incoming_trade_offer.gives or not incoming_trade_offer.receives:
+            return False  # La oferta es inválida o incompleta
+
+        # Definir el orden de los materiales según la NamedTuple Materials y las constantes.
+        # MaterialConstants: CEREAL=0, MINERAL=1, CLAY=2, WOOD=3, WOOL=4
+        # NamedTuple Materials(cereal, mineral, clay, wood, wool)
+        # Este array mapea el índice de la NamedTuple al MaterialConstant correspondiente.
+        ordered_material_constants = [
+            MaterialConstants.CEREAL, 
+            MaterialConstants.MINERAL, 
+            MaterialConstants.CLAY, 
+            MaterialConstants.WOOD, 
+            MaterialConstants.WOOL
+        ]
+
+        # Verificar si el agente posee los recursos solicitados en la oferta
+        # incoming_trade_offer.gives es un objeto Materials (NamedTuple).
+        # Iteramos sobre sus valores usando enumerate para obtener el índice y la cantidad.
+        # El índice 'i' corresponde a la posición en la NamedTuple y en ordered_material_constants.
+        for i, quantity_demanded in enumerate(incoming_trade_offer.gives):
+            if quantity_demanded > 0: # Solo procesar si se demanda algo de este material
+                # self.hand.resources es también un objeto Materials. Accedemos por índice.
+                if self.hand.resources[i] < quantity_demanded:
+                    return False  # No dispone de suficientes recursos para el intercambio
+
+        # Cargar las heurísticas de comercio del cromosoma
+        trade_heuristics = self.chromosome.get("trade_heuristics", {})
+        if not trade_heuristics:
+            return False  # No hay heurísticas definidas para tomar una decisión
+
+        value_receives = 0  # Valor percibido de los recursos a recibir
+        cost_gives = 0      # Costo percibido de los recursos a entregar
+
+        # Calcular el valor de los recursos que el agente recibiría
+        needed_importance = trade_heuristics.get("resource_needed_importance", {})
+        # Iterar sobre incoming_trade_offer.receives (objeto Materials)
+        for i, quantity_received in enumerate(incoming_trade_offer.receives):
+            if quantity_received > 0:
+                material_id = ordered_material_constants[i] # Obtener el MaterialConstant correcto
+                value_receives += quantity_received * needed_importance.get(material_id, 1.0)
+
+        # Calcular el costo de los recursos que el agente entregaría
+        discard_value_priority = self.chromosome.get("discard_heuristics", {}).get("resource_value_priority", {})
+        surplus_importance = trade_heuristics.get("resource_surplus_importance", {})
+
+        # Iterar sobre incoming_trade_offer.gives (objeto Materials)
+        for i, quantity_given in enumerate(incoming_trade_offer.gives):
+            if quantity_given > 0:
+                material_id = ordered_material_constants[i] # Obtener el MaterialConstant correcto
+                base_cost_factor = 1.5 - discard_value_priority.get(material_id, 0.75)
+                cost = quantity_given * base_cost_factor
+
+                # Ajuste por excedente:
+                # self.hand.resources es un objeto Materials. Accedemos por índice.
+                current_surplus = self.hand.resources[i] - quantity_given
+                
+                surplus_modifier = current_surplus * surplus_importance.get(material_id, 0.05)
+                cost -= surplus_modifier
+            
+                cost_gives += max(0.05, cost) # Asegurar un costo mínimo
+
+        # Calcular la puntuación neta de la oferta
+        trade_score = value_receives - cost_gives
+        
+        trade_score *= trade_heuristics.get("accept_offer_resource_gain_factor", 1.0)
+
+        min_acceptance_score = trade_heuristics.get("accept_offer_fairness_threshold", 0.1)
+        
+        if trade_score >= min_acceptance_score:
+            return True
+        else:
+            return False
 
     def on_build_phase(self, board_instance):
         """
@@ -548,11 +778,9 @@ class GeneticAgent(AgentInterface):
         
         # 3. Evaluar Construir Poblado
         cost_town = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.TOWN])
-        num_settlements = 0
-        for node_data in self.board.nodes:
-            if node_data['player'] == self.id and not node_data['has_city']:
-                 num_settlements += 1
-        # num_settlements = len([n for n in self.board.nodes if self.board.nodes[n]['player'] == self.id and not self.board.nodes[n]['has_city']])
+        # Corrección: Iterar directamente sobre los nodos si self.board.nodes es una lista de diccionarios.
+        # La variable 'n' en la comprensión de lista ya es el diccionario del nodo.
+        num_settlements = len([n for n in self.board.nodes if n['player'] == self.id and not n['has_city']])
         if self.hand.resources.has_more(cost_town) and num_settlements < 5:
             valid_nodes_for_town = self.board.valid_town_nodes(self.id) # Usamos el método confirmado
             for node_id in valid_nodes_for_town:
@@ -567,11 +795,8 @@ class GeneticAgent(AgentInterface):
 
         # 4. Evaluar Construir Ciudad
         cost_city = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.CITY])
-        num_cities = 0
-        for node_data in self.board.nodes:
-            if node_data['player'] == self.id and node_data['has_city']:
-                 num_cities += 1        
-        # num_cities = len([n for n in self.board.nodes if self.board.nodes[n]['player'] == self.id and self.board.nodes[n]['has_city']])
+        # Corrección: Similar a num_settlements, 'n' ya es el diccionario del nodo.
+        num_cities = len([n for n in self.board.nodes if n['player'] == self.id and n['has_city']])
         if self.hand.resources.has_more(cost_city) and num_cities < 4:
             valid_nodes_for_city_upgrade = self.board.valid_city_nodes(self.id) # Usamos el método confirmado
             for node_id in valid_nodes_for_city_upgrade: 
@@ -706,8 +931,10 @@ class GeneticAgent(AgentInterface):
         
         count_newly_accessible_productive_terrains = 0
         for terrain_idx in terrains_at_to_node:
+            terrain_info = self.board.terrain[terrain_idx] # Obtenemos el diccionario del terreno
+            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
             if terrain_idx not in terrains_player_has_access_to and \
-               self.board.terrain[terrain_idx]['terrain_type'] != MaterialConstants.DESERT:
+               not self._is_terrain_desert(terrain_info):
                 count_newly_accessible_productive_terrains += 1
         
         if count_newly_accessible_productive_terrains > 0:
@@ -736,7 +963,10 @@ class GeneticAgent(AgentInterface):
         for node_data in self.board.nodes:
             if node_data['player'] == self.id:
                 for terrain_idx in node_data['contacting_terrain']:
-                    if self.board.terrain[terrain_idx]['terrain_type'] != MaterialConstants.DESERT:
+                    terrain_info = self.board.terrain[terrain_idx]
+                    
+                    # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+                    if not self._is_terrain_desert(terrain_info):
                         accessible_terrains.add(terrain_idx)
         return accessible_terrains
 
@@ -771,12 +1001,14 @@ class GeneticAgent(AgentInterface):
 
         for terrain_idx in contacting_terrain_indices:
             terrain = self.board.terrain[terrain_idx]
-            if terrain['terrain_type'] != MaterialConstants.DESERT: # El desierto no produce
-                resource_type = terrain['terrain_type']
-                resource_types_at_node.add(resource_type)
+            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+            if not self._is_terrain_desert(terrain): # El desierto no produce
+                resource_type = terrain.get('terrain_type')
+                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                    resource_types_at_node.add(resource_type)
                 
-                terrain_number = terrain['probability'] # Este es el número que debe salir en los dados
-                if terrain_number != 7: # Solo consideramos números que producen
+                terrain_number = terrain.get('probability') # Este es el número que debe salir en los dados
+                if terrain_number is not None and terrain_number != 7: # Solo consideramos números que producen
                     numbers_at_node.add(terrain_number)
                     
                     prob_dots = dice_roll_to_dots.get(terrain_number, 0)
@@ -825,8 +1057,11 @@ class GeneticAgent(AgentInterface):
                 if n_data['player'] == self.id:
                     for t_idx in n_data['contacting_terrain']:
                         terrain_info = self.board.terrain[t_idx]
-                        if terrain_info['terrain_type'] != MaterialConstants.DESERT:
-                            current_player_resources.add(terrain_info['terrain_type'])
+                        # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+                        if not self._is_terrain_desert(terrain_info):
+                            resource_type = terrain_info.get('terrain_type')
+                            if resource_type is not None:
+                                current_player_resources.add(resource_type)
             
             newly_accessed_resources = resource_types_at_node - current_player_resources
             heuristic_score += len(newly_accessed_resources) * self.chromosome["settlement_heuristics"]["new_resource_type_bonus"]
@@ -874,11 +1109,12 @@ class GeneticAgent(AgentInterface):
 
         for terrain_idx in contacting_terrain_indices:
             terrain = self.board.terrain[terrain_idx]
-            if terrain['terrain_type'] != MaterialConstants.DESERT: # El desierto no produce
-                resource_type = terrain['terrain_type']
-                terrain_number = terrain['probability'] # Número que debe salir en los dados
+            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+            if not self._is_terrain_desert(terrain): # El desierto no produce
+                resource_type = terrain.get('terrain_type')
+                terrain_number = terrain.get('probability') # Número que debe salir en los dados
 
-                if terrain_number != 7: # Solo consideramos números que producen
+                if terrain_number is not None and terrain_number != 7: # Solo consideramos números que producen
                     prob_dots = dice_roll_to_dots.get(terrain_number, 0)
                     prob_real = prob_dots / 36.0
                     
@@ -893,136 +1129,553 @@ class GeneticAgent(AgentInterface):
         
         return heuristic_score
 
+    def _heuristic_robber_terrain_assessment(self, terrain_id):
+        """
+        Calcula una puntuación heurística para colocar el ladrón en un terreno específico.
+
+        :param terrain_id: El ID del terreno a evaluar.
+        :return: float, la puntuación heurística del terreno.
+        """
+        heuristic_score = 0.0
+        terrain_data = self.board.terrain[terrain_id]
+        robber_heuristics = self.chromosome.get("robber_placement_heuristics", {})
+        dice_roll_to_dots = self._get_dice_roll_to_dots_map()
+
+        # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+        if self._is_terrain_desert(terrain_data):
+            return -float('inf') # Nunca colocar en el desierto si hay otras opciones
+
+        # 1. Valor de producción del terreno (suma de "dots" de los nodos adyacentes)
+        terrain_production_potential = 0
+        has_my_node = False
+        opponent_nodes_count = 0
+
+        # MODIFICADO: Acceder a contacting_nodes directamente desde el diccionario del terreno
+        for node_id in terrain_data["contacting_nodes"]:
+            node_data = self.board.nodes[node_id]
+            terrain_number_on_node = terrain_data['probability'] # El número del terreno en sí
+            terrain_production_potential += dice_roll_to_dots.get(terrain_number_on_node, 0)
+            
+            if node_data['player'] == self.id:
+                has_my_node = True
+            elif node_data['player'] != -1 and node_data['player'] is not None:
+                opponent_nodes_count +=1
+        
+        # Normalizamos un poco el potencial de producción para que no escale demasiado.
+        # Un terreno tiene entre 2 y 3 nodos que le dan su número.
+        # Max dots es 5 (para 6 y 8). Así que un terreno muy bueno podría tener 10-15.
+        # Dividimos por un factor, ej. 10, para mantenerlo en un rango razonable.
+        normalized_production_value = terrain_production_potential / 10.0 
+        heuristic_score += normalized_production_value * robber_heuristics.get("target_high_production_node_multiplier", 1.0)
+
+        # 2. Prioridad de bloquear recurso específico que produce el terreno
+        resource_produced = terrain_data['terrain_type']
+        block_priority = robber_heuristics.get("block_specific_resource_priority", {})
+        heuristic_score += block_priority.get(resource_produced, 0.0)
+
+        # 3. Penalización por tener nodos propios en el terreno
+        if has_my_node:
+            heuristic_score += robber_heuristics.get("avoid_own_nodes_penalty", -5.0)
+        
+        # 4. Si no hay oponentes en el terreno, es menos útil (a menos que sea para desbloquearse)
+        if opponent_nodes_count == 0 and not has_my_node: # No me afecta, no afecta a nadie
+            heuristic_score -= 2.0 # Penalización leve
+        elif opponent_nodes_count == 0 and has_my_node: # Me afecta solo a mí, y quiero moverlo de aquí
+             heuristic_score += robber_heuristics.get("knight_immediate_threat_bonus", 1.0) # Reusamos este bonus como "desbloquearme"
+
+        # 5. Factor de aleatoriedad (pequeño)
+        heuristic_score += random.uniform(0, robber_heuristics.get("randomness_factor", 0.1))
+        
+        return heuristic_score
+
     def on_moving_thief(self):
         """
         Se llama cuando el ladrón debe ser movido (por un 7 o carta de caballero).
-        La decisión se basará en los pesos del cromosoma genético.
-        Esta implementación es un placeholder.
+        Decide dónde mover el ladrón y a qué jugador robar.
 
-        :return: Un diccionario {terrain: terrain_id, player: player_id}
-                 indicando la nueva ubicación del ladrón y a qué jugador robar.
+        :return: Un diccionario {'terrain': terrain_id, 'player': player_id}
+                 indicando la nueva ubicación del ladrón y a qué jugador robar (o -1 si a nadie).
         """
-        # Placeholder: Lógica de decisión basada en self.chromosome
-        # 1. Evaluar todas las casillas posibles para el ladrón (excepto la actual).
-        # 2. Para cada casilla, evaluar a qué jugador se podría robar.
-        # 3. Calcular una puntuación para cada combinación (casilla, jugador_a_robar)
-        #    usando los pesos del cromosoma (ej. "thief_placement_block_opponent_points",
-        #    "thief_placement_resource_priority").
-        # 4. Seleccionar la mejor opción.
-
-        # Implementación base de la interfaz (mueve al mismo sitio o -1 si no sabe)
-        # Esto debe ser mejorado significativamente.
-        terrain_id_current_thief = 0
-        for terrain_info in self.board.terrain:
+        current_thief_terrain_id = -1
+        for t_idx, terrain_info in enumerate(self.board.terrain):
             if terrain_info['has_thief']:
-                terrain_id_current_thief = terrain_info['id']
+                current_thief_terrain_id = t_idx
                 break
-        
-        # TODO: Seleccionar 'best_terrain_id' y 'best_player_to_rob_id' usando el cromosoma.
-        # Por ahora, se mantiene una lógica muy básica o aleatoria.
-        
-        possible_terrains = [t['id'] for t in self.board.terrain if not t['has_thief']]
-        if not possible_terrains: # No debería ocurrir si hay más de una casilla de terreno
-            best_terrain_id = terrain_id_current_thief # No mover si no hay opciones
-        else:
-            best_terrain_id = random.choice(possible_terrains)
 
-        # Lógica para seleccionar jugador al que robar (muy simplificada)
-        players_on_selected_terrain = []
-        for node_id in self.board.terrain_node_config[best_terrain_id]:
-            node = self.board.nodes[node_id]
-            if node['player'] is not None and node['player'] != self.id:
-                players_on_selected_terrain.append(node['player'])
+        possible_terrains_to_move = []
+        for t_idx, terrain_info in enumerate(self.board.terrain):
+            if t_idx != current_thief_terrain_id:
+                score = self._heuristic_robber_terrain_assessment(t_idx)
+                possible_terrains_to_move.append({"id": t_idx, "score": score})
         
-        best_player_to_rob_id = -1 # No robar a nadie por defecto
-        if players_on_selected_terrain:
-            best_player_to_rob_id = random.choice(list(set(players_on_selected_terrain)))
+        if not possible_terrains_to_move:
+            # No debería ocurrir si hay más de un terreno en el juego.
+            # Si solo hay un terreno (absurdo) o current_thief_terrain_id no se encontró.
+            # Devolvemos el primer terreno no desértico o el 0 como último recurso.
+            fallback_terrain = 0
+            for t_idx, t_info in enumerate(self.board.terrain):
+                # MODIFICADO: Usar el método auxiliar _is_terrain_desert
+                if not self._is_terrain_desert(t_info):
+                    fallback_terrain = t_idx
+                    break
+            return {'terrain': fallback_terrain, 'player': -1}
 
+        best_terrains = sorted(possible_terrains_to_move, key=lambda x: x["score"], reverse=True)
+        chosen_terrain_id = best_terrains[0]["id"]
+        chosen_terrain_data = self.board.terrain[chosen_terrain_id] # Obtenemos los datos del terreno elegido
 
-        return {'terrain': best_terrain_id, 'player': best_player_to_rob_id}
+        # Ahora, seleccionar a qué jugador robar en el 'chosen_terrain_id'
+        players_on_chosen_terrain = []
+        # MODIFICADO: Acceder a contacting_nodes directamente desde el diccionario del terreno elegido
+        for node_id in chosen_terrain_data["contacting_nodes"]:
+            node_data = self.board.nodes[node_id]
+            if node_data['player'] is not None and node_data['player'] != -1 and node_data['player'] != self.id: # Añadida condición para no robar a -1 (nadie)
+                # Solo considerar oponentes con recursos (más de 0 cartas)
+                # Esta información no la tenemos aquí. Asumimos que si está en el nodo, es robable.
+                # El GameManager validará si el jugador tiene cartas para robar.
+                players_on_chosen_terrain.append(node_data['player'])
+        
+        player_to_rob_id = -1
+        if players_on_chosen_terrain:
+            # Estrategia de selección de jugador:
+            # Podríamos intentar priorizar al jugador con más PVs si tuviéramos esa info.
+            # Por ahora, si hay varios, elegimos uno al azar para no ser predecibles.
+            # El cromosoma tiene `target_opponent_with_most_vps_bias` pero no lo usamos activamente sin datos de PV.
+            # Es un placeholder para mejora futura.
+            unique_players = list(set(players_on_chosen_terrain))
+            if unique_players:
+                player_to_rob_id = random.choice(unique_players)
+        
+        # print(f"Agente {self.id} mueve ladrón a terreno {chosen_terrain_id} y roba a jugador {player_to_rob_id}")
+        return {'terrain': chosen_terrain_id, 'player': player_to_rob_id}
+
+    def _get_cost_of_buildable(self, build_constant):
+        """
+        Devuelve el costo (objeto Materials) de un tipo de construcción.
+        :param build_constant: Constante del tipo de construcción (ej. BuildConstants.TOWN).
+        :return: Objeto Materials con el costo, o None si no es válido.
+        """
+        if build_constant in BuildMaterialsConstants:
+            return Materials.from_iterable(BuildMaterialsConstants[build_constant])
+        return None
+
+    def _get_best_trade_ratio(self, material_to_give_id):
+        """
+        Determina el mejor ratio de intercambio que el agente puede obtener para dar un material específico.
+        Considera puertos específicos, puertos generales y el banco.
+
+        :param material_to_give_id: El ID del material que el agente quiere intercambiar.
+        :return: tupla (ratio_da:int, ratio_recibe:int, tipo_puerto:HarborConstants/None) 
+                 Ej. (2, 1, MaterialConstants.WOOD) para puerto de madera,
+                     (3, 1, HarborConstants.ALL) para puerto general,
+                     (4, 1, None) para el banco.
+        """
+        # Chequear puerto específico para el material a dar
+        # self.board.check_for_player_harbors(self.id, material_to_give_id) 
+        # devuelve el TIPO de puerto (ej. MaterialConstants.WOOD) si tiene ese puerto específico.
+        # O HarborConstants.NONE si no lo tiene.
+
+        # El método check_for_player_harbors busca si el jugador TIENE un puerto de ESE tipo.
+        # No es si el NODO donde está el puerto es de ese tipo.
+        player_specific_harbor = self.board.check_for_player_harbors(self.id, material_harbor=material_to_give_id)
+        if player_specific_harbor == material_to_give_id: # El jugador tiene un puerto 2:1 para este material
+            return 2, 1, material_to_give_id
+
+        # Chequear puerto general 3:1
+        player_general_harbor = self.board.check_for_player_harbors(self.id, material_harbor=HarborConstants.ALL)
+        if player_general_harbor == HarborConstants.ALL: # El jugador tiene un puerto 3:1
+            return 3, 1, HarborConstants.ALL
+        
+        # Por defecto, banco 4:1
+        return 4, 1, None 
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
         """
         Se llama cuando el jugador tiene más de 7 cartas de recurso y sale un 7.
-        Debe decidir qué cartas descartar.
-        Esta implementación es un placeholder.
+        Debe decidir qué cartas descartar basándose en las heurísticas del cromosoma.
 
         :return: Hand() con los materiales a descartar.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome
-        # para elegir qué recursos descartar de forma estratégica.
-        # Por ejemplo, descartar los que menos se necesiten o los más abundantes.
+        num_to_discard = self.hand.get_total() // 2
+        discard_hand = Hand() # Mano que contendrá las cartas a descartar
 
-        # Implementación base: descarta aleatoriamente si es necesario.
-        num_to_discard = self.hand.get_total_materials() // 2
-        discard_hand = Hand()
-        
         if num_to_discard == 0:
             return discard_hand
 
-        # Esta es una forma muy básica de descarte. Una mejor estrategia consideraría
-        # el valor de los recursos, los próximos objetivos de construcción, etc.
-        all_cards = []
-        for material_id, count in self.hand.resources.items():
-            all_cards.extend([material_id] * count)
-        
-        random.shuffle(all_cards)
-        
-        for i in range(min(num_to_discard, len(all_cards))):
-            discard_hand.add_material(all_cards[i], 1)
-            
+        discard_heuristics = self.chromosome.get("discard_heuristics", {})
+        resource_value_priority = discard_heuristics.get("resource_value_priority", {})
+
+        card_scores = []
+
+        cost_settlement = self._get_cost_of_buildable(BuildConstants.TOWN)
+        cost_city = self._get_cost_of_buildable(BuildConstants.CITY)
+        cost_card = self._get_cost_of_buildable(BuildConstants.CARD)
+
+        # ASEGÚRATE DE QUE ESTA LÍNEA ESTÉ ASÍ:
+        # Se itera sobre self.hand.resources usando enumerate.
+        # 'material_id' será el índice (0 para Cereal, 1 para Mineral, etc.)
+        # 'count' será la cantidad de ese material.
+        for material_id, count in enumerate(self.hand.resources):
+            if count > 0: # Solo procesar si el agente tiene este material
+                for _ in range(count): # Generar una puntuación para cada carta individual de este material
+                    score = resource_value_priority.get(material_id, 1.0) 
+                    # Verificar si este material es necesario para los objetivos de construcción
+                    # Accedemos a los costos (que son objetos Materials) por índice
+                    if cost_settlement and cost_settlement[material_id] > 0:
+                        score += discard_heuristics.get("keep_for_settlement_bonus", -0.5)
+                    if cost_city and cost_city[material_id] > 0:
+                        score += discard_heuristics.get("keep_for_city_bonus", -0.6)
+                    if cost_card and cost_card[material_id] > 0:
+                        score += discard_heuristics.get("keep_for_card_bonus", -0.3)
+                    card_scores.append({"material_id": material_id, "score": score})
+
+        # Ordenar para descartar los de mayor score (prioridad más alta para descarte)
+        card_scores.sort(key=lambda x: x["score"], reverse=True) 
+
+        for i in range(min(num_to_discard, len(card_scores))):
+            discard_hand.add_material(card_scores[i]["material_id"], 1)
         return discard_hand
-        
 
     def on_turn_end(self):
         """
         Se llama al final del turno.
-        Utilizado para jugar cartas de desarrollo si es estratégico.
-        Esta implementación es un placeholder.
+        Utilizado para jugar cartas de desarrollo (no Caballeros) si es estratégico y no se han usado.
+        La decisión se basa en las heurísticas del cromosoma.
 
         :return: DevelopmentCard a jugar o None si no se juega ninguna.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome.
-        return None
+        card_to_play = None
+        best_score = -float('inf')
+
+        play_heuristics = self.chromosome.get("play_dev_card_heuristics", {})
+
+        # Solo proceder con la lógica de cartas de desarrollo si self.hand está configurado para ello.
+        can_check_dev_cards = hasattr(self.hand, 'development_cards') and \
+                              hasattr(self.hand.development_cards, 'has_development_card')
+
+        if not can_check_dev_cards:
+            # Si no podemos verificar las cartas de desarrollo (porque self.hand.development_cards no existe
+            # o no tiene el método esperado), no se puede jugar ninguna carta de desarrollo.
+            return None
+
+        # Evaluar Monopolio
+        if self.hand.development_cards.has_development_card(DevelopmentCard.MONOPOLY):
+            score = play_heuristics.get("monopoly_bonus", 0) 
+            if score > best_score: 
+                best_score = score
+                card_to_play = DevelopmentCard.MONOPOLY
+        
+        # Evaluar Año de la Abundancia
+        if self.hand.development_cards.has_development_card(DevelopmentCard.YEAR_OF_PLENTY):
+            score = play_heuristics.get("year_of_plenty_immediate_build_bonus", 0)
+            if score > best_score:
+                best_score = score
+                card_to_play = DevelopmentCard.YEAR_OF_PLENTY
+
+        # Evaluar Construcción de Carreteras
+        if self.hand.development_cards.has_development_card(DevelopmentCard.ROAD_BUILDING):
+            score = play_heuristics.get("road_building_strategic_spot_bonus", 0)
+            if score > best_score:
+                best_score = score
+                card_to_play = DevelopmentCard.ROAD_BUILDING
+        
+        return card_to_play
+
 
     def on_monopoly_card_use(self):
         """
         Se llama cuando el agente decide usar una carta de Monopolio.
         Debe elegir qué recurso monopolizar.
-        Esta implementación es un placeholder.
+        La decisión se basa en las heurísticas del cromosoma.
 
-        :return: Un entero representando el material elegido (0-4).
+        :return: Un entero representando el MaterialConstants elegido.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome.
-        # Por ejemplo, elegir el recurso que más necesitan los oponentes o que más necesita el agente.
-        return random.randint(0, 4) # Placeholder: elige un recurso al azar
+        play_heuristics = self.chromosome.get("play_dev_card_heuristics", {})
+        # `monopoly_potential_gain_threshold` no se usa directamente para ELEGIR,
+        # sino para decidir SI JUGAR la carta de monopolio. Aquí ya decidimos jugarla.
+        
+        # Estrategia:
+        # 1. Identificar los recursos que más necesita el agente para sus próximos objetivos de construcción.
+        # 2. Opcionalmente, identificar recursos que los oponentes puedan tener en abundancia (esto es difícil sin info).
+        # 3. Dar prioridad a los recursos que el agente necesita y que probablemente otros tengan.
+
+        needed_resources_score = {}
+        all_materials = [MaterialConstants.WOOD, MaterialConstants.CLAY, MaterialConstants.WOOL, MaterialConstants.CEREAL, MaterialConstants.MINERAL]
+
+        # Evaluar necesidad basada en el próximo objetivo de construcción
+        next_build_goal_cost = None
+        num_settlements = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and not n_data['has_city'])
+        num_cities = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and n_data['has_city'])
+
+        potential_goals = []
+        if num_cities < 4 and num_settlements > 0 : potential_goals.append(self._get_cost_of_buildable(BuildConstants.CITY))
+        if num_settlements < 5: potential_goals.append(self._get_cost_of_buildable(BuildConstants.TOWN))
+        potential_goals.append(self._get_cost_of_buildable(BuildConstants.CARD))
+
+        for goal_cost in potential_goals:
+            if goal_cost:
+                for mat_id, count_needed in goal_cost.resources.items():
+                    count_has = self.hand.resources.get(mat_id, 0)
+                    deficit = count_needed - count_has
+                    if deficit > 0:
+                        needed_resources_score[mat_id] = needed_resources_score.get(mat_id, 0) + deficit * self.chromosome["trade_heuristics"]["resource_needed_importance"].get(mat_id, 1.0)
+
+        # Si no hay un déficit claro, considerar los recursos con alta prioridad general en el cromosoma.
+        if not needed_resources_score:
+            for mat_id in all_materials:
+                needed_resources_score[mat_id] = self.chromosome["trade_heuristics"]["resource_needed_importance"].get(mat_id, 1.0)
+        
+        if not needed_resources_score: # Fallback si todo lo demás falla
+            return random.choice(all_materials)
+
+        # Elegir el recurso con la puntuación de necesidad más alta
+        best_resource = max(needed_resources_score, key=needed_resources_score.get)
+        # print(f"Agente {self.id} usa Monopolio y elige: {best_resource}")
+        return best_resource
+
 
     def on_road_building_card_use(self):
         """
         Se llama cuando el agente decide usar una carta de Construcción de Carreteras.
         Debe elegir dónde construir dos carreteras.
-        Esta implementación es un placeholder.
+        Utiliza la heurística _heuristic_road_location.
 
         :return: Dict con la ubicación de las dos carreteras.
                  Ej: {'node_id': int, 'road_to': int, 'node_id_2': int, 'road_to_2': int}
+                 o None si no se pueden colocar.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome.
-        # Encontrar las mejores ubicaciones para dos carreteras.
-        # Esto es complejo y requiere una buena evaluación del tablero.
-        # Por ahora, devolvemos None para que el GameDirector maneje la aleatoriedad si es necesario.
+        possible_first_roads = []
+        valid_road_spots = self.board.valid_road_nodes(self.id, two_roads_for_card=True) # Indica que es para la carta
+
+        for road_option in valid_road_spots:
+            from_node = road_option['starting_node']
+            to_node = road_option['finishing_node']
+            # Es importante que valid_road_nodes ya filtre carreteras existentes.
+            score = self._heuristic_road_location(from_node, to_node)
+            possible_first_roads.append({"from_node": from_node, "to_node": to_node, "score": score})
+
+        if not possible_first_roads:
+            return None # No hay lugares válidos para la primera carretera
+
+        possible_first_roads.sort(key=lambda x: x["score"], reverse=True)
+        
+        # Intentar encontrar la mejor combinación de dos carreteras
+        # Esto puede ser complejo. Una simplificación: tomar la mejor primera, luego la mejor segunda
+        # que no colisione y sea válida DESPUÉS de la primera (simulada).
+
+        for first_road_choice in possible_first_roads:
+            # Simular la colocación de la primera carretera (temporalmente) para encontrar la segunda
+            # Esto es difícil sin modificar el estado real del tablero o tener una copia.
+            # Por ahora, asumimos que `valid_road_nodes` puede manejar esto o
+            # que la segunda carretera se elige de una lista que no dependa de la primera.
+            # Una aproximación más simple: elegir las dos mejores carreteras no superpuestas de la lista inicial.
+
+            # Para una implementación robusta, necesitaríamos:
+            # 1. Colocar la primera carretera (simulada).
+            # 2. Recalcular _heuristic_road_location para la segunda desde el final de la primera o desde otros puntos.
+            # Esto excede la simplicidad actual.
+
+            # Simplificación V1: Elegir la mejor primera. Luego, elegir la mejor segunda de las restantes
+            # que no sea la misma y que aún sea "válida" (sin una simulación compleja).
+            # La función valid_road_nodes(self.id, two_roads_for_card=True) debería devolver
+            # todos los inicios posibles de carretera.
+            # La lógica de conexión la debe manejar el GameDirector al aplicar.
+
+            best_first_road = first_road_choice
+            
+            possible_second_roads = []
+            # La segunda carretera puede partir del final de la primera, o de cualquier otro lugar válido.
+            # `valid_road_nodes` con `initial_road_node_id=best_first_road['to_node']` si quisiéramos forzar conexión.
+            # O buscar una segunda carretera independiente.
+
+            # Para la segunda carretera, recalculamos las opciones, excluyendo la primera.
+            # Y considerando que la primera ya podría estar (aunque no la "construimos" aquí).
+            # `valid_road_nodes` debería ser llamado de nuevo, o filtrar la lista actual.
+
+            # Vamos a buscar una segunda carretera que sea distinta a la primera y también tenga buena puntuación.
+            # Idealmente, la segunda carretera debería ser evaluada *después* de que la primera se considera colocada.
+            
+            temp_board_state_after_first_road = None # Idealmente, clonar y modificar
+            
+            # Dado que no podemos simular fácilmente, buscaremos la segunda mejor carretera de la lista original
+            # que no sea idéntica ni inversa a la primera.
+            
+            # Re-evaluar la segunda carretera:
+            # Podríamos usar _find_best_second_road(board_after_first_road, first_road_end_node)
+            # Para simplificar: buscamos otra carretera de la lista `possible_first_roads`
+            # que sea distinta.
+            
+            second_road_options_filtered = [
+                r for r in possible_first_roads 
+                if r['score'] > -float('inf') and \
+                   (r['from_node'] != best_first_road['from_node'] or r['to_node'] != best_first_road['to_node']) and \
+                   (r['from_node'] != best_first_road['to_node'] or r['to_node'] != best_first_road['from_node'])
+            ]
+
+            # Priorizar carreteras que se conectan a la primera
+            connected_second_roads = []
+            other_second_roads = []
+
+            # El método valid_road_nodes debería poder decirnos qué carreteras son construibles
+            # desde el final de la primera carretera.
+            # Asumimos que valid_road_nodes(..., initial_road_node_id=node) funciona.
+            # Esta es una dependencia en cómo el GameManager/Board interpreta la construcción de la segunda carretera.
+            
+            # Opción A: Segunda carretera conectada a la primera.
+            potential_starts_for_second_road = [best_first_road['to_node']]
+            # También podría empezar desde el mismo nodo que la primera, si se ramifica.
+            # if self.board.nodes[best_first_road['from_node']]['player'] == self.id or \
+            #    any(r['player_id'] == self.id for r in self.board.nodes[best_first_road['from_node']]['roads']):
+            #    potential_starts_for_second_road.append(best_first_road['from_node'])
+
+
+            for start_node_for_second in potential_starts_for_second_road:
+                # Necesitamos una forma de obtener carreteras válidas desde `start_node_for_second`
+                # asumiendo que la primera carretera (best_first_road) ya está colocada.
+                # Esta es la parte compleja sin una simulación.
+                # Por ahora, filtramos de `valid_road_spots`
+                for road_opt in valid_road_spots: # Reutilizar la lista original
+                    if road_opt['starting_node'] == start_node_for_second:
+                        # Segunda carretera es (start_node_for_second -> road_opt['finishing_node'])
+                        # Primera carretera es (best_first_road['from_node'] -> best_first_road['to_node'])
+                        # donde start_node_for_second == best_first_road['to_node']
+                        
+                        # Evitar que la segunda carretera sea la inversa de la primera.
+                        # Si best_first_road es (F,T), la segunda parte de T.
+                        # La inversa de la primera es (T,F).
+                        # Entonces, si road_opt['finishing_node'] es F, la segunda carretera (T,F) es la inversa.
+                        if road_opt['finishing_node'] == best_first_road['from_node']:
+                            continue # Es la inversa, saltar.
+
+                        # No es necesario comprobar explícitamente si es la "misma" que la primera,
+                        # ya que la segunda carretera parte del nodo final de la primera.
+                        # Si la primera es A->B, la segunda parte de B. Solo podría ser la misma si A->B es un bucle (A=B).
+                        # La heurística de carretera debería manejar carreteras A->A si son válidas y el tablero lo permite.
+
+                        score = self._heuristic_road_location(road_opt['starting_node'], road_opt['finishing_node'])
+                        
+                        # La puntuación ya refleja la calidad de la carretera.
+                        # No se necesita una penalización adicional aquí si la heurística es correcta.
+                        # El 'continue' anterior ya evita la inversa directa.
+                        
+                        if score > -float('inf'): # Considerar solo carreteras con puntuación válida
+                            connected_second_roads.append({
+                                "from_node": road_opt['starting_node'], 
+                                "to_node": road_opt['finishing_node'], 
+                                "score": score
+                            })
+            
+            # Opción B: Segunda carretera independiente (si no hay conectadas buenas)
+            if not connected_second_roads:
+                for r_opt in second_road_options_filtered:
+                    # Asegurarse que no es la primera carretera (de nuevo, por si acaso)
+                    if r_opt['from_node'] == best_first_road['from_node'] and r_opt['to_node'] == best_first_road['to_node']:
+                        continue
+                    other_second_roads.append(r_opt) # Ya tienen score
+
+            best_second_road = None
+            if connected_second_roads:
+                connected_second_roads.sort(key=lambda x: x["score"], reverse=True)
+                best_second_road = connected_second_roads[0]
+            elif other_second_roads:
+                other_second_roads.sort(key=lambda x: x["score"], reverse=True)
+                best_second_road = other_second_roads[0]
+
+            if best_second_road:
+                # print(f"Agente {self.id} usa Road Building: Carretera 1 ({best_first_road['from_node']} -> {best_first_road['to_node']}), Carretera 2 ({best_second_road['from_node']} -> {best_second_road['to_node']})")
+                return {
+                    'node_id': best_first_road['from_node'], 
+                    'road_to': best_first_road['to_node'],
+                    'node_id_2': best_second_road['from_node'],
+                    'road_to_2': best_second_road['to_node']
+                }
+        
+        # Fallback: si solo se pudo encontrar una carretera o ninguna
+        if possible_first_roads: # Tomar la mejor y dejar la segunda como None o error.
+            best_single_road = possible_first_roads[0]
+            # print(f"Agente {self.id} usa Road Building: Solo pudo determinar una carretera ({best_single_road['from_node']} -> {best_single_road['to_node']})")
+            # El GameManager deberá manejar esto (quizás permitir solo una o ninguna).
+            # Para ser estrictos, deberíamos devolver None si no podemos encontrar DOS.
+            # Sin embargo, el juego podría permitir construir una si la segunda no es válida.
+            # Por seguridad, devolvemos la primera si es la única opción razonable.
+            # Pero la interfaz espera DOS. Es mejor devolver None si no se cumplen las dos.
+            return None # No se pudieron determinar dos carreteras válidas
+        
         return None
+
 
     def on_year_of_plenty_card_use(self):
         """
         Se llama cuando el agente decide usar una carta de Año de la Abundancia.
         Debe elegir qué dos recursos tomar del banco.
-        Esta implementación es un placeholder.
+        La decisión se basa en las necesidades para los próximos objetivos de construcción.
 
-        :return: Dict con los dos materiales elegidos. Ej: {'material': int, 'material_2': int}
+        :return: Dict con los dos materiales elegidos. Ej: {'material': MaterialConstants, 'material_2': MaterialConstants}
+                 o None si no se pueden determinar.
         """
-        # TODO: Implementar lógica de decisión basada en self.chromosome.
-        # Elegir los recursos más necesarios para los objetivos actuales.
-        return {'material': random.randint(0, 4), 'material_2': random.randint(0, 4)} # Placeholder
+        # play_heuristics = self.chromosome.get("play_dev_card_heuristics", {})
+        # `year_of_plenty_immediate_build_bonus` se usa para decidir SI jugar la carta.
+        # Aquí ya decidimos jugarla y necesitamos elegir los recursos.
+
+        resource_needs = {}
+        all_materials = [MaterialConstants.WOOD, MaterialConstants.CLAY, MaterialConstants.WOOL, MaterialConstants.CEREAL, MaterialConstants.MINERAL]
+
+        # Calcular déficit para posibles construcciones
+        potential_goals = []
+        cost_town = self._get_cost_of_buildable(BuildConstants.TOWN)
+        cost_city = self._get_cost_of_buildable(BuildConstants.CITY)
+        cost_card = self._get_cost_of_buildable(BuildConstants.CARD)
+
+        num_settlements = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and not n_data['has_city'])
+        num_cities = sum(1 for n_data in self.board.nodes if n_data['player'] == self.id and n_data['has_city'])
+
+        # Ponderar objetivos: Ciudad > Poblado > Carta
+        if num_cities < 4 and num_settlements > 0: potential_goals.append({"cost": cost_city, "priority": 3})
+        if num_settlements < 5: potential_goals.append({"cost": cost_town, "priority": 2})
+        potential_goals.append({"cost": cost_card, "priority": 1})
+        
+        for mat_id in all_materials:
+            resource_needs[mat_id] = 0
+
+        for goal_info in potential_goals:
+            goal_cost = goal_info["cost"]
+            priority = goal_info["priority"]
+            if goal_cost:
+                for mat_id, count_needed in goal_cost.resources.items():
+                    count_has = self.hand.resources.get(mat_id, 0)
+                    deficit = count_needed - count_has
+                    if deficit > 0:
+                        # Ponderar por la importancia del recurso y la prioridad del objetivo
+                        importance_weight = self.chromosome["trade_heuristics"]["resource_needed_importance"].get(mat_id, 1.0)
+                        resource_needs[mat_id] += deficit * importance_weight * priority
+        
+        if not any(need > 0 for need in resource_needs.values()):
+            # Si no hay déficit específico, tomar los recursos con mayor "necesidad" general del cromosoma
+            for mat_id in all_materials:
+                resource_needs[mat_id] = self.chromosome["trade_heuristics"]["resource_needed_importance"].get(mat_id, 1.0)
+
+        # Ordenar recursos por necesidad descendente
+        sorted_needs = sorted(resource_needs.items(), key=lambda item: item[1], reverse=True)
+
+        if not sorted_needs: # Fallback extremo
+            res1 = random.choice(all_materials)
+            res2 = random.choice(all_materials)
+            return {'material': res1, 'material_2': res2}
+
+        material1 = sorted_needs[0][0]
+        material2 = None
+        if len(sorted_needs) > 1:
+            material2 = sorted_needs[1][0]
+        else: # Si solo un recurso es "necesario", o la lista es corta
+            material2 = material1 # Tomar dos del mismo si es muy necesitado
+
+        # Si por alguna razón material2 sigue siendo None (lista de necesidades muy corta y extraña)
+        if material2 is None:
+            material2 = random.choice([m for m in all_materials if m != material1] or all_materials)
+
+
+        # print(f"Agente {self.id} usa Año de la Abundancia y elige: {material1}, {material2}")
+        return {'material': material1, 'material_2': material2}
 
     # Métodos auxiliares que podrían ser útiles (a definir según la estrategia)
     # def can_build_settlement(self): ...
