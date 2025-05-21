@@ -3,6 +3,7 @@ import json # Para guardar/cargar cromosomas
 import os
 import sys
 from datetime import datetime
+import gc # <--- AÑADIDO
 
 # Necesitamos añadir la ruta de PyCatan al sys.path para que los imports funcionen
 # si ejecutas este script desde fuera del directorio PyCatan.
@@ -23,6 +24,11 @@ try:
     from Agents.SigmaAgent import SigmaAgent
     from Agents.AlexPastorAgent import AlexPastorAgent
     from Agents.AlexPelochoJaimeAgent import AlexPelochoJaimeAgent
+    # Imports de agentes adicionales para la lista extendida de oponentes
+    from Agents.CarlesZaidaAgent import CarlesZaidaAgent
+    from Agents.CrabisaAgent import CrabisaAgent
+    from Agents.PabloAleixAlexAgent import PabloAleixAlexAgent
+    from Agents.TristanAgent import TristanAgent
     # Importa el GameDirector
     from Managers.GameDirector import GameDirector # MODIFICADO: Usar GameDirector
     # Board ya no es necesario aquí directamente, GameDirector lo maneja.
@@ -37,15 +43,51 @@ except ImportError as e:
 # --- Hiperparámetros del AG ---
 TAMANO_POBLACION = 30 
 NUM_GENERACIONES = 500  
-# NOTA: Considerar experimentar con NUM_GENERACIONES más altas (ej. 200, 500) 
-# y diferentes valores para PROBABILIDAD_MUTACION_GEN y PROBABILIDAD_CRUCE 
-# según las recomendaciones para una exploración más exhaustiva.
+# NOTA: NUM_GENERACIONES se reemplazará por un esquema de bloques de rivales
+# PROBABILIDAD_CRUCE y PROBABILIDAD_MUTACION_GEN se volverán dinámicos o servirán de base.
 PROBABILIDAD_CRUCE = 0.9
-PROBABILIDAD_MUTACION_GEN = 0.15
-MAGNITUD_MUTACION_MAX_PORCENTAJE = 0.2
-NUM_PARTIDAS_EVALUACION = 10 
+# PROBABILIDAD_MUTACION_GEN ya no será una constante fija global para la mutación
+# MAGNITUD_MUTACION_MAX_PORCENTAJE también se volverá dinámico
+
+# Nuevos parámetros para el entrenamiento por bloques de rivales y adaptación dinámica
+GENS_POR_RIVAL = 10 # Número de generaciones a entrenar contra cada rival
+NUM_PARTIDAS_EVALUACION_POR_POSICION = 1 # Partidas por cada una de las 4 posiciones. Total 4 partidas.
+                                         # El fitness será la suma de victorias en estas 4 partidas.
+NUM_PARTIDAS_EVALUACION = 4 # Total de partidas para evaluar un cromosoma (1 por cada posición)
+
+# Lista completa de clases de agentes oponentes
+# NOTA: El usuario mencionó 11 rivales. Actualmente hay 10. Revisar y completar si es necesario.
+AGENTES_OPONENTES_TODOS = [
+    RandomAgent, 
+    AdrianHerasAgent, 
+    EdoAgent, 
+    SigmaAgent,
+    AlexPastorAgent,
+    AlexPelochoJaimeAgent,
+    CarlesZaidaAgent,
+    CrabisaAgent,
+    PabloAleixAlexAgent,
+    TristanAgent
+    # Añadir más agentes aquí si es necesario para llegar a 11
+]
+
+NUM_ELITES = 5 # Elitismo dentro de un bloque de rival
+NUM_ELITES_ENTRE_BLOQUES = 2 # Número de élites a conservar al cambiar de rival
+FRACCION_RESET_POBLACION_ENTRE_BLOQUES = 0.8 # Fracción de la población a reemplazar con nuevos individuos aleatorios al cambiar de rival (conservando NUM_ELITES_ENTRE_BLOQUES)
+
+# Parámetros para la mutación adaptativa
+PROB_MUTACION_INICIAL = 0.15
+MAGNITUD_MUTACION_INICIAL_PORCENTAJE = 0.20
+PROB_MUTACION_MIN = 0.05
+PROB_MUTACION_MAX = 0.50
+MAGNITUD_MUTACION_MIN_PORCENTAJE = 0.05
+MAGNITUD_MUTACION_MAX_PORCENTAJE = 0.50
+GENERACIONES_SIN_MEJORA_UMBRAL = 3 # Número de generaciones sin mejora para incrementar mutación
+FACTOR_AJUSTE_MUTACION_PROB = 0.05 # Cuánto aumentar/disminuir la probabilidad de mutación
+FACTOR_AJUSTE_MUTACION_MAGNITUD = 0.05 # Cuánto aumentar/disminuir la magnitud de mutación
+
 # Asegúrate que estas clases de agentes existen y son importables
-AGENTES_OPONENTES_CLASES = [
+AGENTES_OPONENTES_CLASES = [ # Esta lista se usará si no hay un rival fijo (comportamiento anterior)
     RandomAgent, 
     AdrianHerasAgent, 
     EdoAgent, 
@@ -59,6 +101,10 @@ BEST_CHROMOSOME_FILE = "best_chromosome.json"
 FITNESS_PROGRESS_FILE = "fitness_por_generacion.csv" # Nuevo archivo para el progreso del fitness
 # Nuevo: Máximo de rondas por partida para evitar bloqueos
 MAX_ROUNDS_PER_GAME = 200 
+
+# Variables globales para la mutación adaptativa (se inicializarán en main)
+prob_mutacion_actual = PROB_MUTACION_INICIAL
+magnitud_mutacion_actual_porcentaje = MAGNITUD_MUTACION_INICIAL_PORCENTAJE
 
 
 def log_message(message):
@@ -91,49 +137,47 @@ def inicializar_poblacion():
     """Crea la población inicial de cromosomas."""
     return [inicializar_cromosoma() for _ in range(TAMANO_POBLACION)]
 
-def calcular_fitness(cromosoma, oponentes_fijos=True):
+def calcular_fitness(cromosoma, clase_rival_fijo=None):
     """
     Evalúa un cromosoma jugando partidas y devuelve su fitness.
     El fitness se define como el número total de partidas ganadas.
-    El GeneticAgent rotará su posición de inicio.
-    Los 3 oponentes se seleccionarán aleatoriamente de AGENTES_OPONENTES_CLASES.
+    El GeneticAgent rotará su posición de inicio (0, 1, 2, 3).
+    Si clase_rival_fijo se proporciona, los 3 oponentes serán de esa clase.
+    De lo contrario, se seleccionarán 3 oponentes aleatoriamente de AGENTES_OPONENTES_CLASES.
     """
     victorias_agente_genetico = 0
-    # Eliminadas variables de puntos_totales_agente_genetico y puestos_sum ya que no se usarán para el fitness.
     partidas_jugadas_validas = 0
 
     GeneticAgent.chromosome_para_entrenamiento_actual = cromosoma
 
-    # Pool de oponentes para seleccionar (excluyendo GeneticAgent si estuviera por error)
-    possible_opponent_pool = [
-        op_class for op_class in AGENTES_OPONENTES_CLASES 
-        if op_class != GeneticAgent
-    ]
-
-    if not possible_opponent_pool or len(possible_opponent_pool) < 3:
-        log_message("Advertencia: El pool de oponentes es insuficiente (necesita al menos 3 distintos de GeneticAgent). Rellenando con RandomAgent o usando los disponibles.")
-        # Asegurar que tenemos al menos 3 opciones, incluso si son repetidas de RandomAgent
-        # Esta es una medida de contingencia; idealmente AGENTES_OPONENTES_CLASES es diverso.
-        while len(possible_opponent_pool) < 3:
-            possible_opponent_pool.append(RandomAgent)
-
-
-    for i in range(NUM_PARTIDAS_EVALUACION):
-        genetic_agent_sim_id = i % 4 
-
-        # Seleccionar 3 oponentes aleatorios del pool
-        # Nos aseguramos de que, si el pool es pequeño, tomamos muestras con reemplazo o lo que esté disponible.
-        if len(possible_opponent_pool) >= 3:
-            oponentes_para_partida_clases = random.sample(possible_opponent_pool, 3)
-        else: # Si no hay suficientes oponentes únicos, tomar lo que hay y completar con RandomAgent (o el último disponible)
-            oponentes_para_partida_clases = list(possible_opponent_pool) # Tomar todos los disponibles
-            while len(oponentes_para_partida_clases) < 3:
-                oponentes_para_partida_clases.append(RandomAgent) # O el último de possible_opponent_pool si es más seguro
-            oponentes_para_partida_clases = oponentes_para_partida_clases[:3] # Asegurar que solo son 3
+    for i in range(NUM_PARTIDAS_EVALUACION): # NUM_PARTIDAS_EVALUACION ahora es 4
+        genetic_agent_sim_id = i # Esto directamente asigna la posición 0, 1, 2, 3
 
         agent_classes_for_director = [None] * 4
         agent_classes_for_director[genetic_agent_sim_id] = GeneticAgent
         
+        oponentes_para_partida_clases = []
+        if clase_rival_fijo:
+            oponentes_para_partida_clases = [clase_rival_fijo, clase_rival_fijo, clase_rival_fijo]
+        else:
+            # Comportamiento anterior: seleccionar oponentes aleatorios del pool general
+            possible_opponent_pool = [
+                op_class for op_class in AGENTES_OPONENTES_CLASES 
+                if op_class != GeneticAgent
+            ]
+            if not possible_opponent_pool or len(possible_opponent_pool) < 3:
+                log_message("Advertencia: El pool de oponentes (general) es insuficiente. Rellenando con RandomAgent.")
+                while len(possible_opponent_pool) < 3:
+                    possible_opponent_pool.append(RandomAgent)
+            
+            if len(possible_opponent_pool) >= 3:
+                oponentes_para_partida_clases = random.sample(possible_opponent_pool, 3)
+            else: 
+                oponentes_para_partida_clases = list(possible_opponent_pool)
+                while len(oponentes_para_partida_clases) < 3:
+                    oponentes_para_partida_clases.append(RandomAgent)
+                oponentes_para_partida_clases = oponentes_para_partida_clases[:3]
+
         idx_opponent_list = 0
         for pos in range(4):
             if agent_classes_for_director[pos] is None:
@@ -141,7 +185,8 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
                     agent_classes_for_director[pos] = oponentes_para_partida_clases[idx_opponent_list]
                     idx_opponent_list += 1
                 else:
-                    log_message("Error crítico en asignación de oponentes. Usando RandomAgent.")
+                    # Esto no debería ocurrir si la lógica de oponentes es correcta
+                    log_message("Error crítico en asignación de oponentes (fallback). Usando RandomAgent.")
                     agent_classes_for_director[pos] = RandomAgent
         
         try:
@@ -155,12 +200,20 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
             if not game_trace or "game" not in game_trace or not game_trace["game"]:
                 log_message(f"    Partida {i+1} no produjo un trace válido. Saltando.")
                 # No se suma victoria, se considera una partida no concluyente para el fitness.
+                # Liberar memoria del trace y director si la partida falla pronto
+                if 'game_director' in locals(): del game_director
+                if 'game_trace' in locals(): del game_trace
+                # gc.collect() # Podría ser muy frecuente aquí
                 continue
 
             last_round_key = max(game_trace["game"].keys(), key=lambda r_key: int(r_key.split("_")[-1]))
             
             if not game_trace["game"][last_round_key]:
                 log_message(f"    Partida {i+1}, última ronda ({last_round_key}) vacía. Saltando.")
+                # Liberar memoria
+                if 'game_director' in locals(): del game_director
+                if 'game_trace' in locals(): del game_trace
+                # gc.collect()
                 continue
 
             last_turn_key = max(game_trace["game"][last_round_key].keys(), key=lambda t_key: int(t_key.split("_")[-1].lstrip("P")))
@@ -168,6 +221,10 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
             turn_data = game_trace["game"][last_round_key][last_turn_key]
             if "end_turn" not in turn_data or "victory_points" not in turn_data["end_turn"]:
                 log_message(f"    Partida {i+1} no tiene datos de 'victory_points' en el último turno. Saltando.")
+                # Liberar memoria
+                if 'game_director' in locals(): del game_director
+                if 'game_trace' in locals(): del game_trace
+                # gc.collect()
                 continue
             else:
                 puntos_jugadores_dict = turn_data["end_turn"]["victory_points"]
@@ -207,6 +264,14 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
             # O si se incrementó antes, aquí no se contabiliza la victoria.
             # La lógica actual incrementa partidas_jugadas_validas al inicio del try.
             # Si hay error, no se suma victoria.
+        finally:
+            # Asegurarse de limpiar game_director y game_trace después de cada partida
+            if 'game_director' in locals():
+                del game_director
+            if 'game_trace' in locals():
+                del game_trace
+            # gc.collect() # Llamar gc.collect() después de cada partida puede ser costoso.
+                           # Hacerlo al final de la evaluación del individuo podría ser un compromiso.
 
     if hasattr(GeneticAgent, 'chromosome_para_entrenamiento_actual'):
         del GeneticAgent.chromosome_para_entrenamiento_actual
@@ -218,7 +283,7 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
     # El fitness es simplemente el número de victorias.
     fitness = victorias_agente_genetico
     
-    log_message(f"  Individuo evaluado ({partidas_jugadas_validas} partidas válidas): {victorias_agente_genetico} victorias -> Fitness: {fitness}")
+    log_message(f"  Individuo evaluado ({partidas_jugadas_validas} partidas válidas de {NUM_PARTIDAS_EVALUACION}): {victorias_agente_genetico} victorias -> Fitness: {fitness}")
     return fitness
 
 def seleccion_padres(poblacion_evaluada):
@@ -352,23 +417,23 @@ def mutar_cromosoma(cromosoma):
         if isinstance(item, dict):
             return {k: _recursive_mutation(v, key_path + "." + str(k) if key_path else str(k)) for k, v in item.items()}
         elif isinstance(item, (float, int)):
-            if random.random() < PROBABILIDAD_MUTACION_GEN:
+            if random.random() < prob_mutacion_actual:
                 original_value = item
                 if isinstance(item, float) and 0 <= item <= 1: 
-                    variacion = random.uniform(-MAGNITUD_MUTACION_MAX_PORCENTAJE * item, MAGNITUD_MUTACION_MAX_PORCENTAJE * item) if item != 0 else random.uniform(-0.1,0.1)
+                    variacion = random.uniform(-magnitud_mutacion_actual_porcentaje * item, magnitud_mutacion_actual_porcentaje * item) if item != 0 else random.uniform(-0.1,0.1)
                     nuevo_valor = max(0.0, min(1.0, item + variacion))
                 elif item >= 0: 
-                    variacion = item * random.uniform(-MAGNITUD_MUTACION_MAX_PORCENTAJE, MAGNITUD_MUTACION_MAX_PORCENTAJE) if item !=0 else random.uniform(0, 0.2) 
+                    variacion = item * random.uniform(-magnitud_mutacion_actual_porcentaje, magnitud_mutacion_actual_porcentaje) if item !=0 else random.uniform(0, 0.2) 
                     nuevo_valor = max(0.0, item + variacion)
                     nuevo_valor = round(nuevo_valor) if isinstance(item, int) else nuevo_valor
                 else: 
-                    variacion = abs(item) * random.uniform(-MAGNITUD_MUTACION_MAX_PORCENTAJE, MAGNITUD_MUTACION_MAX_PORCENTAJE) if item !=0 else random.uniform(-0.2,0.2)
+                    variacion = abs(item) * random.uniform(-magnitud_mutacion_actual_porcentaje, magnitud_mutacion_actual_porcentaje) if item !=0 else random.uniform(-0.2,0.2)
                     nuevo_valor = item + variacion
                     nuevo_valor = round(nuevo_valor) if isinstance(item, int) else nuevo_valor
                 return nuevo_valor
             return item
         elif isinstance(item, bool):
-            if random.random() < PROBABILIDAD_MUTACION_GEN:
+            if random.random() < prob_mutacion_actual:
                 return not item
             return item
         return item
@@ -397,132 +462,305 @@ def cargar_cromosoma(filepath):
 
 # --- Bucle Principal del AG ---
 def main():
-    log_message("Inicio del entrenamiento genético.")
+    log_message("\n============================================")
+    log_message("=== INICIO DEL ENTRENAMIENTO GENÉTICO ===")
+    log_message("============================================\n")
     
+    global prob_mutacion_actual, magnitud_mutacion_actual_porcentaje
+    prob_mutacion_actual = PROB_MUTACION_INICIAL
+    magnitud_mutacion_actual_porcentaje = MAGNITUD_MUTACION_INICIAL_PORCENTAJE
+    log_message(f"[Param Inicial] Mutación: Prob={prob_mutacion_actual:.3f}, Magnitud={magnitud_mutacion_actual_porcentaje:.3f}")
+
     poblacion = inicializar_poblacion()
     mejor_cromosoma_global = None
     mejor_fitness_global = -float('inf') 
-    progreso_fitness_generaciones = [] # Lista para guardar (generacion, fitness_mejor_de_gen, fitness_promedio_de_gen)
+    progreso_fitness_generaciones_global = []
+    generacion_global_count = 0
 
-    if os.path.exists(LOG_FILE): # Limpiar log antiguo o renombrar
+    if os.path.exists(LOG_FILE):
         try:
-            os.rename(LOG_FILE, LOG_FILE + f".bak_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            os.rename(LOG_FILE, f"{LOG_FILE}.bak_{timestamp}")
+            log_message(f"[INFO] Log anterior renombrado a: {LOG_FILE}.bak_{timestamp}")
         except OSError as e_log:
-            log_message(f"Advertencia: No se pudo renombrar el log antiguo: {e_log}")
-
+            log_message(f"[Advertencia] No se pudo renombrar el log antiguo: {e_log}")
 
     if os.path.exists(BEST_CHROMOSOME_FILE):
-        log_message(f"Intentando cargar el mejor cromosoma previo desde {BEST_CHROMOSOME_FILE}")
+        log_message(f"[INFO] Intentando cargar mejor cromosoma previo desde {BEST_CHROMOSOME_FILE}...")
         loaded_chromosome = cargar_cromosoma(BEST_CHROMOSOME_FILE)
         if loaded_chromosome:
-            log_message("Mejor cromosoma previo cargado. Se usará como base para el primer individuo y se re-evaluará.")
-            # Calcular su fitness actual para tener una línea base para mejor_fitness_global
-            try:
-                initial_best_fitness = calcular_fitness(loaded_chromosome)
-                if initial_best_fitness > mejor_fitness_global:
-                    mejor_fitness_global = initial_best_fitness
-                    mejor_cromosoma_global = loaded_chromosome.copy()
-                    log_message(f"Fitness del cromosoma cargado: {initial_best_fitness}. Establecido como mejor global inicial.")
-            except Exception as e_init_fit:
-                 log_message(f"Error calculando fitness para cromosoma cargado: {e_init_fit}. Se ignora.")
-
-            poblacion[0] = loaded_chromosome # Reemplazar el primer individuo aleatorio
-
-    for generacion in range(NUM_GENERACIONES):
-        log_message(f"--- Generación {generacion + 1}/{NUM_GENERACIONES} ---")
-        
-        poblacion_evaluada = []
-        for i, cromo in enumerate(poblacion):
-            log_message(f" Evaluando individuo {i+1}/{TAMANO_POBLACION} (Gen {generacion+1})...")
-            try:
-                fitness = calcular_fitness(cromo)
-                poblacion_evaluada.append((cromo, fitness))
-            except Exception as e:
-                log_message(f"Error al calcular fitness para individuo {i+1}: {e}. Se asigna fitness muy bajo.")
-                poblacion_evaluada.append((cromo, -float('inf'))) 
-
-        poblacion_evaluada.sort(key=lambda x: x[1], reverse=True)
-        
-        if not poblacion_evaluada or poblacion_evaluada[0][1] == -float('inf') and mejor_fitness_global == -float('inf') : # Modificado para considerar si todos fallan y no hay mejor global previo
-            log_message("Todos los individuos fallaron en la evaluación esta generación y no hay un mejor global previo. Saltando cruce/mutación.")
-            # Podríamos reintentar con una nueva población aleatoria o detener.
-            # Por ahora, si todos fallan, la población no cambiará mucho más que por elitismo (que también falló).
-            # Re-inicializar una parte de la población podría ser una estrategia.
-            poblacion = [inicializar_cromosoma() for _ in range(TAMANO_POBLACION)] # Reiniciar si todo falla
-            continue
-
-
-        current_gen_best_fitness = poblacion_evaluada[0][1] if poblacion_evaluada else -float('inf') # Manejar caso de lista vacía
-        if current_gen_best_fitness > mejor_fitness_global:
-            mejor_fitness_global = current_gen_best_fitness
-            mejor_cromosoma_global = poblacion_evaluada[0][0].copy() 
-            log_message(f"¡Nuevo mejor fitness global encontrado!: {mejor_fitness_global}")
-            guardar_cromosoma(mejor_cromosoma_global, BEST_CHROMOSOME_FILE)
-            
-        log_message(f"Mejor fitness de la Gen {generacion + 1}: {current_gen_best_fitness}")
-        
-        valid_fitness_scores = [f for _,f in poblacion_evaluada if f != -float('inf')] # No cambia, ya que el fitness ahora es numérico (0 o más)
-        if valid_fitness_scores:
-            promedio_fitness_gen = sum(valid_fitness_scores) / len(valid_fitness_scores)
-            log_message(f"Fitness promedio de la Gen {generacion + 1} (válidos): {promedio_fitness_gen:.2f}")
-            progreso_fitness_generaciones.append((generacion + 1, current_gen_best_fitness, promedio_fitness_gen))
+            log_message("[INFO] Mejor cromosoma previo CARGADO. Se integrará en la población inicial.")
+            poblacion[0] = loaded_chromosome 
+            # Considerar evaluar este cromosoma cargado para establecer un `mejor_fitness_global` inicial.
+            # Esto podría hacerse con una evaluación general o contra el primer rival.
+            # Por simplicidad, se evaluará normalmente dentro del primer ciclo de rival.
+            log_message(f"  Cromosoma cargado (Hash simplificado): {hash(str(poblacion[0])) % 10000:04d}")
         else:
-            log_message(f"Fitness promedio de la Gen {generacion + 1}: N/A (todos fallaron o no hubo partidas válidas)")
-            progreso_fitness_generaciones.append((generacion + 1, current_gen_best_fitness, 0.0)) # O None para promedio
+            log_message("[INFO] No se pudo cargar un cromosoma previo o el archivo no existe.")
+    log_message("---")
+    
+    for rival_idx, rival_class in enumerate(AGENTES_OPONENTES_TODOS, start=1):
+        log_message(f"\n----------------------------------------------------------------------")
+        log_message(f"[CICLO DE RIVAL {rival_idx}/{len(AGENTES_OPONENTES_TODOS)}] Entrenando vs: {rival_class.__name__}")
+        log_message(f"----------------------------------------------------------------------")
 
-
-        nueva_poblacion = []
-        
-        for i in range(NUM_ELITES):
-            if i < len(poblacion_evaluada) and poblacion_evaluada[i][1] > -float('inf') : # Se mantiene la guarda por si acaso, aunque el fitness es >= 0
-                nueva_poblacion.append(poblacion_evaluada[i][0])
-        
-        num_random_immigrants = int(0.1 * TAMANO_POBLACION) # Introducir 10% de inmigrantes aleatorios
-
-        while len(nueva_poblacion) < TAMANO_POBLACION - num_random_immigrants:
-            if not poblacion_evaluada or not [ind for ind in poblacion_evaluada if ind[1] > -float('inf')]: # Si no hay individuos válidos para seleccionar
-                log_message("Población evaluada sin individuos válidos para selección, rellenando aleatoriamente.")
-                nueva_poblacion.append(inicializar_cromosoma())
-                continue
+        if rival_idx > 1:
+            log_message("  [Gestión Población] Cambiando de rival. Reintroduciendo diversidad.")
+            elites_conservados = []
+            if mejor_cromosoma_global:
+                elites_conservados.append(mejor_cromosoma_global.copy())
+                log_message(f"    Mejor cromosoma global (Hash: {hash(str(mejor_cromosoma_global)) % 10000:04d}, Fitness: {mejor_fitness_global:.2f}) conservado como élite.")
             
-            # Seleccionar padres de la porción válida de la población evaluada
-            valid_evaluated_population = [ind for ind in poblacion_evaluada if ind[1] > -float('inf')]
-            if not valid_evaluated_population: # Doble check, aunque el anterior debería cubrirlo
-                 log_message("Fallback: No hay población válida para selección. Rellenando aleatoriamente.")
-                 nueva_poblacion.append(inicializar_cromosoma())
-                 continue
+            # Añadir más élites del bloque anterior si NUM_ELITES_ENTRE_BLOQUES lo permite y tenemos una `poblacion` ordenada
+            # Esta parte es una simplificación: actualmente solo el mejor_cromosoma_global se pasa explícitamente.
+            # Para pasar más élites del bloque anterior, necesitaríamos tener la `poblacion_evaluada_rival_actual` del final del bloque anterior.
+            # Considerar refinar esto si se requiere un elitismo inter-bloque más sofisticado.
 
-            padre1, padre2 = seleccion_padres(valid_evaluated_population)
+            num_aleatorios_a_generar = TAMANO_POBLACION - len(elites_conservados)
+            if num_aleatorios_a_generar < 0: num_aleatorios_a_generar = 0
             
-            hijo = padre1 
-            if random.random() < PROBABILIDAD_CRUCE:
-                hijo = cruzar_cromosomas(padre1, padre2)
+            poblacion_nueva_para_bloque = elites_conservados + [inicializar_cromosoma() for _ in range(num_aleatorios_a_generar)]
+            poblacion = poblacion_nueva_para_bloque[:TAMANO_POBLACION] # Asegurar tamaño correcto
+            log_message(f"    Nueva población para este bloque: {len(elites_conservados)} élite(s) + {num_aleatorios_a_generar} nuevos/aleatorios = {len(poblacion)} individuos.")
+            
+            prob_mutacion_actual = PROB_MUTACION_INICIAL
+            magnitud_mutacion_actual_porcentaje = MAGNITUD_MUTACION_INICIAL_PORCENTAJE
+            log_message(f"  [Param Reset] Mutación reseteada para nuevo rival: Prob={prob_mutacion_actual:.3f}, Magnitud={magnitud_mutacion_actual_porcentaje:.3f}")
+
+        mejor_fitness_rival_actual_en_bloque = -float('inf') 
+        generaciones_sin_mejora_rival_actual = 0
+
+        for gen_rival_block in range(1, GENS_POR_RIVAL + 1):
+            generacion_global_count += 1
+            log_message(f"\n  -- Gen Global {generacion_global_count} | Ciclo Rival {rival_idx} (Gen {gen_rival_block}/{GENS_POR_RIVAL} vs {rival_class.__name__}) --")
+            
+            poblacion_evaluada_rival_actual = []
+            log_message(f"    Evaluando {len(poblacion)} individuos contra {rival_class.__name__}...")
+            for i, cromo in enumerate(poblacion):
+                try:
+                    fitness = calcular_fitness(cromo, clase_rival_fijo=rival_class)
+                    poblacion_evaluada_rival_actual.append((cromo, fitness))
+                except Exception as e:
+                    log_message(f"      ERROR al calcular fitness para individuo (Hash: {hash(str(cromo))%10000:04d}): {e}. Fitness muy bajo.")
+                    poblacion_evaluada_rival_actual.append((cromo, -float('inf'))) 
+
+            poblacion_evaluada_rival_actual.sort(key=lambda x: x[1], reverse=True)
+            
+            current_gen_best_fitness_vs_rival = -float('inf')
+            if poblacion_evaluada_rival_actual and poblacion_evaluada_rival_actual[0][1] > -float('inf'):
+                current_gen_best_fitness_vs_rival = poblacion_evaluada_rival_actual[0][1]
+                mejor_cromo_gen_actual_vs_rival = poblacion_evaluada_rival_actual[0][0]
+                log_message(f"    Mejor fitness en esta Gen (vs {rival_class.__name__}): {current_gen_best_fitness_vs_rival:.2f} "
+                            f"(Cromosoma Hash: {hash(str(mejor_cromo_gen_actual_vs_rival))%10000:04d})")
+            else:
+                log_message(f"    [Advertencia] Todos los individuos fallaron o no hubo fitness válido en esta generación.")
+            
+            if current_gen_best_fitness_vs_rival > mejor_fitness_global:
+                mejor_fitness_global = current_gen_best_fitness_vs_rival
+                mejor_cromosoma_global = poblacion_evaluada_rival_actual[0][0].copy() 
+                log_message(f"    ¡¡NUEVO MEJOR FITNESS GLOBAL ENCONTRADO!!: {mejor_fitness_global:.2f}")
+                log_message(f"      Mejor cromosoma global (Hash: {hash(str(mejor_cromosoma_global))%10000:04d}) GUARDADO en {BEST_CHROMOSOME_FILE}")
+                guardar_cromosoma(mejor_cromosoma_global, BEST_CHROMOSOME_FILE)
+            
+            if current_gen_best_fitness_vs_rival > mejor_fitness_rival_actual_en_bloque:
+                mejor_fitness_rival_actual_en_bloque = current_gen_best_fitness_vs_rival
+                generaciones_sin_mejora_rival_actual = 0
+                log_message(f"    [Progreso] Mejora contra {rival_class.__name__}. Nuevo mejor fitness en bloque: {mejor_fitness_rival_actual_en_bloque:.2f}. Estancamiento reseteado.")
+                prob_mutacion_actual = max(PROB_MUTACION_MIN, prob_mutacion_actual - FACTOR_AJUSTE_MUTACION_PROB / 2)
+                magnitud_mutacion_actual_porcentaje = max(MAGNITUD_MUTACION_MIN_PORCENTAJE, magnitud_mutacion_actual_porcentaje - FACTOR_AJUSTE_MUTACION_MAGNITUD / 2)
+            else:
+                generaciones_sin_mejora_rival_actual += 1
+                log_message(f"    [Info] No hubo mejora contra {rival_class.__name__} en esta gen. Gens sin mejora (bloque): {generaciones_sin_mejora_rival_actual}.")
+                if generaciones_sin_mejora_rival_actual >= GENERACIONES_SIN_MEJORA_UMBRAL:
+                    log_message(f"      [Adaptación] Estancamiento ({generaciones_sin_mejora_rival_actual} gens). Aumentando mutación.")
+                    prob_mutacion_actual = min(PROB_MUTACION_MAX, prob_mutacion_actual + FACTOR_AJUSTE_MUTACION_PROB)
+                    magnitud_mutacion_actual_porcentaje = min(MAGNITUD_MUTACION_MAX_PORCENTAJE, magnitud_mutacion_actual_porcentaje + FACTOR_AJUSTE_MUTACION_MAGNITUD)
+            log_message(f"    [Param Adaptativo] Mutación para siguiente gen: Prob={prob_mutacion_actual:.3f}, Magnitud={magnitud_mutacion_actual_porcentaje:.3f}")
+
+            valid_fitness_scores_rival = [f for _,f in poblacion_evaluada_rival_actual if f > -float('inf')]
+            promedio_fitness_gen_rival = sum(valid_fitness_scores_rival) / len(valid_fitness_scores_rival) if valid_fitness_scores_rival else 0
+            log_message(f"    Fitness promedio en esta Gen (vs {rival_class.__name__}): {promedio_fitness_gen_rival:.2f}")
+            progreso_fitness_generaciones_global.append((generacion_global_count, current_gen_best_fitness_vs_rival, promedio_fitness_gen_rival))
+
+            nueva_poblacion_bloque = []
+            valid_eval_pop_block = [ind for ind in poblacion_evaluada_rival_actual if ind[1] > -float('inf')]
+
+            if not valid_eval_pop_block:
+                log_message("      [Advertencia] No hay individuos válidos para selección. Generando población completamente aleatoria.")
+                nueva_poblacion_bloque = [inicializar_cromosoma() for _ in range(TAMANO_POBLACION)]
+            else:
+                num_elites_intra_bloque = NUM_ELITES
+                log_message(f"    [Selección] Conservando {min(num_elites_intra_bloque, len(valid_eval_pop_block))} élites para este bloque...")
+                for i in range(min(num_elites_intra_bloque, len(valid_eval_pop_block))):
+                    elite_cromo = valid_eval_pop_block[i][0]
+                    nueva_poblacion_bloque.append(elite_cromo)
+                    # log_message(f"      Élite {i+1} (Hash: {hash(str(elite_cromo))%10000:04d}, Fitness: {valid_eval_pop_block[i][1]:.2f}) conservado.")
+            
+                num_random_immigrants_block = int(0.1 * TAMANO_POBLACION)
+                num_hijos_a_generar = TAMANO_POBLACION - len(nueva_poblacion_bloque) - num_random_immigrants_block
+                if num_hijos_a_generar < 0: num_hijos_a_generar = 0
+
+                log_message(f"    [Evolución] Generando {num_hijos_a_generar} hijos por cruce y mutación...")
+                for _ in range(num_hijos_a_generar):
+                    padre1, padre2 = seleccion_padres(valid_eval_pop_block)
+                    hijo = padre1 
+                    if random.random() < PROBABILIDAD_CRUCE:
+                        hijo = cruzar_cromosomas(padre1, padre2)
+                    hijo_mutado = mutar_cromosoma(hijo) 
+                    nueva_poblacion_bloque.append(hijo_mutado)
+            
+                log_message(f"    [Diversidad] Añadiendo {num_random_immigrants_block} inmigrantes aleatorios...")
+                for _ in range(num_random_immigrants_block):
+                    if len(nueva_poblacion_bloque) < TAMANO_POBLACION:
+                        nueva_poblacion_bloque.append(inicializar_cromosoma())
                 
-            hijo_mutado = mutar_cromosoma(hijo)
-            nueva_poblacion.append(hijo_mutado)
-        
-        # Añadir inmigrantes aleatorios para mantener diversidad
-        for _ in range(num_random_immigrants):
-            if len(nueva_poblacion) < TAMANO_POBLACION:
-                nueva_poblacion.append(inicializar_cromosoma())
-            
-        poblacion = nueva_poblacion
+            poblacion = nueva_poblacion_bloque[:TAMANO_POBLACION] # Asegurar tamaño correcto
+            gc.collect()
+        log_message(f"  -- Fin CICLO RIVAL {rival_idx} vs {rival_class.__name__}. Mejor fitness en bloque: {mejor_fitness_rival_actual_en_bloque:.2f} -- ")
+    
+    log_message("\n===========================================")
+    log_message("=== ENTRENAMIENTO GENÉTICO FINALIZADO ===")
+    log_message("===========================================")
+    log_message(f"Mejor fitness global alcanzado en TODO el entrenamiento: {mejor_fitness_global:.2f}")
+    if mejor_cromosoma_global:
+        log_message(f"Mejor cromosoma global (Hash: {hash(str(mejor_cromosoma_global))%10000:04d}) fue guardado en {BEST_CHROMOSOME_FILE}")
+        # Guardar una última vez por si acaso, aunque ya se guarda cuando se encuentra.
+        # guardar_cromosoma(mejor_cromosoma_global, BEST_CHROMOSOME_FILE) 
+    else:
+        log_message("[Resultado] No se encontró ningún cromosoma consistentemente exitoso (mejor_fitness_global <= 0).")
 
-    log_message("--- Entrenamiento Finalizado ---")
-    log_message(f"Mejor fitness global alcanzado: {mejor_fitness_global}")
-    log_message(f"Mejor cromosoma guardado en {BEST_CHROMOSOME_FILE}")
-
-    # Guardar el progreso del fitness
     try:
         with open(FITNESS_PROGRESS_FILE, 'w', encoding='utf-8') as f_progress:
-            f_progress.write("Generacion,MejorFitnessGeneracion,PromedioFitnessGeneracion\n")
-            for gen_num, best_f, avg_f in progreso_fitness_generaciones:
-                f_progress.write(f"{gen_num},{best_f},{avg_f}\n")
-        log_message(f"Progreso del fitness guardado en: {FITNESS_PROGRESS_FILE}")
+            f_progress.write("GeneracionGlobal,MejorFitnessGeneracionVsRivalActual,PromedioFitnessGeneracionVsRivalActual\n")
+            for gen_g, best_f_r, avg_f_r in progreso_fitness_generaciones_global:
+                f_progress.write(f"{gen_g},{best_f_r:.2f},{avg_f_r:.2f}\n")
+        log_message(f"[INFO] Progreso del fitness global guardado en: {FITNESS_PROGRESS_FILE}")
     except Exception as e_progress:
-        log_message(f"Error al guardar el progreso del fitness: {e_progress}")
+        log_message(f"[Error] Al guardar el progreso del fitness global: {e_progress}")
 
     return mejor_fitness_global
+
+def test_calculo_fitness_y_bloque():
+    log_message("\n=======================================")
+    log_message("===   INICIO DEL TEST RÁPIDO DE AG  ===")
+    log_message("=======================================\n")
+    global prob_mutacion_actual, magnitud_mutacion_actual_porcentaje
+    prob_mutacion_actual = PROB_MUTACION_INICIAL
+    magnitud_mutacion_actual_porcentaje = MAGNITUD_MUTACION_INICIAL_PORCENTAJE
+
+    TAMANO_POBLACION_TEST = 3
+    GENS_POR_RIVAL_TEST = 2
+    AGENTES_RIVALES_TEST = [AGENTES_OPONENTES_TODOS[0], AGENTES_OPONENTES_TODOS[1]] 
+    
+    log_message(f"[INFO] Configuración del Test:")
+    log_message(f"  - Tamaño Población: {TAMANO_POBLACION_TEST}")
+    log_message(f"  - Generaciones por Rival: {GENS_POR_RIVAL_TEST}")
+    log_message(f"  - Rivales en Test: {[r.__name__ for r in AGENTES_RIVALES_TEST]}\n")
+
+    poblacion_test = [inicializar_cromosoma() for _ in range(TAMANO_POBLACION_TEST)]
+    mejor_cromosoma_test_global = None
+    mejor_fitness_test_global = -float('inf')
+
+    log_message("[INIT] Población inicial generada.")
+    for idx, cromo in enumerate(poblacion_test):
+        log_message(f"  Cromosoma Test ID-{idx} (inicial) - Hash simplificado: {hash(str(cromo)) % 10000:04d}")
+        # log_message(f"    Muestra (primeras claves): { {k: str(v)[:60]+"..." if len(str(v)) > 60 else v for k,v in list(cromo.items())[:2]} }")
+    log_message("---")
+
+    for rival_idx_test, rival_class_test in enumerate(AGENTES_RIVALES_TEST, start=1):
+        log_message(f"\n----------------------------------------------------------------------")
+        log_message(f"[BLOQUE {rival_idx_test}/{len(AGENTES_RIVALES_TEST)}] Entrenamiento TEST vs: {rival_class_test.__name__}")
+        log_message(f"----------------------------------------------------------------------")
+        prob_mutacion_actual = PROB_MUTACION_INICIAL 
+        magnitud_mutacion_actual_porcentaje = MAGNITUD_MUTACION_INICIAL_PORCENTAJE
+        log_message(f"  [Param] Mutación para bloque: Prob={prob_mutacion_actual:.3f}, Magnitud={magnitud_mutacion_actual_porcentaje:.3f}")
+        mejor_fitness_bloque_test = -float('inf')
+
+        for gen_test in range(1, GENS_POR_RIVAL_TEST + 1):
+            log_message(f"\n  -- Generación TEST {gen_test}/{GENS_POR_RIVAL_TEST} (vs {rival_class_test.__name__}) --")
+            
+            poblacion_evaluada_test = []
+            log_message(f"    Evaluando {len(poblacion_test)} individuos...")
+            for i, cromo_test in enumerate(poblacion_test):
+                log_message(f"      Individuo ID-{i} (Hash: {hash(str(cromo_test)) % 10000:04d}) vs {rival_class_test.__name__}...")
+                try:
+                    fitness_test = calcular_fitness(cromo_test, clase_rival_fijo=rival_class_test)
+                    poblacion_evaluada_test.append((cromo_test, fitness_test))
+                    log_message(f"        Resultado: Fitness = {fitness_test}")
+                    if fitness_test > mejor_fitness_test_global:
+                        mejor_fitness_test_global = fitness_test
+                        mejor_cromosoma_test_global = cromo_test.copy()
+                        log_message(f"        ¡NUEVO MEJOR FITNESS GLOBAL (TEST): {mejor_fitness_test_global}! (Cromosoma ID-{i} "
+                                    f"Hash: {hash(str(mejor_cromosoma_test_global)) % 10000:04d}) - SIMULANDO GUARDADO.")
+                    if fitness_test > mejor_fitness_bloque_test:
+                        mejor_fitness_bloque_test = fitness_test
+
+                except Exception as e_test_fit:
+                    log_message(f"        ERROR al calcular fitness: {e_test_fit}")
+                    poblacion_evaluada_test.append((cromo_test, -float('inf')))
+            
+            poblacion_evaluada_test.sort(key=lambda x: x[1], reverse=True)
+            if poblacion_evaluada_test and poblacion_evaluada_test[0][1] > -float('inf'):
+                 log_message(f"    Mejor fitness en Gen Test {gen_test} (vs {rival_class_test.__name__}): {poblacion_evaluada_test[0][1]}")
+            else:
+                log_message(f"    Todos los individuos fallaron o no hubo mejora en Gen Test {gen_test}.")
+
+            nueva_poblacion_test = []
+            if not [ind for ind in poblacion_evaluada_test if ind[1] > -float('inf')]:
+                log_message("      [Advertencia] Todos los individuos de test fallaron. Rellenando con nuevos aleatorios.")
+                nueva_poblacion_test = [inicializar_cromosoma() for _ in range(TAMANO_POBLACION_TEST)]
+            else:
+                valid_evaluated_population_test = [ind for ind in poblacion_evaluada_test if ind[1] > -float('inf')]
+                
+                # Elitismo simple: Conservar el mejor del bloque actual
+                if valid_evaluated_population_test:
+                    elite_cromo = valid_evaluated_population_test[0][0]
+                    nueva_poblacion_test.append(elite_cromo)
+                    log_message(f"      [Selección] Élite (ID-{poblacion_test.index(elite_cromo) if elite_cromo in poblacion_test else 'N/A'}, "
+                                f"Hash: {hash(str(elite_cromo)) % 10000:04d}, Fitness: {valid_evaluated_population_test[0][1]}) conservado.")
+
+                log_message(f"      Generando {TAMANO_POBLACION_TEST - len(nueva_poblacion_test)} nuevos individuos por Cruce y Mutación...")
+                while len(nueva_poblacion_test) < TAMANO_POBLACION_TEST:
+                    padre1_cromo, padre2_cromo = seleccion_padres(valid_evaluated_population_test)
+                    
+                    hijo_original_cromo = padre1_cromo.copy() # Para comparación
+                    hijo_post_cruce_cromo = padre1_cromo.copy()
+
+                    # CRUCE
+                    if random.random() < PROBABILIDAD_CRUCE:
+                        hijo_post_cruce_cromo = cruzar_cromosomas(padre1_cromo, padre2_cromo)
+                    
+                    # MUTACIÓN
+                    hijo_mutado_cromo = mutar_cromosoma(hijo_post_cruce_cromo.copy()) # Mutar una copia
+                    
+                    nueva_poblacion_test.append(hijo_mutado_cromo)
+                    
+                    # Log de cambios (para el primer hijo generado en cada generación)
+                    if len(nueva_poblacion_test) == (1 if valid_evaluated_population_test and nueva_poblacion_test[0] == elite_cromo else 0) + 1:
+                        log_message(f"        Ejemplo de Evolución de Cromosoma (nuevo individuo {len(nueva_poblacion_test)-1}):")
+                        log_message(f"          Padre 1 Hash: {hash(str(padre1_cromo)) % 10000:04d}")
+                        log_message(f"          Padre 2 Hash: {hash(str(padre2_cromo)) % 10000:04d}")
+                        
+                        cambio_cruce = "Sí" if hijo_post_cruce_cromo != padre1_cromo else "No (o P1 elegido)"
+                        log_message(f"          Post-Cruce Hash: {hash(str(hijo_post_cruce_cromo)) % 10000:04d} (¿Cambió respecto a Padre1?: {cambio_cruce})")
+                        
+                        cambio_mutacion = "Sí" if hijo_mutado_cromo != hijo_post_cruce_cromo else "No"
+                        log_message(f"          Post-Mutación Hash: {hash(str(hijo_mutado_cromo)) % 10000:04d} (¿Cambió respecto a Post-Cruce?: {cambio_mutacion})")
+            
+            poblacion_test = nueva_poblacion_test
+            log_message(f"    Fin Gen Test {gen_test}. {len(poblacion_test)} individuos en la nueva población.")
+            if poblacion_test:
+                log_message(f"      Muestra nuevo Cromosoma Test ID-0 (Hash simplificado): {hash(str(poblacion_test[0])) % 10000:04d}")
+            gc.collect()
+        log_message(f"  -- Fin Bloque TEST vs {rival_class_test.__name__}. Mejor fitness en bloque: {mejor_fitness_bloque_test} -- ") 
+
+    log_message("\n=======================================")
+    log_message("===    FIN DEL TEST RÁPIDO DE AG    ===")
+    log_message(f"Mejor fitness global alcanzado en TEST: {mejor_fitness_test_global}")
+    if mejor_cromosoma_test_global:
+        log_message(f"Mejor cromosoma (TEST) Hash simplificado: {hash(str(mejor_cromosoma_test_global)) % 10000:04d}")
+        log_message("(Nota: En un entrenamiento real, este cromosoma se guardaría en best_chromosome.json)")
+    log_message("=======================================\n")
 
 if __name__ == "__main__":
     if 'GameDirector' not in globals() or not callable(GameDirector):
@@ -530,9 +768,13 @@ if __name__ == "__main__":
         log_message("Por favor, verifica el import en la parte superior del script.")
         exit(1)
     else:
-        log_message("GameDirector parece estar importado. Procediendo con el entrenamiento.")
+        log_message("[INFO] GameDirector parece estar importado.")
     
-    # Pequeña modificación en GeneticAgent.__init__ es necesaria:
-    log_message("RECORDATORIO: Asegúrate de que GeneticAgent.__init__ puede usar 'GeneticAgent.chromosome_para_entrenamiento_actual'")
+    log_message("[INFO] RECORDATORIO: Asegúrate de que GeneticAgent.__init__ puede usar 'GeneticAgent.chromosome_para_entrenamiento_actual'")
 
-    main() 
+    # --- Para ejecutar el entrenamiento completo, DESCOMENTA main() y COMENTA test_calculo_fitness_y_bloque() ---
+    log_message("[INFO] Ejecutando ENTRENAMIENTO COMPLETO (main). Para test, modifica if __name__ == '__main__'.")
+    main()
+    # --- Para ejecutar el test rápido, COMENTA main() y DESCOMENTA la siguiente línea ---
+    # log_message("[INFO] Ejecutando TEST RÁPIDO en lugar de main(). Comenta/cambia esta línea para ejecutar el entrenamiento completo.")
+    # test_calculo_fitness_y_bloque() 
