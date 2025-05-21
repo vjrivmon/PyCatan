@@ -38,7 +38,7 @@ def cargar_agente(ruta_clase):
 
 def simulate_match(position, agente_alumno):
     try:
-        match_agents = [aha, apa, apja]
+        match_agents = [apa, apa, apa]
         match_agents.insert(position, agente_alumno)
 
         game_director = GameDirector(agents=match_agents, max_rounds=200, store_trace=False)

@@ -1,1 +1,0 @@
-2025-05-20 14:03:29.937942: GameDirector parece estar importado. Procediendo con el entrenamiento.\n2025-05-20 14:03:29.939494: RECORDATORIO: Asegúrate de que GeneticAgent.__init__ puede usar 'GeneticAgent.chromosome_para_entrenamiento_actual'\n2025-05-20 14:03:29.940493: Inicio del entrenamiento genético.\n

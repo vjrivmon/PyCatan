@@ -36,11 +36,14 @@ except ImportError as e:
 
 # --- Hiperparámetros del AG ---
 TAMANO_POBLACION = 30 
-NUM_GENERACIONES = 40  
-PROBABILIDAD_CRUCE = 0.85
-PROBABILIDAD_MUTACION_GEN = 0.05
+NUM_GENERACIONES = 500  
+# NOTA: Considerar experimentar con NUM_GENERACIONES más altas (ej. 200, 500) 
+# y diferentes valores para PROBABILIDAD_MUTACION_GEN y PROBABILIDAD_CRUCE 
+# según las recomendaciones para una exploración más exhaustiva.
+PROBABILIDAD_CRUCE = 0.9
+PROBABILIDAD_MUTACION_GEN = 0.15
 MAGNITUD_MUTACION_MAX_PORCENTAJE = 0.2
-NUM_PARTIDAS_EVALUACION = 15 
+NUM_PARTIDAS_EVALUACION = 10 
 # Asegúrate que estas clases de agentes existen y son importables
 AGENTES_OPONENTES_CLASES = [
     RandomAgent, 
@@ -50,9 +53,10 @@ AGENTES_OPONENTES_CLASES = [
     AlexPastorAgent,
     AlexPelochoJaimeAgent
 ] 
-NUM_ELITES = 3 
+NUM_ELITES = 5 
 LOG_FILE = "genetic_training_log.txt"
 BEST_CHROMOSOME_FILE = "best_chromosome.json"
+FITNESS_PROGRESS_FILE = "fitness_por_generacion.csv" # Nuevo archivo para el progreso del fitness
 # Nuevo: Máximo de rondas por partida para evitar bloqueos
 MAX_ROUNDS_PER_GAME = 200 
 
@@ -90,70 +94,57 @@ def inicializar_poblacion():
 def calcular_fitness(cromosoma, oponentes_fijos=True):
     """
     Evalúa un cromosoma jugando partidas y devuelve su fitness.
-    El GeneticAgent ahora rotará su posición de inicio en las partidas de evaluación.
-    AdrianHerasAgent siempre será uno de los oponentes.
+    El fitness se define como el número total de partidas ganadas.
+    El GeneticAgent rotará su posición de inicio.
+    Los 3 oponentes se seleccionarán aleatoriamente de AGENTES_OPONENTES_CLASES.
     """
     victorias_agente_genetico = 0
-    puntos_totales_agente_genetico = 0
-    puestos_sum = 0
+    # Eliminadas variables de puntos_totales_agente_genetico y puestos_sum ya que no se usarán para el fitness.
     partidas_jugadas_validas = 0
 
-    # Estrategia para pasar el cromosoma al GeneticAgent instanciado por GameDirector:
     GeneticAgent.chromosome_para_entrenamiento_actual = cromosoma
 
-    # Pool de oponentes para seleccionar los 2 adicionales (excluyendo GeneticAgent y AdrianHerasAgent)
-    further_opponent_pool = [
+    # Pool de oponentes para seleccionar (excluyendo GeneticAgent si estuviera por error)
+    possible_opponent_pool = [
         op_class for op_class in AGENTES_OPONENTES_CLASES 
-        if op_class != GeneticAgent and op_class != AdrianHerasAgent
+        if op_class != GeneticAgent
     ]
 
-    if not further_opponent_pool: # Fallback si el pool de oponentes adicionales es muy pequeño
-        log_message("Advertencia: El pool de oponentes adicionales (excluyendo AdrianHerasAgent) está vacío o es insuficiente. Rellenando con RandomAgent si es necesario.")
-        # Rellenar con RandomAgent si es necesario para tener al menos 2 opciones para elegir,
-        # aunque lo ideal es tener una lista más diversa en AGENTES_OPONENTES_CLASES.
-        while len(further_opponent_pool) < 2:
-            further_opponent_pool.append(RandomAgent)
+    if not possible_opponent_pool or len(possible_opponent_pool) < 3:
+        log_message("Advertencia: El pool de oponentes es insuficiente (necesita al menos 3 distintos de GeneticAgent). Rellenando con RandomAgent o usando los disponibles.")
+        # Asegurar que tenemos al menos 3 opciones, incluso si son repetidas de RandomAgent
+        # Esta es una medida de contingencia; idealmente AGENTES_OPONENTES_CLASES es diverso.
+        while len(possible_opponent_pool) < 3:
+            possible_opponent_pool.append(RandomAgent)
 
 
     for i in range(NUM_PARTIDAS_EVALUACION):
-        # Determinar la posición del GeneticAgent para esta partida de evaluación
         genetic_agent_sim_id = i % 4 
 
-        # Seleccionar oponentes: AdrianHerasAgent + 2 aleatorios del resto
-        oponentes_para_partida = [AdrianHerasAgent]
-        
-        # Asegurarse de que hay suficientes oponentes en further_opponent_pool para elegir 2
-        num_to_sample = min(2, len(further_opponent_pool))
-        if num_to_sample > 0:
-            selected_additional_opponents = random.sample(further_opponent_pool, num_to_sample)
-            oponentes_para_partida.extend(selected_additional_opponents)
-        
-        # Si después de esto aún no tenemos 3 oponentes (porque further_opponent_pool era muy pequeño),
-        # rellenamos con RandomAgent hasta tener 3.
-        while len(oponentes_para_partida) < 3:
-            oponentes_para_partida.append(RandomAgent)
+        # Seleccionar 3 oponentes aleatorios del pool
+        # Nos aseguramos de que, si el pool es pequeño, tomamos muestras con reemplazo o lo que esté disponible.
+        if len(possible_opponent_pool) >= 3:
+            oponentes_para_partida_clases = random.sample(possible_opponent_pool, 3)
+        else: # Si no hay suficientes oponentes únicos, tomar lo que hay y completar con RandomAgent (o el último disponible)
+            oponentes_para_partida_clases = list(possible_opponent_pool) # Tomar todos los disponibles
+            while len(oponentes_para_partida_clases) < 3:
+                oponentes_para_partida_clases.append(RandomAgent) # O el último de possible_opponent_pool si es más seguro
+            oponentes_para_partida_clases = oponentes_para_partida_clases[:3] # Asegurar que solo son 3
 
-
-        # Construir la lista de agentes para GameDirector, colocando GeneticAgent en su posición
-        agent_classes_for_director = [None] * 4 
+        agent_classes_for_director = [None] * 4
         agent_classes_for_director[genetic_agent_sim_id] = GeneticAgent
         
         idx_opponent_list = 0
         for pos in range(4):
             if agent_classes_for_director[pos] is None:
-                if idx_opponent_list < len(oponentes_para_partida):
-                    agent_classes_for_director[pos] = oponentes_para_partida[idx_opponent_list]
+                if idx_opponent_list < len(oponentes_para_partida_clases):
+                    agent_classes_for_director[pos] = oponentes_para_partida_clases[idx_opponent_list]
                     idx_opponent_list += 1
                 else:
-                    # Esto no debería ocurrir si la lógica de llenado de oponentes_para_partida es correcta
-                    log_message("Error crítico: No hay suficientes oponentes para llenar las slots. Usando RandomAgent.")
+                    log_message("Error crítico en asignación de oponentes. Usando RandomAgent.")
                     agent_classes_for_director[pos] = RandomAgent
         
-        # print(f"  Partida {i+1}: GA_pos={genetic_agent_sim_id}. Oponentes: {[op.__name__ for op in oponentes_para_partida]}")
-        # print(f"    Clases director: {[ac.__name__ if ac else 'None' for ac in agent_classes_for_director]}")
-
         try:
-            # print(f"  Iniciando partida {i+1}/{NUM_PARTIDAS_EVALUACION} para un individuo...")
             game_director = GameDirector(agents=agent_classes_for_director, 
                                          max_rounds=MAX_ROUNDS_PER_GAME, 
                                          store_trace=True)
@@ -161,17 +152,15 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
             
             partidas_jugadas_validas +=1
 
-            # Procesar resultados del game_trace
             if not game_trace or "game" not in game_trace or not game_trace["game"]:
                 log_message(f"    Partida {i+1} no produjo un trace válido. Saltando.")
-                puestos_sum += 4 # Penalización
+                # No se suma victoria, se considera una partida no concluyente para el fitness.
                 continue
 
             last_round_key = max(game_trace["game"].keys(), key=lambda r_key: int(r_key.split("_")[-1]))
             
             if not game_trace["game"][last_round_key]:
                 log_message(f"    Partida {i+1}, última ronda ({last_round_key}) vacía. Saltando.")
-                puestos_sum += 4 # Penalización
                 continue
 
             last_turn_key = max(game_trace["game"][last_round_key].keys(), key=lambda t_key: int(t_key.split("_")[-1].lstrip("P")))
@@ -179,19 +168,9 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
             turn_data = game_trace["game"][last_round_key][last_turn_key]
             if "end_turn" not in turn_data or "victory_points" not in turn_data["end_turn"]:
                 log_message(f"    Partida {i+1} no tiene datos de 'victory_points' en el último turno. Saltando.")
-                # Intentar obtener puntos de game_director.agent_manager si es posible como fallback
-                # O asignar una penalización
-                puntos_jugadores_dict = {f"J{p['id']}": p.get('victory_points',0) for p in game_director.agent_manager.players}
-                if not puntos_jugadores_dict:
-                    puestos_sum += 4
-                    continue
-
+                continue
             else:
                 puntos_jugadores_dict = turn_data["end_turn"]["victory_points"]
-
-            # Convertir puntos a int y encontrar el ID del ganador
-            # Formato esperado de puntos_jugadores_dict: {'J0': 10, 'J1': 7, ...}
-            # O podría ser game_director.agent_manager.players[player_id]['victory_points']
             
             parsed_scores = {}
             for player_key, score in puntos_jugadores_dict.items():
@@ -200,59 +179,46 @@ def calcular_fitness(cromosoma, oponentes_fijos=True):
                     parsed_scores[player_idx] = int(score)
                 except ValueError:
                     log_message(f"Advertencia: No se pudo parsear la clave de jugador '{player_key}' o el score '{score}'")
-                    parsed_scores[player_idx] = 0 # o manejar de otra forma
+                    parsed_scores[player_idx] = 0 
 
-            if not parsed_scores: # Si no se pudieron parsear scores
-                log_message(f"    Partida {i+1}: No se pudieron determinar los scores. Penalización.")
-                puestos_sum +=4
+            if not parsed_scores:
+                log_message(f"    Partida {i+1}: No se pudieron determinar los scores.")
                 continue
-
-            # Determinar ganador y ranking
-            # Ordenar jugadores por puntos (descendente) para el ranking
+            
             ranked_players = sorted(parsed_scores.items(), key=lambda item: item[1], reverse=True)
             
             winner_id_numeric = -1
             if ranked_players:
-                winner_id_numeric = ranked_players[0][0] # ID numérico del ganador
-
-            if winner_id_numeric == genetic_agent_sim_id: 
-                victorias_agente_genetico += 1
-            
-            puntos_totales_agente_genetico += parsed_scores.get(genetic_agent_sim_id, 0)
-            
-            # Calcular puesto del agente genético
-            found_rank = False
-            for rank, (player_id, score) in enumerate(ranked_players):
-                if player_id == genetic_agent_sim_id:
-                    puestos_sum += (rank + 1) # Puestos son 1-indexados
-                    found_rank = True
-                    break
-            if not found_rank:
-                puestos_sum += 4 # Penalización si no se encuentra (no debería pasar)
-
-            # print(f"    Partida {i+1} finalizada. Ganador ID: {winner_id_numeric}. Puntos Genético: {parsed_scores.get(genetic_agent_sim_id, 0)}")
+                # Comprobar si hay empate en el primer puesto
+                max_score = ranked_players[0][1]
+                winners = [p_id for p_id, p_score in ranked_players if p_score == max_score]
+                # Si el agente genético es uno de los ganadores (incluso en empate), cuenta como victoria.
+                # O, si se prefiere una victoria única estricta:
+                # if len(winners) == 1 and winners[0] == genetic_agent_sim_id:
+                if genetic_agent_sim_id in winners: # Contar como victoria si está entre los que tienen puntuación máxima
+                     victorias_agente_genetico += 1
+                     winner_id_numeric = genetic_agent_sim_id # Para el log, si es relevante
+                elif winners: # Si hay ganadores pero no es el genético
+                    winner_id_numeric = winners[0] # Tomar el primero para el log
 
         except Exception as e_partida:
-            log_message(f"    Error durante la partida {i+1}: {e_partida}. Se asigna penalización.")
-            puestos_sum += 4 # Penalización por error en la partida
-            # Considerar no incrementar partidas_jugadas_validas o manejarlo de otra forma
+            log_message(f"    Error durante la partida {i+1}: {e_partida}. Partida no contabilizada para fitness.")
+            # No se incrementa partidas_jugadas_validas si la partida crashea antes de finalizar y registrar scores.
+            # O si se incrementó antes, aquí no se contabiliza la victoria.
+            # La lógica actual incrementa partidas_jugadas_validas al inicio del try.
+            # Si hay error, no se suma victoria.
 
-    # Limpiar la variable de clase
     if hasattr(GeneticAgent, 'chromosome_para_entrenamiento_actual'):
         del GeneticAgent.chromosome_para_entrenamiento_actual
     
     if partidas_jugadas_validas == 0:
-        log_message("  No se completaron partidas válidas para este individuo. Fitness muy bajo.")
-        return -float('inf') # O un valor muy negativo
+        log_message("  No se completaron partidas válidas para este individuo. Fitness = 0.")
+        return 0 # Fitness es el número de victorias, si no hay partidas válidas, es 0.
 
-
-    ratio_victoria = victorias_agente_genetico / partidas_jugadas_validas
-    media_puntos = puntos_totales_agente_genetico / partidas_jugadas_validas
-    puesto_medio = puestos_sum / partidas_jugadas_validas
-
-    fitness = (ratio_victoria * 100) + (media_puntos * 1) - (puesto_medio * 0.5)
+    # El fitness es simplemente el número de victorias.
+    fitness = victorias_agente_genetico
     
-    log_message(f"  Individuo evaluado ({partidas_jugadas_validas} partidas): {victorias_agente_genetico} victorias, {media_puntos:.2f} pts avg, Puesto medio {puesto_medio:.2f} -> Fitness: {fitness:.4f}")
+    log_message(f"  Individuo evaluado ({partidas_jugadas_validas} partidas válidas): {victorias_agente_genetico} victorias -> Fitness: {fitness}")
     return fitness
 
 def seleccion_padres(poblacion_evaluada):
@@ -288,9 +254,9 @@ def seleccion_padres(poblacion_evaluada):
     # Si por alguna razón no se seleccionaron 2 padres (ej. población muy pequeña al inicio del bucle)
     while len(padres) < 2:
         log_message("Advertencia: No se pudieron seleccionar 2 padres por torneo, usando el mejor disponible o aleatorio.")
-        if poblacion_evaluada:
+        if poblacion_evaluada and poblacion_evaluada[0][1] > -float('inf'): # Asegurarse que el mejor no falló catastróficamente
             padres.append(poblacion_evaluada[0][0]) # Añadir el mejor de nuevo
-        else:
+        else: # Si todos fallaron o la población está vacía
             padres.append(inicializar_cromosoma()) # Añadir uno aleatorio si la población está vacía.
 
     return padres[0], padres[1]
@@ -436,6 +402,7 @@ def main():
     poblacion = inicializar_poblacion()
     mejor_cromosoma_global = None
     mejor_fitness_global = -float('inf') 
+    progreso_fitness_generaciones = [] # Lista para guardar (generacion, fitness_mejor_de_gen, fitness_promedio_de_gen)
 
     if os.path.exists(LOG_FILE): # Limpiar log antiguo o renombrar
         try:
@@ -455,7 +422,7 @@ def main():
                 if initial_best_fitness > mejor_fitness_global:
                     mejor_fitness_global = initial_best_fitness
                     mejor_cromosoma_global = loaded_chromosome.copy()
-                    log_message(f"Fitness del cromosoma cargado: {initial_best_fitness:.4f}. Establecido como mejor global inicial.")
+                    log_message(f"Fitness del cromosoma cargado: {initial_best_fitness}. Establecido como mejor global inicial.")
             except Exception as e_init_fit:
                  log_message(f"Error calculando fitness para cromosoma cargado: {e_init_fit}. Se ignora.")
 
@@ -476,8 +443,8 @@ def main():
 
         poblacion_evaluada.sort(key=lambda x: x[1], reverse=True)
         
-        if not poblacion_evaluada or poblacion_evaluada[0][1] == -float('inf'):
-            log_message("Todos los individuos fallaron en la evaluación esta generación. Saltando cruce/mutación.")
+        if not poblacion_evaluada or poblacion_evaluada[0][1] == -float('inf') and mejor_fitness_global == -float('inf') : # Modificado para considerar si todos fallan y no hay mejor global previo
+            log_message("Todos los individuos fallaron en la evaluación esta generación y no hay un mejor global previo. Saltando cruce/mutación.")
             # Podríamos reintentar con una nueva población aleatoria o detener.
             # Por ahora, si todos fallan, la población no cambiará mucho más que por elitismo (que también falló).
             # Re-inicializar una parte de la población podría ser una estrategia.
@@ -485,38 +452,47 @@ def main():
             continue
 
 
-        current_gen_best_fitness = poblacion_evaluada[0][1]
+        current_gen_best_fitness = poblacion_evaluada[0][1] if poblacion_evaluada else -float('inf') # Manejar caso de lista vacía
         if current_gen_best_fitness > mejor_fitness_global:
             mejor_fitness_global = current_gen_best_fitness
             mejor_cromosoma_global = poblacion_evaluada[0][0].copy() 
-            log_message(f"¡Nuevo mejor fitness global encontrado!: {mejor_fitness_global:.4f}")
+            log_message(f"¡Nuevo mejor fitness global encontrado!: {mejor_fitness_global}")
             guardar_cromosoma(mejor_cromosoma_global, BEST_CHROMOSOME_FILE)
             
-        log_message(f"Mejor fitness de la Gen {generacion + 1}: {current_gen_best_fitness:.4f}")
+        log_message(f"Mejor fitness de la Gen {generacion + 1}: {current_gen_best_fitness}")
         
-        valid_fitness_scores = [f for _,f in poblacion_evaluada if f != -float('inf')]
+        valid_fitness_scores = [f for _,f in poblacion_evaluada if f != -float('inf')] # No cambia, ya que el fitness ahora es numérico (0 o más)
         if valid_fitness_scores:
             promedio_fitness_gen = sum(valid_fitness_scores) / len(valid_fitness_scores)
-            log_message(f"Fitness promedio de la Gen {generacion + 1} (válidos): {promedio_fitness_gen:.4f}")
+            log_message(f"Fitness promedio de la Gen {generacion + 1} (válidos): {promedio_fitness_gen:.2f}")
+            progreso_fitness_generaciones.append((generacion + 1, current_gen_best_fitness, promedio_fitness_gen))
         else:
-            log_message(f"Fitness promedio de la Gen {generacion + 1}: N/A (todos fallaron)")
+            log_message(f"Fitness promedio de la Gen {generacion + 1}: N/A (todos fallaron o no hubo partidas válidas)")
+            progreso_fitness_generaciones.append((generacion + 1, current_gen_best_fitness, 0.0)) # O None para promedio
 
 
         nueva_poblacion = []
         
         for i in range(NUM_ELITES):
-            if i < len(poblacion_evaluada) and poblacion_evaluada[i][1] > -float('inf') : 
+            if i < len(poblacion_evaluada) and poblacion_evaluada[i][1] > -float('inf') : # Se mantiene la guarda por si acaso, aunque el fitness es >= 0
                 nueva_poblacion.append(poblacion_evaluada[i][0])
         
         num_random_immigrants = int(0.1 * TAMANO_POBLACION) # Introducir 10% de inmigrantes aleatorios
 
         while len(nueva_poblacion) < TAMANO_POBLACION - num_random_immigrants:
-            if not poblacion_evaluada or len(poblacion_evaluada) < 1 : 
-                log_message("Población evaluada vacía para selección, rellenando aleatoriamente.")
+            if not poblacion_evaluada or not [ind for ind in poblacion_evaluada if ind[1] > -float('inf')]: # Si no hay individuos válidos para seleccionar
+                log_message("Población evaluada sin individuos válidos para selección, rellenando aleatoriamente.")
                 nueva_poblacion.append(inicializar_cromosoma())
                 continue
+            
+            # Seleccionar padres de la porción válida de la población evaluada
+            valid_evaluated_population = [ind for ind in poblacion_evaluada if ind[1] > -float('inf')]
+            if not valid_evaluated_population: # Doble check, aunque el anterior debería cubrirlo
+                 log_message("Fallback: No hay población válida para selección. Rellenando aleatoriamente.")
+                 nueva_poblacion.append(inicializar_cromosoma())
+                 continue
 
-            padre1, padre2 = seleccion_padres(poblacion_evaluada) # poblacion_evaluada ya está ordenada
+            padre1, padre2 = seleccion_padres(valid_evaluated_population)
             
             hijo = padre1 
             if random.random() < PROBABILIDAD_CRUCE:
@@ -533,8 +509,20 @@ def main():
         poblacion = nueva_poblacion
 
     log_message("--- Entrenamiento Finalizado ---")
-    log_message(f"Mejor fitness global alcanzado: {mejor_fitness_global:.4f}")
+    log_message(f"Mejor fitness global alcanzado: {mejor_fitness_global}")
     log_message(f"Mejor cromosoma guardado en {BEST_CHROMOSOME_FILE}")
+
+    # Guardar el progreso del fitness
+    try:
+        with open(FITNESS_PROGRESS_FILE, 'w', encoding='utf-8') as f_progress:
+            f_progress.write("Generacion,MejorFitnessGeneracion,PromedioFitnessGeneracion\n")
+            for gen_num, best_f, avg_f in progreso_fitness_generaciones:
+                f_progress.write(f"{gen_num},{best_f},{avg_f}\n")
+        log_message(f"Progreso del fitness guardado en: {FITNESS_PROGRESS_FILE}")
+    except Exception as e_progress:
+        log_message(f"Error al guardar el progreso del fitness: {e_progress}")
+
+    return mejor_fitness_global
 
 if __name__ == "__main__":
     if 'GameDirector' not in globals() or not callable(GameDirector):
