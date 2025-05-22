@@ -299,39 +299,44 @@
                     
                     <!-- Control panel debajo del tablero -->
                     <div class="col-12 mt-3">
-                        <div class="game-controls-panel d-flex justify-content-between align-items-center">
-                            <div class="game-info d-flex">
-                                <div id="diceroll" class="dice-display animate__animated me-3">
-                                    <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
+                        <div class="game-controls-panel d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="game-info d-flex">
+                                    <div id="diceroll" class="dice-display animate__animated me-3">
+                                        <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
+                                    </div>
+                                    <div class="rounds card-stats">
+                                        <i class="fas fa-hourglass-half me-2"></i>Ronda: 
+                                        <span id="actual_round"></span>
+                                        /
+                                        <span id="rondas_maximas"></span>
+                                    </div>
                                 </div>
-                                <div class="rounds card-stats">
-                                    <i class="fas fa-hourglass-half me-2"></i>Ronda: 
-                                    <span id="actual_round"></span>
-                                    /
-                                    <span id="rondas_maximas"></span>
-                                </div>
-                            </div>
-                            
-                            <div id="controles" class="game-controls">
-                                <div class="btn-group">
-                                    <button id="ronda_previa_btn" class="btn btn-sm">
-                                        <i class="fas fa-step-backward"></i> Ronda
-                                    </button>
-                                    <button id="turno_previo_btn" class="btn btn-sm">
-                                        <i class="fas fa-backward"></i> Turno
-                                    </button>
-                                    <button id="fase_previa_btn" class="btn btn-sm">
-                                        <i class="fas fa-caret-left"></i> Fase
-                                    </button>
-                                    <button id="fase_siguiente_btn" class="btn btn-sm">
-                                        Fase <i class="fas fa-caret-right"></i>
-                                    </button>
-                                    <button id="turno_siguiente_btn" class="btn btn-sm">
-                                        Turno <i class="fas fa-forward"></i>
-                                    </button>
-                                    <button id="ronda_siguiente_btn" class="btn btn-sm">
-                                        Ronda <i class="fas fa-step-forward"></i>
-                                    </button>
+                                
+                                <div id="controles" class="game-controls">
+                                    <div class="btn-group">
+                                        <button id="ronda_previa_btn" class="btn btn-sm" title="Ronda Anterior">
+                                            <i class="fas fa-step-backward"></i>
+                                        </button>
+                                        <button id="turno_previo_btn" class="btn btn-sm" title="Turno Anterior">
+                                            <i class="fas fa-backward"></i>
+                                        </button>
+                                        <button id="fase_previa_btn" class="btn btn-sm" title="Fase Anterior">
+                                            <i class="fas fa-caret-left"></i>
+                                        </button>
+                                        <button id="fase_siguiente_btn" class="btn btn-sm" title="Fase Siguiente">
+                                            <i class="fas fa-caret-right"></i>
+                                        </button>
+                                        <button id="turno_siguiente_btn" class="btn btn-sm" title="Turno Siguiente">
+                                            <i class="fas fa-forward"></i>
+                                        </button>
+                                        <button id="ronda_siguiente_btn" class="btn btn-sm" title="Ronda Siguiente">
+                                            <i class="fas fa-step-forward"></i>
+                                        </button>
+                                        <button id="play_btn" class="btn btn-sm btn-success ms-2" title="Play/Pausa">
+                                            <i class="fas fa-play"></i> <span id="play-text" style="display: none;">Play</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -435,10 +440,36 @@
         <!-- Carga de archivo -->
         <div class="position-fixed bottom-0 end-0 p-3">
             <div class="btn-group">
-                <button id="load_game" class="btn btn-primary">
+                <button id="load_game" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="fas fa-file-upload me-2"></i>Cargar partida
                 </button>
-                <input type="file" id="get_file" style="display: none;" />
+            </div>
+        </div>
+        
+        <!-- Modal para carga de archivos -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel">Cargar Partida</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="drop-area" class="p-4 border border-2 border-dashed rounded text-center">
+                            <i class="fas fa-upload upload-icon"></i>
+                            <p>Arrastra y suelta un archivo JSON aquí</p>
+                            <p class="small text-muted">ó</p>
+                            <div class="d-flex justify-content-center">
+                                <label for="file-selector" class="btn btn-sm btn-outline-primary">Seleccionar archivo</label>
+                                <input type="file" id="file-selector" accept=".json" style="display: none">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="load-selected-file" disabled>Cargar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

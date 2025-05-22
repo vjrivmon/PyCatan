@@ -13,18 +13,21 @@
 
 #gamefield_external {
     height: 70vh;
-    background: #0077A0;
-    background-image: url('../Images/textures/water.jpg');
-    background-size: cover;
+    background-image: url('../Images/textures/background.gif'); /* Nuevo fondo GIF */
+    background-repeat: repeat; /* Asegurar que la imagen se repita */
+    background-size: auto; /* Permitir que la imagen use su tamaño original para el tileado */
+    /* Comentar el color de fondo sólido anterior y la imagen de agua */
+    /* background: #89b3f8; */
+    /* background-image: url('../Images/textures/water.jpg'); */
+    /* background-size: cover; */ 
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: -1.5em;
-    /* Animación del fondo del mar */
-    animation: oceanDeepWaves 20s linear infinite;
-    /* Agregamos sombra para dar profundidad */
-    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
+    margin-top: 0;
+    /* Comentar la animación de olas anterior */
+    /* animation: oceanDeepWaves 15s linear infinite; */
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra interior más sutil si se desea */
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
     margin-bottom: 20px;
@@ -47,10 +50,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('../Images/textures/wave-overlay.png');
-    background-size: 400px 400px;
-    opacity: 0.3;
-    animation: waveOverlay 15s linear infinite;
+    background: url('../Images/textures/wave-overlay.png'); /* Reactivar superposición de olas */
+    background-size: 400px 400px; /* Ajustar si es necesario */
+    opacity: 0.25; /* Aumentar un poco la opacidad para que sea más visible */
+    animation: waveOverlay 10s linear infinite; /* Ajustar velocidad de la animación */
     pointer-events: none;
 }
 
@@ -67,8 +70,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-    animation: waterGlow 8s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 70%); /* Brillo sutil */
+    animation: waterGlow 8s ease-in-out infinite alternate; /* Ajustar animación del brillo */
     pointer-events: none;
 }
 
@@ -102,27 +105,24 @@
     font-size: initial;
     clip-path: polygon(0% 25%, 0% 75%, 50% 100%, 100% 75%, 100% 25%, 50% 0%);
     margin-bottom: calc(var(--m) - var(--s) * 0.2886);
-    /* Agregamos efectos de elevación */
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    /* Agregamos transiciones para efectos suaves */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* Cambiamos z-index para que sea más alto */
+    /* Sombra 2D simple */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Transición más simple */
     z-index: 5;
-    background: none;
-    /* Efecto de elevación 3D */
-    transform: translateZ(10px);
+    background: none; /* Se definirá por tipo de terreno */
     position: relative;
+    border-radius: 4px; 
 }
 
 .terrain:hover {
-    /* Efecto al pasar el mouse */
-    transform: translateZ(20px) scale(1.05);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    /* Efecto hover más simple, sin transformaciones 3D */
+    transform: scale(1.03);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     z-index: 20;
 }
 
 .terrain_number {
-    --t: 50px;
+    --t: 40px; /* Tamaño reducido para un look más limpio */
     width: var(--t);
     height: var(--t);
 
@@ -132,19 +132,18 @@
 
     flex: 0 0 var(--t) !important;
 
-    border-radius: calc(var(--t) / 2);
-    background: #f2e5c0;
-    color: black;
+    border-radius: 50%; /* Círculo perfecto */
+    background: #ffffff; /* Fondo blanco */
+    color: #202124; /* Texto oscuro de Google */
     z-index: 10;
 
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Agregamos sombra y borde */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    border: 2px solid #e6d5a5;
-    font-weight: bold;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); /* Sombra de Google */
+    border: none; /* Quitar borde, la sombra es suficiente */
+    font-weight: 500; /* Peso medio */
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .terrain_number > * {
@@ -172,41 +171,40 @@
 
 /* Mejoramos las texturas con gradientes y efectos */
 .terrain_cereal {
-    background: linear-gradient(135deg, #ffe066 0%, #ffd700 100%)!important;
-    background-image: url('../Images/textures/cereal.jpg')!important;
+    background: #fbbc05; /* Amarillo de Google */
+    background-image: url('../Images/textures/cereal.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_mineral {
-    background: linear-gradient(135deg, #8d8d8d 0%, #636363 100%)!important;
-    background-image: url('../Images/textures/mountain.jpg')!important;
+    background: #9aa0a6; /* Gris de Google */
+    background-image: url('../Images/textures/mountain.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_clay {
-    background: linear-gradient(135deg, #a5673f 0%, #8d5524 100%)!important;
-    background-image: url('../Images/textures/quarry.jpg')!important;
+    background: #ff8a65; /* Naranja/Rojo claro de Google (similar a arcilla) */
+    background-image: url('../Images/textures/quarry.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_wood {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)!important;
-    background-image: url('../Images/textures/forest.jpg')!important;
+    background: #34a853; /* Verde de Google */
+    background-image: url('../Images/textures/forest.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_wool {
-    background: linear-gradient(135deg, #c3e59a 0%, #a7d676 100%)!important;
-    background-image: url('../Images/textures/wool.jpg')!important;
+    background: #a5d6a7; /* Verde claro de Google (similar a lana) */
+    background-image: url('../Images/textures/wool.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_desert {
-    background: linear-gradient(135deg, #f2e5c0 0%, #d6cca4 100%)!important;
-    background-image: url('../Images/textures/desert.jpg')!important;
+    background: #fffde7; /* Amarillo muy pálido (arena) */
+    background-image: url('../Images/textures/desert.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_water {
-    background: linear-gradient(135deg, #00aacc 0%, #0077A0 100%)!important;
-    background-image: url('../Images/textures/water.jpg')!important;
+    background: #89b3f8; /* Azul claro de Google */
+    background-image: url('../Images/textures/water.jpg') !important; /* Reactivar texturas */
     background-size: cover;
-    /* Animación mejorada para las casillas de agua */
-    animation: waterWave 10s infinite linear;
+    animation: waterWaveTerrain 5s infinite linear; /* Reactivar animación para las casillas de agua individuales */
     position: relative;
 }
 
@@ -217,18 +215,19 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('../Images/textures/wave-overlay.png');
+    background: url('../Images/textures/wave-overlay.png'); /* Reactivar overlay para casillas de agua */
     background-size: 200px 200px;
-    opacity: 0.4;
-    animation: waveTerrainOverlay 8s linear infinite;
+    opacity: 0.3; /* Opacidad del overlay */
+    animation: waveTerrainOverlay 8s linear infinite; /* Animación del overlay */
     pointer-events: none;
 }
 
-@keyframes waterWave {
+/* Crear un keyframe que no existía para waterWaveTerrain o reutilizar uno existente si es apropiado */
+@keyframes waterWaveTerrain {
     0% { background-position: 0% 0%; }
-    25% { background-position: 10% 5%; }
-    50% { background-position: 20% 10%; }
-    75% { background-position: 10% 5%; }
+    25% { background-position: 5% 2%; }
+    50% { background-position: 10% 5%; }
+    75% { background-position: 5% 2%; }
     100% { background-position: 0% 0%; }
 }
 
@@ -714,22 +713,54 @@
 @keyframes oceanDeepWaves {
     0% {
         background-position: 0% 0%;
-        filter: brightness(100%);
+        filter: brightness(0.9) contrast(1.1);
     }
     25% {
         background-position: 2% 2%; 
-        filter: brightness(105%);
+        filter: brightness(1.0) contrast(1.0);
     }
     50% {
         background-position: 0% 4%;
-        filter: brightness(110%);
+        filter: brightness(1.1) contrast(0.9);
     }
     75% {
         background-position: -2% 2%;
-        filter: brightness(105%);
+        filter: brightness(1.0) contrast(1.0);
     }
     100% {
         background-position: 0% 0%;
-        filter: brightness(100%);
+        filter: brightness(0.9) contrast(1.1);
     }
+}
+
+/* Estilos para el modo de reproducción automática */
+#gamefield.playing-mode {
+    animation: gamefieldPulse 4s infinite alternate ease-in-out;
+}
+
+@keyframes gamefieldPulse {
+    0% {
+        box-shadow: 0 0 20px rgba(39, 174, 96, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 50px rgba(39, 174, 96, 0.5);
+    }
+}
+
+#gamefield.playing-mode .terrain {
+    transition: transform 0.5s ease-in-out;
+}
+
+#gamefield.playing-mode .water-ripple {
+    animation-duration: 3s; /* Más lento durante la reproducción automática */
+}
+
+/* Efecto para el botón activo durante la reproducción */
+.btn-group .btn:active, 
+.btn-group .btn.active-button {
+    background-color: #2980b9 !important;
+    color: white !important;
+    transform: translateY(0) !important;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease !important;
 }
