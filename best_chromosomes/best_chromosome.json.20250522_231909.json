@@ -1,0 +1,159 @@
+{
+    "build_actions": {
+        "town": 1.4278946584538652,
+        "city": 1.2170429777556875,
+        "road": 0.763899201659853,
+        "card": 0.6149200620144073,
+        "late_game_pv_bonus_city": 2.0743948605854614,
+        "late_game_pv_card_multiplier": 1.7402205223418403,
+        "late_game_vps_threshold": 7.075918943136528,
+        "min_overall_score_threshold": 0.1051699648886372,
+        "min_road_score_for_deterministic_build": 0.8020431763549449,
+        "suboptimal_start_card_buy_bonus": 1.7690488476488293,
+        "suboptimal_start_town_build_bonus": 1.042638427888679,
+        "suboptimal_start_road_build_bonus": 0.5701306735098037,
+        "suboptimal_start_bonus_decay_turn": 21.701558208571427
+    },
+    "settlement_heuristics": {
+        "resource_value_base": 0.5606652888838736,
+        "resource_priority": {
+            "3": 0.9469539373954255,
+            "2": 0.5440538787464041,
+            "4": 0.5120690361207918,
+            "0": 0.7078967280848368,
+            "1": 1.1229473554781335
+        },
+        "production_probability_exponent": 1.2283855422312278,
+        "new_resource_type_bonus": 0.4154070213698435,
+        "port_access_bonus": 0.38198396514130156,
+        "specific_port_match_bonus": 0.2508053996502728,
+        "number_diversity_bonus": 0.14578757206074033
+    },
+    "road_heuristics": {
+        "to_potential_settlement_spot_bonus": 0.6350704412799483,
+        "connects_to_own_settlement_bonus": 0.2779426347933035,
+        "longest_road_contribution_bonus": 0.6811565797519434,
+        "port_access_bonus": 0.49118761590927074,
+        "expansion_to_new_terrain_bonus": 0.39762035413787394,
+        "fallback_suboptimal_road_build_probability": 0.40921246727468025,
+        "fallback_suboptimal_road_action_score": 0.6877657121182055
+    },
+    "city_heuristics": {
+        "resource_value_base": 0.9939626637638441,
+        "resource_priority": {
+            "3": 0.6103859267889403,
+            "2": 0.396785548966085,
+            "4": 0.8863956141480331,
+            "0": 1.1354738990359747,
+            "1": 1.5993660531409286
+        },
+        "production_probability_exponent": 1.3700255744262637,
+        "multiple_high_prob_numbers_bonus": 1.8551397204704525
+    },
+    "dev_card_heuristics": {
+        "base_value": 5.571068888314908,
+        "knight_bonus": 2.573147016874449,
+        "victory_point_bonus": 4.501098278954213,
+        "monopoly_bonus": 3.6720695217736328,
+        "road_building_bonus": 5.47838749618425,
+        "year_of_plenty_bonus": 3.5920381849508933
+    },
+    "initial_placement_settlement": {
+        "resource_production_base": 1.2785471071447292,
+        "resource_priority": {
+            "3": 0.9703830940030187,
+            "2": 0.6662716897519643,
+            "4": 0.7622506058833972,
+            "0": 1.1569420592444468,
+            "1": 1.1741231503927794
+        },
+        "production_probability_exponent": 0.5564495467688426,
+        "new_resource_type_bonus": 1.4998866221503375,
+        "port_access_bonus": 0.28860090465650545,
+        "specific_port_match_bonus": 0.21917921500990967,
+        "number_diversity_bonus": 0.8532154978391491,
+        "avoid_single_resource_concentration_penalty": -2.5343519711012332,
+        "fallback_to_random_if_best_score_below": 2.5649216737120053,
+        "use_heuristic_for_fallback_road": 0.16621459930810278,
+        "non_initial_player_multipliers": {
+            "resource_diversity_bonus": 0.8846134828220749,
+            "number_diversity_bonus": 0.7988964780146376,
+            "port_access_bonus": 0.7793330927609217,
+            "resource_production_base": 0.9327582448399108
+        }
+    },
+    "initial_placement_road": {
+        "to_second_potential_settlement_spot_bonus": 1.1386319935056122,
+        "resource_variety_expansion_bonus": 0.4911788600936553,
+        "general_expansion_bonus": 0.1015205000221115,
+        "connect_to_high_prob_numbers_bonus": 0.496432937031632
+    },
+    "robber_placement_heuristics": {
+        "target_high_production_node_multiplier": 1.2868307488256052,
+        "block_specific_resource_priority": {
+            "3": 0.42472067480760867,
+            "2": 1.1036067886568306,
+            "4": 0.990319885615668,
+            "0": 0.7513130014187502,
+            "1": 1.3401529411591806
+        },
+        "target_opponent_with_most_vps_bias": 0.7185107244500912,
+        "avoid_own_nodes_penalty": -6.21667198483928,
+        "randomness_factor": 0.06945070446736705,
+        "target_leader_high_production_resource_bonus": 1.7510593141457784,
+        "target_needed_resource_on_opponent_bonus": 0.8054459140831134,
+        "leader_vps_advantage_threshold_for_targeting": 1.0679851428841878
+    },
+    "discard_heuristics": {
+        "resource_value_priority": {
+            "3": 0.48473649834660554,
+            "2": 0.7620178792423318,
+            "4": 0.5801907863165721,
+            "0": 0.3745532644290651,
+            "1": 0.32474988699675356
+        },
+        "keep_for_settlement_bonus": -0.7407600745935243,
+        "keep_for_city_bonus": -0.632592266738661,
+        "keep_for_card_bonus": -0.3468533927015613
+    },
+    "trade_heuristics": {
+        "willingness_to_trade_general": 0.5181469439132451,
+        "resource_surplus_importance": {
+            "3": 0.826903215841968,
+            "2": 0.4340811557844454,
+            "4": 0.7708046528912637,
+            "0": 0.49291219720454804,
+            "1": 0.39328560029451826
+        },
+        "resource_needed_importance": {
+            "3": 1.5921173455769342,
+            "2": 1.5801424736487835,
+            "4": 0.636676828906797,
+            "0": 0.655216806295071,
+            "1": 1.0977102022107539
+        },
+        "bank_trade_ratio_modifier": -0.13979532734854605,
+        "port_trade_ratio_modifier": -0.12205006340363615,
+        "accept_offer_resource_gain_factor": 1.2827781856870817,
+        "accept_offer_fairness_threshold": 0.5276259347285119,
+        "min_score_for_self_initiated_trade": 0.6703745290590972,
+        "vps_threshold_consider_leader_trade": 3.5735164111570548,
+        "penalty_trade_with_leader": 0.37071196143448565,
+        "resource_surplus_threshold_for_proactive_trade": 5.6930399548232,
+        "proactive_trade_score_bonus": 0.35911977848098786
+    },
+    "play_dev_card_heuristics": {
+        "knight_immediate_threat_bonus": 1.0067164486847746,
+        "knight_take_largest_army_bonus": 1.672649703108492,
+        "knight_maintain_largest_army_bonus": 1.044062715445636,
+        "knight_contest_largest_army_bonus": 1.108318535701495,
+        "knight_for_win_bonus": 5.134870894209653,
+        "monopoly_potential_gain_threshold": 3.5794117699099033,
+        "year_of_plenty_immediate_build_bonus": 0.8290675224600417,
+        "road_building_strategic_spot_bonus": 0.7503981680045331,
+        "min_score_to_play_knight_on_start": 0.7032813379687396,
+        "early_game_turn_threshold": 10.166124004762725,
+        "early_game_knight_suboptimal_start_boost": 0.9399852520097017,
+        "early_game_knight_robber_on_key_tile_boost": 1.9358099975071776
+    }
+}
