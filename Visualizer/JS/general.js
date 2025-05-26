@@ -150,6 +150,11 @@ function init_events() {
                 reset_game();
                 console.log('[DEBUG] Después de reset_game().'); // DEBUG
                 
+                // Renderizar perfiles de jugador y actualizar con datos del JSON
+                // renderPlayerProfiles(); // ELIMINAR: Ya se llama dentro de setup()
+                updateUIDataFromGameObj(game_obj); // Nueva función para poblar datos
+                console.log('[DEBUG] Después de updateUIDataFromGameObj().'); // DEBUG
+                
                 // Cerrar el modal
                 $('#uploadModal').modal('hide');
                 console.log('[DEBUG] Modal cerrado. Carga de partida completada (en teoría).'); // DEBUG
@@ -182,6 +187,9 @@ function init_events() {
                 addLogFromJSON();
                 setup();
                 reset_game();
+                // Renderizar perfiles de jugador y actualizar con datos del JSON
+                // renderPlayerProfiles(); // ELIMINAR: Ya se llama dentro de setup()
+                updateUIDataFromGameObj(game_obj); // Nueva función para poblar datos
             }
             reader.onerror = function (evt) {
                 console.log('Error al cargar el archivo');
@@ -275,7 +283,7 @@ function terrainSetup() {
         }
 
         terrain_number.html(html);
-        terrain_div.removeClass(['terrain_cereal', 'terrain_mineral', 'terrain_clay', 'terrain_wood', 'terrain_wool', 'terrain_desert'])
+        terrain_div.removeClass('terrain_cereal terrain_mineral terrain_clay terrain_wood terrain_wool terrain_desert')
         terrain_div.addClass(getTerrainTypeClass(terrain[i]['terrain_type']));
         //                terrain_div.text(terrain_div.text() + '');
     }
@@ -482,28 +490,6 @@ function changeHandObject(player, hand_obj) {
              $('#hand_P' + player + ' .' + card + '_quantity').text(hand_obj['development_cards'][card]);
         }
     });
-}
-
-function paint_it_player_color(player, object_to_paint) {
-    object_to_paint = jQuery(object_to_paint);
-    object_to_paint.css('color', 'black')
-    switch (player) {
-        case 0:
-            object_to_paint.css('background', 'lightcoral')
-            break;
-        case 1:
-            object_to_paint.css('background', 'lightblue')
-            break;
-        case 2:
-            object_to_paint.css('background', 'lightgreen')
-            break;
-        case 3:
-            object_to_paint.css('background', 'lightyellow')
-            break;
-        default:
-            object_to_paint.css('background', 'none')
-            break;
-    }
 }
 
 function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
@@ -1318,6 +1304,7 @@ function renderPlayerProfiles() {
     }
     
     // Aplicar animación de entrada (ya existente)
+    /* Comentado para depuración
     gsap.from('.player-card', {
         duration: 0.8,
         y: 50,
@@ -1325,6 +1312,10 @@ function renderPlayerProfiles() {
         stagger: 0.2,
         ease: "power2.out"
     });
+    */
+    // Forzar visibilidad para depuración
+    jQuery('.player-card').css('opacity', 1).css('transform', 'translate(0px, 0px)');
+
 }
 
 // Función para mejorar visualmente los nodos de puerto
@@ -1354,39 +1345,62 @@ let originalCounterFasesChange = null;
 function enhanceDiceRoll() {
     // Capturar la función original si aún no se ha hecho
     if (!originalCounterFasesChange) {
-        const contador_fases = jQuery('#contador_fases');
-        originalCounterFasesChange = contador_fases.off('change').get(0).onchange;
-        
-        // Reemplazar con nuestra función mejorada
-        contador_fases.on('change', function(e) {
-            if (contador_fases.val() === '') {
-                return;
+        const contador_fases_jq = jQuery('#contador_fases');
+        const contadorFasesElement = contador_fases_jq.get(0);
+
+        if (contadorFasesElement) {
+            // Guardar la función onchange original si existe y es una función
+            if (typeof contadorFasesElement.onchange === 'function') {
+                originalCounterFasesChange = contadorFasesElement.onchange;
             }
             
-            let actual_player_json = parseInt(jQuery('#contador_turnos').val()) - 1;
-            
-            // Si estamos en la fase 0 (inicio del turno) y avanzando
-            if (parseInt(contador_fases.val()) === 1 && game_direction === 'forward') {
-                // Obtener el objeto de fase
-                const phase_obj = turn_obj['start_turn'];
-                
-                // Si hay un valor de dado, lanzar la animación
-                if (phase_obj && phase_obj['dice']) {
-                    animateDiceRoll(phase_obj['dice']);
-                    
-                    // Continuar con el resto del procesamiento después de la animación
-                    setTimeout(function() {
-                        // Llamar a la función original después de la animación
-                        originalCounterFasesChange.call(contador_fases.get(0), e);
-                    }, 3500); // Ajustar según la duración de la animación
-                    
-                    return; // Evitar la ejecución inmediata
+            // Desvincular cualquier manejador 'change' previo y vincular el nuestro
+            contador_fases_jq.off('change').on('change', function(e) {
+                if (contador_fases_jq.val() === '') {
+                    console.log('[DEBUG] enhanceDiceRoll: contador_fases está vacío, retornando.');
+                    // Si había una función original y el valor es vacío, quizás queramos llamarla
+                    if (originalCounterFasesChange) {
+                        originalCounterFasesChange.call(this, e);
+                    }
+                    return;
                 }
-            }
-            
-            // Para otros casos, llamar a la función original directamente
-            originalCounterFasesChange.call(contador_fases.get(0), e);
-        });
+                
+                // let actual_player_json = parseInt(jQuery('#contador_turnos').val()) - 1; // No parece usarse
+                
+                // Si estamos en la fase 0 (representada por valor 1 en el input) y avanzando
+                if (parseInt(contador_fases_jq.val()) === 1 && game_direction === 'forward') {
+                    console.log('[DEBUG] enhanceDiceRoll: Fase 1 y forward detectado.');
+                    const phase_obj = turn_obj ? turn_obj['start_turn'] : undefined;
+                    
+                    if (phase_obj && phase_obj['dice']) {
+                        console.log('[DEBUG] enhanceDiceRoll: Animando dados con valor:', phase_obj['dice']);
+                        animateDiceRoll(phase_obj['dice']);
+                        
+                        setTimeout(function() {
+                            if (originalCounterFasesChange) {
+                                console.log('[DEBUG] enhanceDiceRoll: Llamando a originalCounterFasesChange después de animación.');
+                                originalCounterFasesChange.call(contadorFasesElement, e);
+                            } else {
+                                console.log('[DEBUG] enhanceDiceRoll: No hay originalCounterFasesChange para llamar después de animación.');
+                            }
+                        }, 3500); 
+                        return;
+                    } else {
+                        console.log('[DEBUG] enhanceDiceRoll: No hay phase_obj o phase_obj.dice para animar.');
+                    }
+                }
+                
+                // Para otros casos, llamar a la función original directamente si existe
+                if (originalCounterFasesChange) {
+                    console.log('[DEBUG] enhanceDiceRoll: Llamando a originalCounterFasesChange (caso general).');
+                    originalCounterFasesChange.call(this, e);
+                } else {
+                    console.log('[DEBUG] enhanceDiceRoll: No hay originalCounterFasesChange (caso general).');
+                }
+            });
+        } else {
+            console.warn("[DEBUG] El elemento #contador_fases no fue encontrado. enhanceDiceRoll no se activará.");
+        }
     }
 }
 
@@ -1688,28 +1702,6 @@ function createConstructionEffect(x, y) {
     // Podríamos agregar un sonido aquí si el juego tiene audio
 }
 
-// Mejorar la función setup para incluir los efectos de cursor
-let originalSetupWithCursor = setup;
-setup = function() {
-    originalSetupWithCursor();
-    initAnimations();
-    
-    // Renderizar jugadores dinámicamente
-    renderPlayerProfiles();
-    
-    // Estilizar mejor los nodos de puerto
-    enhanceHarborNodes();
-    
-    // Mejorar la animación de los dados
-    enhanceDiceRoll();
-    
-    // Aplicar efectos de agua
-    applyWaterEffects();
-    
-    // Inicializar efectos de cursor - desactivado por preferencia del usuario
-    // initCursorEffects();
-}
-
 // Función para inicializar los controles de reproducción automática
 function initAutoPlayControls() {
     const playBtn = $('#play_btn');
@@ -1853,4 +1845,161 @@ function highlightActiveButton(buttonId) {
     setTimeout(function() {
         $(buttonId).removeClass('animate__animated animate__pulse');
     }, 500);
+}
+
+// Nueva función para actualizar la UI con datos del game_obj cargado
+function updateUIDataFromGameObj(game_data) {
+    console.log("[DEBUG] updateUIDataFromGameObj llamado con:", JSON.parse(JSON.stringify(game_data)));
+
+    if (!game_data || !game_data.game) {
+        console.error("[DEBUG] game_data o game_data.game no está definido.");
+        return;
+    }
+
+    const DEV_CARD_TYPE_MAP = {
+        0: 'knight',       // KNIGHT_EFFECT (asumiendo type 0 es Knight)
+        1: 'victory_point',// VICTORY_POINT_EFFECT (asumiendo type 1 es VP)
+        2: 'road_building',
+        3: 'year_of_plenty',
+        4: 'monopoly'
+    };
+    // Mapeo de constantes de tipo de carta desde Python
+    const PYTHON_KNIGHT_CARD_TYPE = 0;
+    const PYTHON_VICTORY_POINT_CARD_TYPE = 1;
+    const PYTHON_PROGRESS_CARD_TYPE = 2;
+
+    // Mapeo de constantes de efecto de carta desde Python
+    // const PYTHON_KNIGHT_EFFECT = 0; // Coincide con DEV_CARD_TYPE_MAP[0]
+    // const PYTHON_VICTORY_POINT_EFFECT = 1; // Coincide con DEV_CARD_TYPE_MAP[1]
+    const PYTHON_ROAD_BUILDING_EFFECT = 2;
+    const PYTHON_YEAR_OF_PLENTY_EFFECT = 3;
+    const PYTHON_MONOPOLY_EFFECT = 4;
+
+    let lastRoundKey = 'round_0';
+    if (game_data.game && Object.keys(game_data.game).length > 0) {
+        lastRoundKey = Object.keys(game_data.game).sort((a, b) => parseInt(b.split('_')[1]) - parseInt(a.split('_')[1]))[0];
+    }
+    const lastRoundData = game_data.game[lastRoundKey];
+    if (!lastRoundData) {
+        console.error("[DEBUG] No se encontraron datos para la última ronda (", lastRoundKey, ")");
+        return;
+    }
+
+    let lastTurnKey = 'P0'; // Asumimos un jugador por defecto si no hay turnos
+    if (lastRoundData && Object.keys(lastRoundData).length > 0) {
+         // Los turnos son como P0, P1, P2, P3 o turn_P0, turn_P1 etc.
+         // Necesitamos encontrar el último turno procesado que tenga end_turn y start_turn.
+         // Las claves de turno podrían ser "turn_P0", "P0", etc.
+         // Vamos a buscar el índice de jugador más alto en las claves.
+        let playerIndexes = Object.keys(lastRoundData).map(key => {
+            const match = key.match(/(?:turn_P|P)(\d+)/);
+            return match ? parseInt(match[1]) : -1;
+        }).filter(idx => idx !== -1);
+
+        if (playerIndexes.length > 0) {
+            const maxPlayerIndex = Math.max(...playerIndexes);
+            // Intentar encontrar la clave de turno que contiene la información más completa (end_turn)
+            // Las claves pueden ser P0, P1... o start_turn, end_turn, etc. o turn_P0.
+            // Daremos prioridad a las claves que representen un turno de jugador (ej. P0, turn_P0)
+            const potentialTurnKeys = Object.keys(lastRoundData).filter(key => key.includes('P' + maxPlayerIndex));
+            if (potentialTurnKeys.length > 0) {
+                 // Idealmente, la traza debería tener una estructura consistente para el último estado.
+                 // Por ahora, tomaremos la primera clave que coincida con el jugador más alto.
+                 // Esto podría necesitar ajuste si la estructura de la traza varía mucho.
+                lastTurnKey = potentialTurnKeys.sort().pop(); // Tomar la última alfabéticamente, heurística.
+            } else {
+                 // Si no encontramos una clave específica de jugador, buscamos una general 'end_turn' o 'start_turn'
+                 // Esto es menos ideal, ya que el JSON podría no tener todos los datos en una sola de estas claves
+                 // para todos los jugadores al mismo tiempo.
+                if (lastRoundData['end_turn']) lastTurnKey = 'end_turn';
+                else if (lastRoundData['start_turn']) lastTurnKey = 'start_turn';
+                // Si no, se queda con P0 por defecto, lo cual es problemático.
+                console.warn("[DEBUG] No se encontró una clave de turno específica para el jugador", maxPlayerIndex, "en la ronda", lastRoundKey, ". Usando", lastTurnKey);
+            }
+        }
+    }
+    
+    const turnData = lastRoundData[lastTurnKey];
+    // Si turnData no existe o está vacío, intentamos con el objeto de ronda directamente
+    // ya que a veces la información de 'hand_P*' y 'victory_points' puede estar allí.
+    const currentTurnState = (turnData && Object.keys(turnData).length > 0) ? turnData : lastRoundData;
+
+    if (!currentTurnState) {
+        console.error("[DEBUG] No se encontraron datos para el último turno (", lastTurnKey, ") en la ronda (", lastRoundKey, ")");
+        return;
+    }
+
+    console.log("[DEBUG] Datos del último turno (", lastTurnKey, ") a usar:", JSON.parse(JSON.stringify(currentTurnState)));
+
+    const resourcesOrder = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+
+    for (let i = 0; i < 4; i++) {
+        // 1. Actualizar Puntos de Victoria
+        let victoryPoints = 0;
+        if (currentTurnState.victory_points && currentTurnState.victory_points['J' + i]) {
+            victoryPoints = parseInt(currentTurnState.victory_points['J' + i]) || 0;
+        } else if (game_data.setup && game_data.setup['P' + i]) {
+            // Los PV iniciales son 2 por los dos poblados de setup
+            // Esta es una heurística si no se encuentran en el último turno.
+            victoryPoints = game_data.setup['P' + i].length; 
+        }
+        $('#puntos_victoria_J' + (i + 1)).text(victoryPoints);
+
+        // 2. Actualizar Recursos
+        const playerHandResources = currentTurnState['hand_P' + i];
+        if (playerHandResources) {
+            resourcesOrder.forEach(resourceName => {
+                const quantity = playerHandResources[resourceName] || 0;
+                $('#hand_P' + i + ' .resources-grid .' + resourceName + ' .' + resourceName + '_quantity').text(quantity);
+            });
+        } else {
+            console.warn("[DEBUG] No se encontró hand_P" + i + " en los datos del turno/ronda.");
+             resourcesOrder.forEach(resourceName => {
+                $('#hand_P' + i + ' .resources-grid .' + resourceName + ' .' + resourceName + '_quantity').text(0);
+            });
+        }
+
+        // 3. Actualizar Cartas de Desarrollo
+        const devCardsOnHand = currentTurnState['development_cards_P' + i];
+        const devCardCounts = {
+            knight: 0,
+            victory_point: 0,
+            road_building: 0,
+            year_of_plenty: 0,
+            monopoly: 0
+        };
+
+        if (devCardsOnHand && Array.isArray(devCardsOnHand)) {
+            devCardsOnHand.forEach(card => {
+                let cardName = null;
+                if (card.type === PYTHON_KNIGHT_CARD_TYPE) { // Knight
+                    cardName = DEV_CARD_TYPE_MAP[PYTHON_KNIGHT_EFFECT]; // Asume effect 0 para knight
+                } else if (card.type === PYTHON_VICTORY_POINT_CARD_TYPE) { // Victory Point
+                    cardName = DEV_CARD_TYPE_MAP[PYTHON_VICTORY_POINT_EFFECT]; // Asume effect 1 para VP
+                } else if (card.type === PYTHON_PROGRESS_CARD_TYPE) { // Progress Card
+                    cardName = DEV_CARD_TYPE_MAP[card.effect]; // Usa el efecto para determinar el tipo de carta de progreso
+                }
+
+                if (cardName && devCardCounts.hasOwnProperty(cardName)) {
+                    devCardCounts[cardName]++;
+                }
+            });
+        }
+         else {
+            console.warn("[DEBUG] No se encontró development_cards_P" + i + " o no es un array en los datos del turno/ronda.");
+        }
+
+        for (const cardName in devCardCounts) {
+            $('#hand_P' + i + ' .dev-cards-grid .' + cardName + ' .' + cardName + '_quantity').text(devCardCounts[cardName]);
+        }
+        
+        // Actualizar badges de Mayor Ejército y Ruta más larga (si estuvieran en el JSON)
+        // Esta información no parece estar consistentemente en `end_turn` o `start_turn` de la traza actual.
+        // Se necesitaría añadir `largest_army_P${i}` y `longest_road_P${i}` al JSON.
+        // Por ahora, se dejan como estaban (ocultos o con el valor del último estado procesado por el visualizador)
+        // Ejemplo de cómo se haría si los datos estuvieran:
+        // if (currentTurnState['largest_army_P' + i]) { $('#largest_army_P' + i).show(); } else { $('#largest_army_P' + i).hide(); }
+        // if (currentTurnState['longest_road_P' + i]) { $('#longest_road_P' + i).show(); } else { $('#longest_road_P' + i).hide(); }
+    }
+    console.log("[DEBUG] UI actualizada con datos del JSON.");
 }
