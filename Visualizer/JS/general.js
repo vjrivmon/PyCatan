@@ -396,34 +396,16 @@ function terrainSetup() {
     }
 }
 
-// Función mejorada para la visualización de puertos
-function fromHarborNumberToMaterials(harborNumber) {
-    switch (harborNumber) {
-        case 0:
-            return '<div class="harbor-content harbor-cereal"><i class="fa-solid fa-wheat-awn"></i><span>2:1</span></div>';
-        case 1:
-            return '<div class="harbor-content harbor-mineral"><i class="fa-solid fa-mountain-sun"></i><span>2:1</span></div>';
-        case 2:
-            return '<div class="harbor-content harbor-clay"><i class="fa-solid fa-trowel-bricks"></i><span>2:1</span></div>';
-        case 3:
-            return '<div class="harbor-content harbor-wood"><i class="fa-solid fa-wand-sparkles"></i><span>2:1</span></div>';
-        case 4:
-            return '<div class="harbor-content harbor-wool"><i class="fa-brands fa-cotton-bureau"></i><span>2:1</span></div>';
-        case 5:
-            return '<div class="harbor-content"><span>3:1</span></div>';
-        case -1:
-            return '';
-        default:
-            return '';
-    }
-}
-
 // Función mejorada para configurar los nodos y sus puertos
 function nodeSetup() {
     nodes = game_obj['setup']['board']['board_nodes'];
 
     for (let i = 0; i < nodes.length; i++) {
         let node = jQuery('#node_' + i);
+        
+        // Limpiar contenido anterior del nodo
+        node.removeClass('is-harbor').removeAttr('data-bs-toggle').removeAttr('title');
+        node.html('');
         
         // Si el nodo tiene un valor de puerto, añadirlo
         if (nodes[i]['harbor'] !== -1) {
@@ -432,44 +414,60 @@ function nodeSetup() {
             
             // Establecer título según el tipo de puerto
             let tooltipTitle = '';
+            let harborContent = '';
             switch (nodes[i]['harbor']) {
                 case 0:
                     tooltipTitle = 'Puerto de Cereal 2:1';
+                    harborContent = '<div class="harbor-content harbor-cereal"><i class="fas fa-wheat-awn" style="color: #fbbc05;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
                     break;
                 case 1:
                     tooltipTitle = 'Puerto de Mineral 2:1';
+                    harborContent = '<div class="harbor-content harbor-mineral"><i class="fas fa-mountain" style="color: #9aa0a6;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
                     break;
                 case 2:
-                    tooltipTitle = 'Puerto de Ladrillo 2:1';
+                    tooltipTitle = 'Puerto de Arcilla 2:1';
+                    harborContent = '<div class="harbor-content harbor-clay"><i class="fas fa-cube" style="color: #ff8a65;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
                     break;
                 case 3:
                     tooltipTitle = 'Puerto de Madera 2:1';
+                    harborContent = '<div class="harbor-content harbor-wood"><i class="fas fa-tree" style="color: #34a853;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
                     break;
                 case 4:
                     tooltipTitle = 'Puerto de Lana 2:1';
+                    harborContent = '<div class="harbor-content harbor-wool"><i class="fas fa-cut" style="color: #a5d6a7;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
                     break;
                 case 5:
-                    tooltipTitle = 'Puerto 3:1';
+                    tooltipTitle = 'Puerto General 3:1';
+                    harborContent = '<div class="harbor-content harbor-general"><i class="fas fa-anchor" style="color: #1a73e8;"></i><span style="font-size: 10px; font-weight: bold;">3:1</span></div>';
                     break;
             }
             node.attr('title', tooltipTitle);
+            node.html(harborContent);
             
-            // Añadir animación sutil al puerto
-            gsap.to(node, {
-                duration: 2,
-                repeat: -1,
-                yoyo: true,
-                boxShadow: '0 0 15px rgba(52, 152, 219, 0.7)',
-                ease: "sine.inOut"
+            // Añadir estilos específicos para puertos
+            node.css({
+                'background-color': 'rgba(26, 115, 232, 0.2)',
+                'border': '2px solid #1a73e8',
+                'border-radius': '50%',
+                'box-shadow': '0 0 10px rgba(26, 115, 232, 0.3)',
+                'z-index': '5'
+            });
+        } else {
+            // Para nodos sin puerto, limpiar cualquier estilo previo
+            node.css({
+                'background-color': '',
+                'border': '',
+                'border-radius': '',
+                'box-shadow': '',
+                'z-index': ''
             });
         }
-        
-        // Añadir contenido al nodo
-        node.html(fromHarborNumberToMaterials(nodes[i]['harbor']));
     }
     
-    // Inicializar tooltips para los puertos
-    $('[data-bs-toggle="tooltip"]').tooltip();
+    // Inicializar tooltips para los puertos después de un breve delay
+    setTimeout(() => {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    }, 100);
 }
 
 function getTerrainTypeClass(terrainType) {
@@ -988,38 +986,72 @@ function showVictoryConfetti(playerIndex) {
     $('#winner-name').text('¡Jugador ' + (playerIndex + 1) + ' ha ganado!');
     $('#victory-modal').modal('show');
     
-    // Disparar confeti
-    let duration = 5 * 1000;
-    let animationEnd = Date.now() + duration;
-    let defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+    // Configuración del confeti usando canvas-confetti
+    const duration = 5 * 1000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { 
+        startVelocity: 30, 
+        spread: 360, 
+        ticks: 60, 
+        zIndex: 9999,
+        colors: colors 
+    };
 
     function randomInRange(min, max) {
         return Math.random() * (max - min) + min;
     }
 
-    let interval = setInterval(function() {
-        let timeLeft = animationEnd - Date.now();
+    // Disparar confeti inmediatamente
+    confetti({
+        ...defaults,
+        particleCount: 100,
+        origin: { x: 0.5, y: 0.5 }
+    });
+
+    // Continuar disparando confeti durante la duración especificada
+    const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
 
         if (timeLeft <= 0) {
             return clearInterval(interval);
         }
 
-        let particleCount = 50 * (timeLeft / duration);
+        const particleCount = 50 * (timeLeft / duration);
         
-        // Disparar confeti desde posiciones aleatorias
+        // Disparar confeti desde múltiples posiciones
         confetti({
             ...defaults,
             particleCount,
-            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-            colors: colors
+            origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
         });
         confetti({
             ...defaults,
             particleCount,
-            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-            colors: colors
+            origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
         });
     }, 250);
+    
+    // Confeti adicional en forma de cascada
+    setTimeout(() => {
+        confetti({
+            particleCount: 200,
+            angle: 60,
+            spread: 55,
+            origin: { x: 0, y: 0.6 },
+            colors: colors,
+            zIndex: 9999
+        });
+        confetti({
+            particleCount: 200,
+            angle: 120,
+            spread: 55,
+            origin: { x: 1, y: 0.6 },
+            colors: colors,
+            zIndex: 9999
+        });
+    }, 1000);
+    
+    console.log(`[DEBUG] Confeti de victoria mostrado para Jugador ${playerIndex + 1}`);
 }
 
 // Función para obtener colores según el jugador
