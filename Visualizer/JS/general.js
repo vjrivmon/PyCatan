@@ -232,16 +232,82 @@ function init_events() {
 }
 
 function reset_game() {
-    let materials = ['cereal', 'clay', 'wool', 'wood', 'mineral'];
-    let cards = ['knight', 'victory_point', 'road_building', 'year_of_plenty', 'monopoly'];
-    let classes = materials.concat(cards);
-
-    for (let i = 1; i < 5; i++) {
-        $('#puntos_victoria_J' + i).text(0);
-        classes.forEach(function (array_element) {
-            $('#hand_P' + (i - 1) + ' .' + array_element + '_quantity').text(0);
+    // Limpiar completamente el tablero
+    jQuery('.node').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
+    jQuery('.road').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
+    jQuery('.vertical_road').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
+    
+    // Resetear estilos de los nodos y carreteras
+    jQuery('.node').css({
+        'background-color': '',
+        'border': '',
+        'border-radius': '',
+        'transform': '',
+        'z-index': ''
+    });
+    
+    jQuery('.road, .vertical_road').css({
+        'background-color': '',
+        'border': '',
+        'transform': '',
+        'z-index': ''
+    });
+    
+    // Limpiar logs
+    jQuery('#commerce_log_text').html('');
+    jQuery('#other_useful_info_text').html('');
+    
+    // Resetear puntos de victoria y recursos de todos los jugadores
+    for (let i = 1; i <= 4; i++) {
+        $('#puntos_victoria_J' + i).text('0');
+        
+        // Resetear recursos
+        const resourceTypes = ['cereal', 'clay', 'wool', 'wood', 'mineral'];
+        resourceTypes.forEach(resource => {
+            $(`#hand_P${i-1} .resources-grid .${resource} .${resource}_quantity`).text('0');
         });
+        
+        // Resetear cartas de desarrollo
+        const devCardTypes = ['knight', 'victory_point', 'road_building', 'year_of_plenty', 'monopoly'];
+        devCardTypes.forEach(card => {
+            $(`#hand_P${i-1} .dev-cards-grid .${card} .${card}_quantity`).text('0');
+        });
+        
+        // Ocultar badges especiales
+        $(`#largest_army_P${i-1}`).hide();
+        $(`#longest_road_P${i-1}`).hide();
+        
+        // Remover clases de ganador
+        $(`#player-card-${i-1}`).removeClass('winner-glow');
+        
+        // Resetear bordes de los paneles de jugadores
+        $(`#hand_P${i-1}`).css('border', '');
     }
+    
+    // Resetear contadores
+    jQuery('#contador_rondas').val('').empty();
+    jQuery('#contador_turnos').val('').empty();
+    jQuery('#contador_fases').val('').empty();
+    
+    // Resetear display de contadores
+    jQuery('#contador_rondas_display').text('1');
+    jQuery('#contador_turnos_display').text('1');
+    jQuery('#contador_fases_display').text('1');
+    jQuery('#rondas_maximas').text('');
+    
+    // Cerrar modal de victoria si está abierto
+    $('#victory-modal').modal('hide');
+    
+    // Limpiar variables globales
+    round_obj = {};
+    turn_obj = {};
+    phase_obj = {};
+    
+    // Limpiar animaciones y efectos
+    $('.animate__animated').removeClass('animate__animated animate__bounceIn animate__pulse animate__fadeIn');
+    $('.auto-play-indicator').remove();
+    
+    console.log('[DEBUG] Juego reseteado completamente');
 }
 
 function addLogFromJSON() {
@@ -293,7 +359,13 @@ function addSetupBuildings() {
             paint_it_player_color(i, node);
             paint_it_player_color(i, road);
 
-            node.html('<i class="fa-solid fa-house"></i>');
+            // Agregar emoticonos para poblados y caminos iniciales
+            let playerEmoji = getPlayerEmoji(i);
+            let settlementEmoji = getBuildingEmoji('settlement');
+            let roadEmoji = getBuildingEmoji('road');
+            
+            node.html('<i class="fa-solid fa-house"></i><span class="player-emoji">' + playerEmoji + '</span><span class="building-emoji">' + settlementEmoji + '</span>');
+            road.html('<span class="player-emoji">' + playerEmoji + '</span><span class="building-emoji">' + roadEmoji + '</span>');
         }
     }
 }
@@ -637,65 +709,134 @@ function init_events_with_game_obj() {
             html += `</div>`;
             jQuery('#other_useful_info_text').append(html);
 
-            // Aplicar cambios visuales
-            if (building === 'S舎' || building === 'settlement') { // Asumiendo 'settlement' como posible valor
-                animateBuilding(node_id, 'settlement', player);
-            } else if (building === 'C都市' || building === 'city') { // Asumiendo 'city'
-                animateBuilding(node_id, 'city', player);
-            } else if (building === 'R道' || building === 'road') { // Asumiendo 'road'
+            // Aplicar cambios visuales con soporte para todas las variantes
+            if (building === 'S舎' || building === 'settlement' || building === 'town') {
+                animateBuilding(node_id, building, player);
+            } else if (building === 'C都市' || building === 'city') {
+                animateBuilding(node_id, building, player);
+            } else if (building === 'R道' || building === 'road') {
                 let road_id_str = node_id < road_to ? `road_${node_id}_${road_to}` : `road_${road_to}_${node_id}`;
                 animateRoadBuilding(road_id_str, player);
             }
         }
         
         if (phase_obj["phase_type"] == "buy_card") {
-            // ... (lógica original de buy_card)
+            // Mejorar el log de compra de cartas
             let html = `<div class="log-entry buy-card mb-2">
                 <i class="fas fa-shopping-cart text-warning me-2"></i>
-                <strong>Jugador ${phase_obj['player']}</strong> compró una carta de desarrollo
+                <strong>Jugador ${phase_obj['player']}</strong> compró una carta de desarrollo 🃏
             </div>`;
             jQuery('#other_useful_info_text').append(html);
+            autoScrollLog('other_useful_info_text');
         }
 
         if (phase_obj["phase_type"] == "play_card") {
-            // ... (lógica original de play_card)
-            on_development_card_played(phase_obj['card_played_info']);
-            let cardIcon = getCardIcon(phase_obj['card_played_info']['played_card']);
-            let html = `<div class="log-entry play-card mb-2">
-                ${cardIcon}
-                <strong>Jugador ${phase_obj['player']}</strong> jugó 
-                <span class="fw-bold">${getCardName(phase_obj['card_played_info']['played_card'])}</span>
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
+            on_development_card_played(phase_obj);
         }
 
-        if (phase_obj["phase_type"] == "discard_cards") {
-            // ... (lógica original de discard_cards)
-             let html = `<div class="log-entry discard mb-2">
-                <i class="fas fa-trash-alt text-muted me-2"></i>
-                <strong>Jugador ${phase_obj['player']}</strong> descartó cartas
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-        }
-
-        if (phase_obj["phase_type"] == "end_turn") {
-            // ... (lógica original de end_turn)
-            if (phase_obj['victory_points']) {
-                for (let i = 0; i < 4; i++) {
-                    $('#puntos_victoria_J' + (i + 1)).text(phase_obj['victory_points']['J' + i] || $('#puntos_victoria_J' + (i + 1)).text());
+        if (phase_obj["phase_type"] == "give_cards") {
+            // Mejorar el log de distribución de recursos
+            let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+            let resourceIcons = ['🌾', '⛰️', '🧱', '🪵', '🐑'];
+            
+            let html = `<div class="log-entry give-cards mb-2">
+                <i class="fas fa-gift text-success me-2"></i>
+                <strong>Distribución de recursos por dados (${phase_obj['dice'] || 'N/A'})</strong>
+                <br><small class="ms-4">`;
+            
+            let playersGotResources = false;
+            for (let i = 0; i < 4; i++) {
+                if (phase_obj['given_to_P' + i]) {
+                    playersGotResources = true;
+                    html += `Jugador ${i}: `;
+                    for (let j = 0; j < materials.length; j++) {
+                        if (phase_obj['given_to_P' + i][materials[j]] > 0) {
+                            html += `${resourceIcons[j]} +${phase_obj['given_to_P' + i][materials[j]]} `;
+                        }
+                    }
+                    html += '<br>';
                 }
             }
             
-            let html = `<div class="log-entry end-turn mb-2">
-                <i class="fas fa-flag-checkered text-secondary me-2"></i>
-                <strong>Jugador ${phase_obj['player']}</strong> terminó su turno
-            </div>`;
+            if (!playersGotResources) {
+                html += 'Ningún jugador recibió recursos';
+            }
+            
+            html += '</small></div>';
             jQuery('#other_useful_info_text').append(html);
+            autoScrollLog('other_useful_info_text');
+            
+            // Animar recursos ganados
+            for (let i = 0; i < 4; i++) {
+                if (phase_obj['given_to_P' + i]) {
+                    for (let j = 0; j < materials.length; j++) {
+                        if (phase_obj['given_to_P' + i][materials[j]] > 0) {
+                            animateResourceGain(i, materials[j], phase_obj['given_to_P' + i][materials[j]]);
+                        }
+                    }
+                }
+            }
         }
 
-        // Actualizar mano del jugador para la fase actual
+        if (phase_obj["phase_type"] == "discard_cards") {
+            // Mejorar el log de descarte de cartas
+            let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+            let resourceIcons = ['🌾', '⛰️', '🧱', '🪵', '🐑'];
+            
+            let html = `<div class="log-entry discard-cards mb-2">
+                <i class="fas fa-trash text-danger me-2"></i>
+                <strong>Jugador ${phase_obj['player']}</strong> descartó cartas por ladrón (7) 🎲
+                <br><small class="ms-4">Descartó: `;
+            
+            if (phase_obj['discarded']) {
+                for (let j = 0; j < materials.length; j++) {
+                    if (phase_obj['discarded'][materials[j]] > 0) {
+                        html += `${resourceIcons[j]} -${phase_obj['discarded'][materials[j]]} `;
+                    }
+                }
+            }
+            
+            html += '</small></div>';
+            jQuery('#other_useful_info_text').append(html);
+            autoScrollLog('other_useful_info_text');
+        }
+
+        // Actualizar mano del jugador para la fase actual con mejor tracking
         if (phase_obj['hand_P' + phase_obj['player']] !== undefined) {
             changeHandObject(phase_obj['player'], phase_obj['hand_P' + phase_obj['player']]);
+        }
+
+        // Actualizar todas las manos si están disponibles (para casos como monopolio)
+        for (let i = 0; i < 4; i++) {
+            if (phase_obj['hand_P' + i] !== undefined) {
+                changeHandObject(i, phase_obj['hand_P' + i]);
+            }
+        }
+
+        // Actualizar puntos de victoria si están disponibles
+        if (phase_obj['victory_points']) {
+            for (let i = 0; i < 4; i++) {
+                if (phase_obj['victory_points']['J' + i] !== undefined) {
+                    $('#puntos_victoria_J' + (i + 1)).text(phase_obj['victory_points']['J' + i]);
+                    
+                    // Animar cambio de puntos de victoria
+                    $('#puntos_victoria_J' + (i + 1)).addClass('animate__animated animate__bounceIn');
+                    setTimeout(() => {
+                        $('#puntos_victoria_J' + (i + 1)).removeClass('animate__animated animate__bounceIn');
+                    }, 1000);
+                }
+            }
+        }
+
+        // Verificar victoria después de cada fase
+        setTimeout(() => {
+            checkVictory();
+        }, 500);
+
+        // Actualizar cartas de desarrollo si están disponibles
+        if (phase_obj['development_cards_P' + phase_obj['player']]) {
+            let devCards = phase_obj['development_cards_P' + phase_obj['player']];
+            updateDevCards(phase_obj['player'], devCards);
         }
 
         // Activar/desactivar botones de navegación
@@ -894,63 +1035,140 @@ function getPlayerColors(playerIndex) {
 
 // Función para animar adquisición de recursos
 function animateResourceGain(playerIndex, resourceType, quantity) {
-    // Seleccionar el elemento a animar
-    let element = $('#hand_P' + playerIndex + ' .' + resourceType + '_quantity');
-    let icon = element.siblings('i.fa-solid').first();
+    // Crear animación de ganancia de recursos
+    const resourceElement = $(`#hand_P${playerIndex} .resources-grid .${resourceType} .${resourceType}_quantity`);
     
-    // Actualizar el texto
-    let currentValue = parseInt(element.text());
-    element.text(currentValue + quantity);
+    if (resourceElement.length) {
+        // Animar el incremento
+        resourceElement.addClass('animate__animated animate__pulse text-success');
+        
+        // Crear un indicador de ganancia
+        const gainIndicator = $(`<span class="gain-indicator">+${quantity}</span>`);
+        gainIndicator.css({
+            position: 'absolute',
+            color: '#28a745',
+            fontWeight: 'bold',
+            fontSize: '12px',
+            zIndex: 1000,
+            animation: 'fadeInUp 1s ease-out forwards'
+        });
+        
+        resourceElement.parent().css('position', 'relative').append(gainIndicator);
+        
+        // Limpiar después de la animación
+        setTimeout(() => {
+            resourceElement.removeClass('animate__animated animate__pulse text-success');
+            gainIndicator.remove();
+        }, 1500);
+    }
     
-    // Animar el incremento
-    if (quantity > 0) {
-        icon.addClass('increased fa-bounce');
-        setTimeout(() => icon.removeClass('increased fa-bounce'), 1000);
-    } else if (quantity < 0) {
-        icon.addClass('decreased fa-shake');
-        setTimeout(() => icon.removeClass('decreased fa-shake'), 1000);
+    console.log(`[DEBUG] Jugador ${playerIndex} ganó ${quantity} de ${resourceType}`);
+}
+
+function getPlayerEmoji(playerIndex) {
+    switch (playerIndex) {
+        case 0:
+            return '🔴'; // P1 - Rojo
+        case 1:
+            return '🔵'; // P2 - Azul
+        case 2:
+            return '🟢'; // P3 - Verde
+        case 3:
+            return '🟡'; // P4 - Amarillo
+        default:
+            return '⚪'; // Por defecto
+    }
+}
+
+function getBuildingEmoji(buildingType) {
+    switch (buildingType) {
+        case 'settlement':
+        case 'town':
+        case 'S舎':
+            return '🏠'; // Poblado
+        case 'city':
+        case 'C都市':
+            return '🏛️'; // Ciudad
+        case 'road':
+        case 'R道':
+            return '🛣️'; // Camino
+        default:
+            return '🏗️'; // Construcción genérica
     }
 }
 
 // Función para animar construcciones
 function animateBuilding(nodeId, buildingType, playerIndex) {
-    let node = $('#node_' + nodeId);
-    let icon;
+    const nodeElement = $('#node_' + nodeId);
+    const colors = getPlayerColors(playerIndex);
+    const playerMainColor = colors[0]; // Color principal del jugador
     
-    // Asignar el icono según el tipo de construcción
-    if (buildingType === 'settlement') {
-        icon = '<i class="fa-solid fa-house"></i>';
-    } else if (buildingType === 'city') {
-        icon = '<i class="fa-solid fa-building"></i>';
-    }
-    
-    // Aplicar animación y z-index
-    node.html(icon).css('z-index', 10); // Añadido z-index
-    node.css('transform', 'scale(0)');
-    gsap.to(node[0], {
-        duration: 0.5,
-        scale: 1,
-        ease: "elastic.out(1, 0.3)",
-        onComplete: function() {
-            paint_it_player_color(playerIndex, node);
+    if (nodeElement.length) {
+        // Limpiar cualquier contenido anterior
+        nodeElement.empty();
+        
+        // Aplicar estilo de jugador
+        nodeElement.css({
+            'background-color': playerMainColor,
+            'border': `3px solid ${colors[1]}`,
+            'border-radius': buildingType === 'city' || buildingType === 'C都市' ? '8px' : '50%',
+            'transform': 'scale(1)',
+            'z-index': '10'
+        });
+        
+        // Añadir emoji según el tipo de construcción
+        let emoji = '';
+        if (buildingType === 'settlement' || buildingType === 'S舎') {
+            emoji = '🏠';
+        } else if (buildingType === 'city' || buildingType === 'C都市') {
+            emoji = '🏛️';
         }
-    });
+        
+        if (emoji) {
+            nodeElement.html(`<span style="font-size: 16px; line-height: 1;">${emoji}</span>`);
+        }
+        
+        // Animación de aparición
+        nodeElement.addClass('animate__animated animate__bounceIn');
+        
+        // Efecto de construcción
+        createConstructionEffect(nodeElement.offset().left, nodeElement.offset().top);
+        
+        setTimeout(() => {
+            nodeElement.removeClass('animate__animated animate__bounceIn');
+        }, 1000);
+        
+        console.log(`[DEBUG] Construido ${buildingType} para Jugador ${playerIndex} en nodo ${nodeId}`);
+    }
 }
 
 // Función para animar la construcción de carreteras
 function animateRoadBuilding(roadId, playerIndex) {
-    let road = $('#' + roadId);
+    const roadElement = $('#' + roadId);
+    const colors = getPlayerColors(playerIndex);
+    const playerMainColor = colors[0];
     
-    // Animar la construcción y z-index
-    road.css('transform', 'scaleX(0)').css('z-index', 5); // Añadido z-index
-    gsap.to(road[0], {
-        duration: 0.5,
-        scaleX: 1,
-        ease: "power1.out",
-        onComplete: function() {
-            paint_it_player_color(playerIndex, road);
-        }
-    });
+    if (roadElement.length) {
+        // Aplicar color del jugador a la carretera
+        roadElement.css({
+            'background-color': playerMainColor,
+            'border': `2px solid ${colors[1]}`,
+            'transform': 'scale(1)',
+            'z-index': '5'
+        });
+        
+        // Añadir emoji de carretera
+        roadElement.html(`<span style="font-size: 12px; color: white;">🛤️</span>`);
+        
+        // Animación de construcción
+        roadElement.addClass('animate__animated animate__fadeIn');
+        
+        setTimeout(() => {
+            roadElement.removeClass('animate__animated animate__fadeIn');
+        }, 1000);
+        
+        console.log(`[DEBUG] Construida carretera para Jugador ${playerIndex}: ${roadId}`);
+    }
 }
 
 // Función para animar el movimiento del ladrón
@@ -1089,14 +1307,37 @@ function updateDiceRoll(value) {
 
 // Función para comprobar victoria
 function checkVictory() {
-    for (let i = 0; i < 4; i++) {
-        let points = parseInt($('#puntos_victoria_J' + (i + 1)).text());
-        if (points >= 10) {
-            showVictoryConfetti(i);
-            return true;
+    // Verificar si algún jugador ha ganado (10 puntos de victoria)
+    for (let i = 1; i <= 4; i++) {
+        const victoryPoints = parseInt($('#puntos_victoria_J' + i).text()) || 0;
+        if (victoryPoints >= 10) {
+            // Detener autoplay si está activo
+            if (isPlaying) {
+                stopAutoPlay();
+            }
+            
+            // Mostrar efectos de victoria después de un breve delay
+            setTimeout(() => {
+                showVictoryConfetti(i - 1);
+                
+                // Log de victoria
+                let html = `<div class="log-entry victory mb-2">
+                    <i class="fas fa-crown text-warning me-2"></i>
+                    <strong class="text-warning">🎉 ¡JUGADOR ${i} HA GANADO! 🎉</strong>
+                    <br><small class="ms-4">Victoria con ${victoryPoints} puntos</small>
+                </div>`;
+                jQuery('#other_useful_info_text').append(html);
+                autoScrollLog('other_useful_info_text');
+                
+                // Resaltar el jugador ganador
+                $(`#player-card-${i-1}`).addClass('winner-glow');
+                
+            }, 500);
+            
+            return true; // Victoria detectada
         }
     }
-    return false;
+    return false; // No hay victoria
 }
 
 // Funciones para animaciones y efectos especiales
@@ -1182,7 +1423,7 @@ function renderPlayerProfiles() {
                             <span class="longest-road-badge" id="longest_road_P${i}" style="display:none;" title="Ruta Más Larga"><i class="fas fa-road"></i></span>
                         </div>
                     </div>
-                    <div class="player-body">
+                    <div class="player-body" id="hand_P${i}">
                         <div class="player-resources" id="hand_P${i}_resources">
                             <h5>Recursos:</h5>
                             <div class="resources-grid">
@@ -2095,9 +2336,8 @@ function changeHandObject(player, hand_obj) {
 }
 
 function on_development_card_played(card_played_info) {
-    // TODO: Mejora a futuro: mostrar dentro de "mayor ejercito" o algún lugar, cantidad de caballeros que tiene activos cada jugador.
-    // TODO: Mejora a futuro: limitar altura de jQuery('#other_useful_info_text')
     let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let resourceIcons = ['🌾', '⛰️', '🧱', '🪵', '🐑'];
 
     let contador_turnos = jQuery('#contador_turnos');
     let other_useful_info_text = jQuery('#other_useful_info_text');
@@ -2114,6 +2354,12 @@ function on_development_card_played(card_played_info) {
     if (quantity.length) {
         let currentValue = parseInt(quantity.text()) || 0;
         quantity.text(Math.max(0, currentValue - 1));
+        
+        // Animar la disminución
+        quantity.addClass('animate__animated animate__pulse text-danger');
+        setTimeout(() => {
+            quantity.removeClass('animate__animated animate__pulse text-danger');
+        }, 1000);
     }
 
     let html = '<div class="log-entry play-card mb-2">';
@@ -2123,22 +2369,25 @@ function on_development_card_played(card_played_info) {
     
     switch (card_played_info.played_card) {
         case 'knight':
+            html += ' ⚔️';
             if (card_played_info.past_thief_terrain !== undefined && card_played_info.thief_terrain !== undefined) {
                 move_thief(card_played_info.past_thief_terrain, card_played_info.thief_terrain, card_played_info.robbed_player, card_played_info.stolen_material_id, true);
-                html += '<br><small class="ms-4">Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
+                html += '<br><small class="ms-4">🥷 Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
                 if (card_played_info.robbed_player !== undefined && card_played_info.robbed_player !== -1) {
-                    html += ' y robó al Jugador ' + card_played_info.robbed_player;
+                    html += ' y robó al Jugador ' + card_played_info.robbed_player + ' 💰';
                 }
                 html += '</small>';
             }
             break;
         case 'victory_point':
-            html += '<br><small class="ms-4">Punto de Victoria revelado</small>';
+            html += ' 🏆<br><small class="ms-4">Punto de Victoria revelado ✨</small>';
             break;
         case 'monopoly':
+            html += ' 💰';
             if (card_played_info.material_chosen !== undefined) {
                 let material_chosen = materials[card_played_info.material_chosen];
-                html += '<br><small class="ms-4">Monopolio de: ' + material_chosen + '</small>';
+                let materialIcon = resourceIcons[card_played_info.material_chosen];
+                html += '<br><small class="ms-4">Monopolio de: ' + materialIcon + ' ' + material_chosen + '</small>';
                 
                 // Actualizar las manos de todos los jugadores si está disponible
                 for (let i = 0; i < 4; i++) {
@@ -2149,10 +2398,13 @@ function on_development_card_played(card_played_info) {
             }
             break;
         case 'year_of_plenty':
+            html += ' 🎁';
             if (card_played_info.materials_selected) {
+                let material1Icon = resourceIcons[card_played_info.materials_selected.material];
+                let material2Icon = resourceIcons[card_played_info.materials_selected.material_2];
                 let materials_chosen = [
-                    materials[card_played_info.materials_selected.material], 
-                    materials[card_played_info.materials_selected.material_2]
+                    material1Icon + ' ' + materials[card_played_info.materials_selected.material], 
+                    material2Icon + ' ' + materials[card_played_info.materials_selected.material_2]
                 ];
                 html += '<br><small class="ms-4">Recursos elegidos: ' + materials_chosen.join(', ') + '</small>';
                 
@@ -2162,10 +2414,11 @@ function on_development_card_played(card_played_info) {
             }
             break;
         case 'road_building':
+            html += ' 🛤️';
             if (card_played_info.roads) {
                 html += '<br><small class="ms-4">Construcción de carreteras: ';
                 if (card_played_info.valid_road_1) {
-                    html += 'Carretera 1 (nodo ' + card_played_info.roads.node_id + ' → ' + card_played_info.roads.road_to + ') ';
+                    html += '🚧 Carretera 1 (nodo ' + card_played_info.roads.node_id + ' → ' + card_played_info.roads.road_to + ') ';
                     // Dibujar la carretera en el tablero
                     let road_id_str = card_played_info.roads.node_id < card_played_info.roads.road_to ? 
                         `road_${card_played_info.roads.node_id}_${card_played_info.roads.road_to}` : 
@@ -2173,7 +2426,7 @@ function on_development_card_played(card_played_info) {
                     animateRoadBuilding(road_id_str, actual_player);
                 }
                 if (card_played_info.valid_road_2) {
-                    html += 'Carretera 2 (nodo ' + card_played_info.roads.node_id_2 + ' → ' + card_played_info.roads.road_to_2 + ') ';
+                    html += '🚧 Carretera 2 (nodo ' + card_played_info.roads.node_id_2 + ' → ' + card_played_info.roads.road_to_2 + ') ';
                     // Dibujar la segunda carretera en el tablero
                     let road_id_str = card_played_info.roads.node_id_2 < card_played_info.roads.road_to_2 ? 
                         `road_${card_played_info.roads.node_id_2}_${card_played_info.roads.road_to_2}` : 
@@ -2190,6 +2443,9 @@ function on_development_card_played(card_played_info) {
     html += '</div>';
     other_useful_info_text.append(html);
     autoScrollLog('other_useful_info_text');
+    
+    // Animar la carta que se acaba de jugar
+    animateCardPlay(actual_player, card_played_info.played_card);
 }
 
 function animateDiceRoll(totalValue) {
@@ -2252,4 +2508,59 @@ function animateDiceRoll(totalValue) {
     }, 2000);
     
     console.log(`[DEBUG] Dados animados: ${dice1Value} + ${dice2Value} = ${totalValue}`);
+}
+
+// Nueva función para actualizar cartas de desarrollo
+function updateDevCards(playerIndex, devCardsArray) {
+    const devCardCounts = {
+        knight: 0,
+        victory_point: 0,
+        road_building: 0,
+        year_of_plenty: 0,
+        monopoly: 0
+    };
+    
+    const DEV_CARD_TYPE_MAP = {
+        0: 'knight',
+        1: 'victory_point',
+        2: 'road_building',
+        3: 'year_of_plenty',
+        4: 'monopoly'
+    };
+    
+    if (devCardsArray && Array.isArray(devCardsArray)) {
+        devCardsArray.forEach(card => {
+            let cardName = null;
+            if (card.type === 0) { // Knight
+                cardName = 'knight';
+            } else if (card.type === 1) { // Victory Point
+                cardName = 'victory_point';
+            } else if (card.type === 2) { // Progress Card
+                cardName = DEV_CARD_TYPE_MAP[card.effect];
+            }
+            
+            if (cardName && devCardCounts.hasOwnProperty(cardName)) {
+                devCardCounts[cardName]++;
+            }
+        });
+    }
+    
+    // Actualizar UI
+    for (const cardName in devCardCounts) {
+        const cardElement = $(`#hand_P${playerIndex} .dev-cards-grid .${cardName} .${cardName}_quantity`);
+        if (cardElement.length) {
+            const oldValue = parseInt(cardElement.text()) || 0;
+            const newValue = devCardCounts[cardName];
+            
+            cardElement.text(newValue);
+            
+            // Animar cambio si es diferente
+            if (oldValue !== newValue) {
+                cardElement.addClass('animate__animated animate__bounceIn');
+                setTimeout(() => {
+                    cardElement.removeClass('animate__animated animate__bounceIn');
+                }, 1000);
+            }
+        }
+    }
 }
