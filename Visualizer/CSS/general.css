@@ -1073,3 +1073,406 @@ header h1 {
 .border-dashed {
     border-style: dashed !important;
 }
+
+/* Estilos para logs mejorados */
+.log-entry {
+    background-color: white;
+    border-radius: 6px;
+    border-left: 4px solid #1a73e8;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.1);
+    transition: all 0.2s ease-in-out;
+    animation: slideInLog 0.3s ease-out;
+}
+
+.log-entry:hover {
+    box-shadow: 0 2px 4px rgba(60,64,67,0.2);
+    transform: translateY(-1px);
+}
+
+/* Colores específicos para diferentes tipos de log */
+.log-entry.dice-roll {
+    border-left-color: #1a73e8; /* Azul para dados */
+}
+
+.log-entry.thief-move {
+    border-left-color: #ea4335; /* Rojo para ladrón */
+}
+
+.log-entry.trade-bank {
+    border-left-color: #34a853; /* Verde para comercio con banco */
+}
+
+.log-entry.trade-players {
+    border-left-color: #5f6368; /* Gris para comercio entre jugadores */
+}
+
+.log-entry.build {
+    border-left-color: #fbbc05; /* Amarillo para construcción */
+}
+
+.log-entry.buy-card {
+    border-left-color: #ff8a65; /* Naranja para comprar cartas */
+}
+
+.log-entry.play-card {
+    border-left-color: #ab47bc; /* Púrpura para jugar cartas */
+}
+
+.log-entry.discard {
+    border-left-color: #9aa0a6; /* Gris para descartes */
+}
+
+.log-entry.end-turn {
+    border-left-color: #5f6368; /* Gris para fin de turno */
+}
+
+@keyframes slideInLog {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Mejorar el área de logs */
+#commerce_log_text,
+#other_useful_info_text {
+    background: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+    overflow-y: auto;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    height: 250px;
+    max-height: 250px;
+}
+
+#commerce_log_text::-webkit-scrollbar,
+#other_useful_info_text::-webkit-scrollbar {
+    width: 6px;
+}
+
+#commerce_log_text::-webkit-scrollbar-track,
+#other_useful_info_text::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 3px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb,
+#other_useful_info_text::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 3px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb:hover,
+#other_useful_info_text::-webkit-scrollbar-thumb:hover {
+    background: #9aa0a6;
+}
+
+/* Auto-scroll behavior for logs */
+#commerce_log_text,
+#other_useful_info_text {
+    scroll-behavior: smooth;
+}
+
+/* Mejorar controles de auto-play */
+.auto-play-indicator {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9rem;
+    animation: pulseIndicator 2s infinite;
+}
+
+@keyframes pulseIndicator {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+.active-button {
+    background-color: #34a853 !important; /* Verde activo */
+    box-shadow: 0 2px 4px rgba(52, 168, 83, 0.3) !important;
+}
+
+.playing-mode {
+    animation: playingPulse 3s infinite ease-in-out;
+}
+
+@keyframes playingPulse {
+    0%, 100% { 
+        filter: brightness(1);
+    }
+    50% { 
+        filter: brightness(1.05);
+    }
+}
+
+/* Estilos para efectos de ganancia de recursos */
+.gain-indicator {
+    animation: fadeInUp 1s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    50% {
+        opacity: 1;
+        transform: translateY(-5px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+}
+
+/* Estilos para el panel de jugadores mejorado */
+.player-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.player-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.player-header {
+    padding: 0.75rem 1rem;
+    border-radius: 12px 12px 0 0;
+}
+
+.player-name-vp {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.player-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.player-vp {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-weight: bold;
+}
+
+.player-awards {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.largest-army-badge, .longest-road-badge {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.player-body {
+    padding: 1rem;
+}
+
+.resources-grid, .dev-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.resource-item, .dev-card-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.resource-item:hover, .dev-card-item:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.resource-item i, .dev-card-item i {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+    color: #495057;
+}
+
+.resource-quantity, .dev-card-quantity {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #212529;
+}
+
+/* Efectos de victoria */
+.winner-glow {
+    animation: winnerGlow 2s infinite;
+    border: 3px solid gold !important;
+}
+
+@keyframes winnerGlow {
+    0% { box-shadow: 0 0 5px gold; }
+    50% { box-shadow: 0 0 20px gold, 0 0 30px gold; }
+    100% { box-shadow: 0 0 5px gold; }
+}
+
+/* Logs del juego mejorados */
+.log-entry {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
+    background: rgba(248, 249, 250, 0.8);
+    border-left: 4px solid #007bff;
+    transition: all 0.3s ease;
+}
+
+.log-entry:hover {
+    background: rgba(248, 249, 250, 1);
+    transform: translateX(5px);
+}
+
+.log-entry.dice-roll {
+    border-left-color: #6f42c1;
+    background: rgba(111, 66, 193, 0.1);
+}
+
+.log-entry.build {
+    border-left-color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+}
+
+.log-entry.trade-bank, .log-entry.trade-players {
+    border-left-color: #17a2b8;
+    background: rgba(23, 162, 184, 0.1);
+}
+
+.log-entry.thief-move {
+    border-left-color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.log-entry.victory {
+    border-left-color: #ffc107;
+    background: rgba(255, 193, 7, 0.2);
+    animation: victoryPulse 1s infinite;
+}
+
+@keyframes victoryPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
+
+.log-entry.give-cards {
+    border-left-color: #20c997;
+    background: rgba(32, 201, 151, 0.1);
+}
+
+.log-entry.discard-cards {
+    border-left-color: #fd7e14;
+    background: rgba(253, 126, 20, 0.1);
+}
+
+.log-entry.buy-card, .log-entry.play-card {
+    border-left-color: #e83e8c;
+    background: rgba(232, 62, 140, 0.1);
+}
+
+/* Auto-scroll para logs */
+#commerce_log_text, #other_useful_info_text {
+    max-height: 300px;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+#commerce_log_text::-webkit-scrollbar, #other_useful_info_text::-webkit-scrollbar {
+    width: 6px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb, #other_useful_info_text::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 3px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb:hover, #other_useful_info_text::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* Mejoras para construcciones en el tablero */
+.node {
+    transition: all 0.3s ease;
+}
+
+.node:hover {
+    transform: scale(1.1);
+}
+
+.road {
+    transition: all 0.3s ease;
+}
+
+/* Indicador de reproducción automática mejorado */
+.auto-play-indicator {
+    animation: autoPlayPulse 2s infinite;
+}
+
+@keyframes autoPlayPulse {
+    0% { opacity: 0.7; }
+    50% { opacity: 1; }
+    100% { opacity: 0.7; }
+}
+
+/* Estilos para puertos */
+.harbor-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 1;
+}
+
+.harbor-content i {
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.harbor-content span {
+    color: #1a73e8;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.is-harbor {
+    animation: harborPulse 3s ease-in-out infinite;
+}
+
+@keyframes harborPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(26, 115, 232, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(26, 115, 232, 0.6);
+    }
+}

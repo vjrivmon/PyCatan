@@ -302,14 +302,23 @@
                         <div class="game-controls-panel d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="game-info d-flex">
-                                    <div id="diceroll" class="dice-display animate__animated me-3">
+                                    <!--<div id="diceroll" class="dice-display animate__animated me-3">
                                         <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
-                                    </div>
-                                    <div class="rounds card-stats">
+                                    </div>-->
+                                    <div class="rounds card-stats me-3">
                                         <i class="fas fa-hourglass-half me-2"></i>Ronda: 
-                                        <span id="actual_round"></span>
-                                        /
-                                        <span id="rondas_maximas"></span>
+                                        <span id="contador_rondas_display">1</span> / <span id="rondas_maximas"></span>
+                                        <input type="hidden" id="contador_rondas" value="1">
+                                    </div>
+                                    <div class="turns card-stats me-3">
+                                        <i class="fas fa-users me-2"></i>Turno: 
+                                        <span id="contador_turnos_display">1</span>
+                                        <input type="hidden" id="contador_turnos" value="1">
+                                    </div>
+                                    <div class="phases card-stats">
+                                        <i class="fas fa-tasks me-2"></i>Fase: 
+                                        <span id="contador_fases_display">1</span>
+                                        <input type="hidden" id="contador_fases" value="1">
                                     </div>
                                 </div>
                                 
