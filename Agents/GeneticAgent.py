@@ -6,8 +6,6 @@ from Classes.TradeOffer import TradeOffer
 from Classes.Constants import MaterialConstants, BuildConstants, BuildMaterialsConstants, HarborConstants
 from Classes.Materials import Materials
 import random # Importamos random para las implementaciones base
-import json # NUEVO: Para cargar el cromosoma desde archivo
-import os   # NUEVO: Para construir la ruta al archivo del cromosoma
 
 
 class GeneticAgent(AgentInterface):
@@ -16,9 +14,7 @@ class GeneticAgent(AgentInterface):
     mediante un algoritmo genético.
     """
 
-    # AÑADE ESTA LÍNEA (variable de clase)
     chromosome_para_entrenamiento_actual = None
-    BEST_CHROMOSOME_FILENAME = "best_chromosome.json" # NUEVO: Constante para el nombre de archivo
 
     def __init__(self, agent_id, chromosome=None):
         """
@@ -27,13 +23,11 @@ class GeneticAgent(AgentInterface):
         :param agent_id: Identificador único del agente.
         :param chromosome: Una lista o diccionario representando los pesos genéticos
                            que guiarán las decisiones del agente. Si es None,
-                           se podrían inicializar pesos por defecto o aleatorios,
-                           o intentar cargar el mejor cromosoma entrenado.
+                           se utilizará el cromosoma por defecto (los mejores pesos).
         """
         super().__init__(agent_id)
         self.id = agent_id # Aseguramos que el agent_id se almacena como self.id
         
-        # Lógica de inicialización del cromosoma MODIFICADA
         if chromosome is not None:
             self.chromosome = chromosome
             # print(f"GeneticAgent {self.id}: Usando cromosoma PROPORCIONADO explícitamente.")
@@ -42,206 +36,174 @@ class GeneticAgent(AgentInterface):
             self.chromosome = GeneticAgent.chromosome_para_entrenamiento_actual
             # print(f"GeneticAgent {self.id}: Usando cromosoma DE ENTRENAMIENTO.")
         else:
-            # NUEVO: Intentar cargar el mejor cromosoma desde archivo
-            loaded_best_chromosome = self._load_best_chromosome_from_file()
-            if loaded_best_chromosome:
-                self.chromosome = loaded_best_chromosome
-                # print(f"GeneticAgent {self.id}: Usando cromosoma CARGADO desde {self.BEST_CHROMOSOME_FILENAME}.")
-            else:
-                # print(f"GeneticAgent {self.id}: No se proporcionó cromosoma, no está en entrenamiento, y no se pudo cargar '{self.BEST_CHROMOSOME_FILENAME}'. Usando cromosoma POR DEFECTO.")
-                self.chromosome = self._initialize_default_chromosome()
+            # print(f"GeneticAgent {self.id}: Usando cromosoma POR DEFECTO (mejores pesos integrados).")
+            self.chromosome = self._initialize_default_chromosome()
         
         self.had_suboptimal_start = False 
         # self.board_instance = None # No es necesario inicializarlo aquí si se pasa en cada método
 
-    # NUEVO: Método para cargar el cromosoma
-    def _load_best_chromosome_from_file(self):
-        """
-        Intenta cargar el mejor cromosoma desde un archivo JSON predefinido.
-        El archivo se espera que esté en el mismo directorio que este script
-        si entrenador_genetico.py está en el directorio padre (PyCatan/).
-        """
-        # Construir la ruta al archivo best_chromosome.json
-        # Asumimos que GeneticAgent.py está en PyCatan/Agents/
-        # y best_chromosome.json está en PyCatan/
-        current_script_dir = os.path.dirname(os.path.abspath(__file__)) # Esto será /ruta/a/PyCatan/Agents
-        project_root_dir = os.path.dirname(current_script_dir) # Esto será /ruta/a/PyCatan
-        chromosome_file_path = os.path.join(project_root_dir, self.BEST_CHROMOSOME_FILENAME) # Esto será /ruta/a/PyCatan/best_chromosome.json
-
-        if os.path.exists(chromosome_file_path):
-            try:
-                with open(chromosome_file_path, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except json.JSONDecodeError:
-                print(f"Error: {self.BEST_CHROMOSOME_FILENAME} contiene JSON inválido.")
-                return None
-            except Exception as e:
-                print(f"Error al cargar {self.BEST_CHROMOSOME_FILENAME}: {e}")
-                return None
-        # else:
-            # print(f"Info: Archivo {self.BEST_CHROMOSOME_FILENAME} no encontrado en {chromosome_file_path}. Se usará el cromosoma por defecto si es necesario.")
-        return None
-
     def _initialize_default_chromosome(self):
         """
-        Inicializa un cromosoma con pesos por defecto o aleatorios.
-        Esta estructura de pesos será optimizada por el algoritmo genético.
+        Inicializa el cromosoma con los mejores pesos optimizados.
+        Estos pesos han sido definidos en 'best_chromosome.json'.
         """
         return {
             "build_actions": {
-                BuildConstants.TOWN: 1.0,
-                BuildConstants.CITY: 0.9,
-                BuildConstants.ROAD: 0.7,
-                BuildConstants.CARD: 0.5,
-                # Nuevos pesos para el cierre de partida y estrategia general de construcción
-                "late_game_pv_bonus_city": 2.0,         # Bonus aditivo para construir ciudades cuando se tienen > X PVs.
-                "late_game_pv_card_multiplier": 1.2,    # Multiplicador al score de comprar carta cuando se tienen > X PVs.
-                "late_game_vps_threshold": 7,           # Umbral de PVs para activar los bonus de "late_game".
-                "min_overall_score_threshold": 0.1,      # Umbral de score mínimo para realizar cualquier acción de construcción.
-                # Nuevo peso para umbral de carreteras
-                "min_road_score_for_deterministic_build": 1.5,
-                # Nuevos pesos para adaptación de objetivos tempranos
-                "suboptimal_start_card_buy_bonus": 1.5, # Aumentado
-                "suboptimal_start_town_build_bonus": 2.0, # Aumentado
-                "suboptimal_start_road_build_bonus": 0.5, # Nuevo
-                "suboptimal_start_bonus_decay_turn": 15 
+                "town": 0.7730984756915484,
+                "city": 0.3309144993831527,
+                "road": 0.20595669614283263,
+                "card": 0.13651220431020897,
+                "late_game_pv_bonus_city": 3.0555464255155464,
+                "late_game_pv_card_multiplier": 0.43045716867063977,
+                "late_game_vps_threshold": 10.957695971758353,
+                "min_overall_score_threshold": 0.05327415506968203,
+                "min_road_score_for_deterministic_build": 3.1470296803471376,
+                "suboptimal_start_card_buy_bonus": 1.0288644869987553,
+                "suboptimal_start_town_build_bonus": 0.5648133990332749,
+                "suboptimal_start_road_build_bonus": 0.555770122514022,
+                "suboptimal_start_bonus_decay_turn": 40.58057979217617
             },
             "settlement_heuristics": {
-                "resource_value_base": 1.0,
+                "resource_value_base": 0.5769006434770441,
                 "resource_priority": {
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 0.9, MaterialConstants.MINERAL: 1.0
+                    "3": 0.6822506168265137, # WOOD
+                    "2": 0.19886072238117802, # CLAY
+                    "4": 0.5121143264846796, # WOOL
+                    "0": 0.42099396375613907, # CEREAL
+                    "1": 0.20320637510462508  # MINERAL
                 },
-                "production_probability_exponent": 1.0,
-                "new_resource_type_bonus": 0.5,
-                "port_access_bonus": 0.3,
-                "specific_port_match_bonus": 0.4,
-                "number_diversity_bonus": 0.2
+                "production_probability_exponent": 0.4680019766780623,
+                "new_resource_type_bonus": 0.3914754876353038,
+                "port_access_bonus": 0.10834160369125057,
+                "specific_port_match_bonus": 0.4433835663278458,
+                "number_diversity_bonus": 0.47040572699963734
             },
             "road_heuristics": {
-                "to_potential_settlement_spot_bonus": 0.6,
-                "connects_to_own_settlement_bonus": 0.3, # Renombrado de 'expand_network' para claridad
-                "longest_road_contribution_bonus": 0.5,
-                "port_access_bonus": 0.4, # Renombrado de 'to_new_harbor_bonus'
-                "expansion_to_new_terrain_bonus": 0.3, # Renombrado de 'to_new_terrain_bonus'
-                # Nuevos pesos para fallback en construcción de carreteras durante el juego
-                "fallback_suboptimal_road_build_probability": 0.4,
-                "fallback_suboptimal_road_action_score": 0.5 
+                "to_potential_settlement_spot_bonus": 0.6148618501689922,
+                "connects_to_own_settlement_bonus": 0.1288175497566187,
+                "longest_road_contribution_bonus": 0.4661889677368971,
+                "port_access_bonus": 0.41381500014875783,
+                "expansion_to_new_terrain_bonus": 0.6064398402119509,
+                "fallback_suboptimal_road_build_probability": 0.1257420612708004,
+                "fallback_suboptimal_road_action_score": 0.3580571327544674
             },
             "city_heuristics": {
-                "resource_value_base": 1.2,
+                "resource_value_base": 2.370424157838219,
                 "resource_priority": {
-                    MaterialConstants.WOOD: 0.5, MaterialConstants.CLAY: 0.5,
-                    MaterialConstants.WOOL: 0.6, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.2
+                    "3": 1.0,                 # WOOD
+                    "2": 0.19719837464546494, # CLAY
+                    "4": 0.6723655053655547,  # WOOL
+                    "0": 0.7075445348529454,  # CEREAL
+                    "1": 0.8821905845443709   # MINERAL
                 },
-                "production_probability_exponent": 1.1,
-                # Nuevo peso para ciudades en nodos con múltiples números de alta probabilidad
-                "multiple_high_prob_numbers_bonus": 2.0
+                "production_probability_exponent": 0.24671849303157162,
+                "multiple_high_prob_numbers_bonus": 4.665022907116415
             },
             "dev_card_heuristics": {
-                "base_value": 5.0,
-                "knight_bonus": 3.0,
-                "victory_point_bonus": 7.0,
-                "monopoly_bonus": 4.0,
-                "road_building_bonus": 4.0,
-                "year_of_plenty_bonus": 4.0
+                "base_value": 2.3949106279195114,
+                "knight_bonus": 0.9885894311105975,
+                "victory_point_bonus": 4.198805946246691,
+                "monopoly_bonus": 3.7188994975172864,
+                "road_building_bonus": 1.215713904271329,
+                "year_of_plenty_bonus": 1.5183189959212788
             },
-            # Heurísticas para la colocación inicial
             "initial_placement_settlement": {
-                "resource_production_base": 0.9, # Ligeramente reducido para no depender exclusivamente de la producción bruta máxima.
-                "resource_priority": { # Prioridades ajustadas para valorar más los recursos clave.
-                    MaterialConstants.WOOD: 0.9, MaterialConstants.CLAY: 0.9,
-                    MaterialConstants.WOOL: 0.7, # La lana sigue siendo menos prioritaria al inicio.
-                    MaterialConstants.CEREAL: 1.1, # Cereal es crucial.
-                    MaterialConstants.MINERAL: 1.2  # Mineral es muy importante para ciudades y desarrollo.
+                "resource_production_base": 0.3068447564573389,
+                "resource_priority": {
+                    "3": 0.18516386110779742, # WOOD
+                    "2": 0.7523845447282291,  # CLAY
+                    "4": 0.6919748036826056,  # WOOL
+                    "0": 1.0,                 # CEREAL
+                    "1": 0.745225777618892    # MINERAL
                 },
-                "production_probability_exponent": 1.0,
-                "new_resource_type_bonus": 1.7, # Aumentado para fomentar la diversidad desde el inicio.
-                "port_access_bonus": 0.4,       # Aumentado para valorar más la flexibilidad de los puertos.
-                "specific_port_match_bonus": 0.2, # Ligeramente aumentado.
-                "number_diversity_bonus": 0.6,    # Aumentado para no depender de pocos números.
-                "avoid_single_resource_concentration_penalty": -2.0, # Mantener penalización por falta de diversidad.
-                # Nuevos parámetros para estrategia de fallback en colocación inicial
-                "fallback_to_random_if_best_score_below": 2.0, # Si el mejor score heurístico es < X, elige asentamiento aleatorio.
-                "use_heuristic_for_fallback_road": False,      # Si asentamiento es aleatorio, ¿carretera usa heurística (True) o también aleatoria (False)?
-                # Nuevos multiplicadores para adaptación si no es el primer jugador en colocar (detectado por estado del tablero)
+                "production_probability_exponent": 0.23519288149908685,
+                "new_resource_type_bonus": 1.1827752536750873,
+                "port_access_bonus": 0.3142729330593753,
+                "specific_port_match_bonus": 0.4491897237040623,
+                "number_diversity_bonus": 0.4578361794256982,
+                "avoid_single_resource_concentration_penalty": -1.0182530681121218,
+                "fallback_to_random_if_best_score_below": 2.3721787087097335,
+                "use_heuristic_for_fallback_road": 0.004399956195562729,
                 "non_initial_player_multipliers": {
-                    "resource_diversity_bonus": 1.1, 
-                    "number_diversity_bonus": 1.1,
-                    "port_access_bonus": 1.2,
-                    "resource_production_base": 0.95
+                    "resource_diversity_bonus": 3.272693610200753,
+                    "number_diversity_bonus": 0.9513472232316531,
+                    "port_access_bonus": 1.572610229500408,
+                    "resource_production_base": 0.614422715060202
                 }
             },
             "initial_placement_road":{
-                "to_second_potential_settlement_spot_bonus": 0.8, # Mantener fuerte para la planificación del segundo poblado.
-                "resource_variety_expansion_bonus": 0.7, # Aumentado para buscar acceso a más tipos de recursos con la carretera inicial.
-                "general_expansion_bonus": 0.2, 
-                "connect_to_high_prob_numbers_bonus": 0.4 
+                "to_second_potential_settlement_spot_bonus": 0.4741237697124245,
+                "resource_variety_expansion_bonus": 0.13167321593021225,
+                "general_expansion_bonus": 0.18389768376789933,
+                "connect_to_high_prob_numbers_bonus": 0.3681084132821504
             },
-            # Pesos para mover el ladrón
-            "robber_placement_heuristics": { # Renombrado de thief_placement...
-                "target_high_production_node_multiplier": 1.0, # Multiplicador para el valor de producción del nodo
-                "block_specific_resource_priority": { # Prioridad de recurso a bloquear
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.0
+            "robber_placement_heuristics": {
+                "target_high_production_node_multiplier": 0.3362773525642698,
+                "block_specific_resource_priority": {
+                    "3": 0.4235789952882476,  # MADERA
+                    "2": 0.267806375625387,   # ARCILLA
+                    "4": 0.39599532534641513, # LANA
+                    "0": 0.41059712185460007, # CEREAL
+                    "1": 0.488033520567543    # MINERAL
                 },
-                "target_opponent_with_most_vps_bias": 0.5, # Un pequeño extra si se puede identificar al líder
-                "avoid_own_nodes_penalty": -5.0, # Fuerte penalización por bloquearse a sí mismo
-                "randomness_factor": 0.1, # Para evitar predictibilidad total
-                # Nuevos pesos para estrategia de ladrón más incisiva
-                "target_leader_high_production_resource_bonus": 1.5,
+                "target_opponent_with_most_vps_bias": 0.6363925911511359,
+                "avoid_own_nodes_penalty": -4.171765240023148,
+                "randomness_factor": 0.025079101935022968,
+                "target_leader_high_production_resource_bonus": 1.7268790463022237,
                 "target_needed_resource_on_opponent_bonus": 1.0,
-                "leader_vps_advantage_threshold_for_targeting": 2
+                "leader_vps_advantage_threshold_for_targeting": 3.5766035683933834
             },
-            # Pesos para descartar cartas
             "discard_heuristics": {
-                "resource_value_priority": { # Cuanto más bajo, más probable descartar
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 1.0, # La lana a menudo es más fácil de descartar
-                    MaterialConstants.CEREAL: 0.7, MaterialConstants.MINERAL: 0.6
+                "resource_value_priority": {
+                    "3": 0.4209789390700097,  # MADERA
+                    "2": 0.8483311721204296,  # ARCILLA
+                    "4": 0.4270841736142612,  # LANA
+                    "0": 0.30953395890890933, # CEREAL
+                    "1": 1.0                   # MINERAL
                 },
-                "keep_for_settlement_bonus": -0.5, # Bonus negativo (hace menos probable descartar) si se acerca a un poblado
-                "keep_for_city_bonus": -0.6,
-                "keep_for_card_bonus": -0.3
+                "keep_for_settlement_bonus": -0.7064970139000485,
+                "keep_for_city_bonus": -0.5227607757677318,
+                "keep_for_card_bonus": -0.40044088616598084
             },
-            # Heurísticas para decisiones de comercio
             "trade_heuristics": {
-                "willingness_to_trade_general": 0.5, # Factor base
-                "resource_surplus_importance": { # Qué tan importante es tener excedente para comerciar (más alto = más dispuesto)
-                    MaterialConstants.WOOD: 0.6, MaterialConstants.CLAY: 0.6,
-                    MaterialConstants.WOOL: 0.8, MaterialConstants.CEREAL: 0.5, MaterialConstants.MINERAL: 0.5
+                "willingness_to_trade_general": 0.2703541067979195,
+                "resource_surplus_importance": {
+                    "3": 0.32288162288580113, # MADERA
+                    "2": 0.2608196633886547,  # ARCILLA
+                    "4": 0.39622204447865006, # LANA
+                    "0": 0.616331512525276,   # CEREAL
+                    "1": 0.1318730420521943   # MINERAL
                 },
-                "resource_needed_importance": { # Qué tan importante es obtener un recurso necesitado
-                     MaterialConstants.WOOD: 1.2, MaterialConstants.CLAY: 1.2,
-                    MaterialConstants.WOOL: 1.0, MaterialConstants.CEREAL: 1.3, MaterialConstants.MINERAL: 1.3
+                "resource_needed_importance": {
+                    "3": 0.6904129983382203,  # MADERA
+                    "2": 0.5056612321024686,  # ARCILLA
+                    "4": 0.16938007889039497, # LANA
+                    "0": 0.47815215420120916, # CEREAL
+                    "1": 0.29025779242242167  # MINERAL
                 },
-                "bank_trade_ratio_modifier": -0.2, # Penalización por comerciar 4:1 con el banco
-                "port_trade_ratio_modifier": -0.1, # Penalización menor por comerciar 3:1 o 2:1 con puerto
-                "accept_offer_resource_gain_factor": 1.0,
-                "accept_offer_fairness_threshold": 0.8, # Si la oferta es al menos 80% "justa" en valor
-                "min_score_for_self_initiated_trade": 0.5,
-                # Nuevos pesos para comercio estratégico
-                "vps_threshold_consider_leader_trade": 7, # Umbral de PVs (estructurales aproximados) para considerar a un ofertante como "líder".
-                "penalty_trade_with_leader": 0.5,          # Penalización (reducción al score del trato) si se comercia con un "líder".
-                # Nuevos pesos para comercio proactivo con banco/puertos
-                "resource_surplus_threshold_for_proactive_trade": 5,
-                "proactive_trade_score_bonus": 0.3
+                "bank_trade_ratio_modifier": -0.09843227555702758,
+                "port_trade_ratio_modifier": -0.1763372700974885,
+                "accept_offer_resource_gain_factor": 1.4062096032168099,
+                "accept_offer_fairness_threshold": 0.4103828225648573,
+                "min_score_for_self_initiated_trade": 1.0,
+                "vps_threshold_consider_leader_trade": 3.6737792142849965,
+                "penalty_trade_with_leader": 0.28374975210685893,
+                "resource_surplus_threshold_for_proactive_trade": 5.010573513810559,
+                "proactive_trade_score_bonus": 0.667341259052725
             },
-            # Heurísticas para jugar cartas de desarrollo
             "play_dev_card_heuristics":{
-                "knight_immediate_threat_bonus": 1.0, # Si hay un ladrón bloqueando algo importante
-                "knight_take_largest_army_bonus": 1.5,
-                "knight_maintain_largest_army_bonus": 1.0, # Nuevo: Bonus por jugar un caballero para mantener/asegurar el ejército más grande.
-                "knight_contest_largest_army_bonus": 0.8,  # Nuevo: Bonus por jugar un caballero para acercarse o igualar al poseedor del ejército más grande.
-                "knight_for_win_bonus": 5.0,               # Nuevo: Bonus muy alto si jugar caballero otorga PVs para ganar (requiere estimación precisa de PVs).
-                "monopoly_potential_gain_threshold": 4, # Jugar si se espera ganar al menos 4 del recurso
-                "year_of_plenty_immediate_build_bonus": 1.2, # Si permite construir algo importante inmediatamente
-                "road_building_strategic_spot_bonus": 1.0, # Si permite alcanzar un punto estratégico
-                "min_score_to_play_knight_on_start": 0.75,
-                # Nuevos pesos para uso proactivo de caballeros en juego temprano
-                "early_game_turn_threshold": 10,
-                "early_game_knight_suboptimal_start_boost": 1.0,
-                "early_game_knight_robber_on_key_tile_boost": 1.5
+                "knight_immediate_threat_bonus": 0.15803944757173097,
+                "knight_take_largest_army_bonus": 1.4005505050673122,
+                "knight_maintain_largest_army_bonus": 0.45557329616315023,
+                "knight_contest_largest_army_bonus": 1.0,
+                "knight_for_win_bonus": 7.182086991508513,
+                "monopoly_potential_gain_threshold": 2.953307915255669,
+                "year_of_plenty_immediate_build_bonus": 0.2810892737567539,
+                "road_building_strategic_spot_bonus": 0.5236615681105226,
+                "min_score_to_play_knight_on_start": 0.5323532713223691,
+                "early_game_turn_threshold": 12.468408318355344,
+                "early_game_knight_suboptimal_start_boost": 0.5070248617081883,
+                "early_game_knight_robber_on_key_tile_boost": 2.041986450016127
             }
         }
 

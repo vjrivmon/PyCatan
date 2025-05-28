@@ -1,159 +1,159 @@
 {
     "build_actions": {
-        "town": 1.0434078596242222,
-        "city": 0.6175053647666615,
-        "road": 0.6204533579235786,
-        "card": 0.07813213536106081,
-        "late_game_pv_bonus_city": 1.5752058702746121,
-        "late_game_pv_card_multiplier": 0.7511138795628907,
-        "late_game_vps_threshold": 4.288784269287821,
-        "min_overall_score_threshold": 0.06204953899376228,
-        "min_road_score_for_deterministic_build": 1.5337671795025445,
-        "suboptimal_start_card_buy_bonus": 1.1116049027470405,
-        "suboptimal_start_town_build_bonus": 3.159819200171558,
-        "suboptimal_start_road_build_bonus": 0.5297212235333433,
-        "suboptimal_start_bonus_decay_turn": 8.607437864962158
+        "town": 0.7730984756915484,
+        "city": 0.3309144993831527,
+        "road": 0.20595669614283263,
+        "card": 0.13651220431020897,
+        "late_game_pv_bonus_city": 3.0555464255155464,
+        "late_game_pv_card_multiplier": 0.43045716867063977,
+        "late_game_vps_threshold": 10.957695971758353,
+        "min_overall_score_threshold": 0.05327415506968203,
+        "min_road_score_for_deterministic_build": 3.1470296803471376,
+        "suboptimal_start_card_buy_bonus": 1.0288644869987553,
+        "suboptimal_start_town_build_bonus": 0.5648133990332749,
+        "suboptimal_start_road_build_bonus": 0.555770122514022,
+        "suboptimal_start_bonus_decay_turn": 40.58057979217617
     },
     "settlement_heuristics": {
-        "resource_value_base": 1.1548753434318808,
+        "resource_value_base": 0.5769006434770441,
         "resource_priority": {
-            "3": 0.5113028777459824,
-            "2": 0.9942690184445587,
-            "4": 0.888360869124165,
-            "0": 1.1146177891688815,
-            "1": 0.9291226013220526
+            "3": 0.6822506168265137,
+            "2": 0.19886072238117802,
+            "4": 0.5121143264846796,
+            "0": 0.42099396375613907,
+            "1": 0.20320637510462508
         },
-        "production_probability_exponent": 1.3793036405579353,
-        "new_resource_type_bonus": 0.6808152868412128,
-        "port_access_bonus": 0.1771785394173968,
-        "specific_port_match_bonus": 0.5829020977709836,
-        "number_diversity_bonus": 0.2714406463060163
+        "production_probability_exponent": 0.4680019766780623,
+        "new_resource_type_bonus": 0.3914754876353038,
+        "port_access_bonus": 0.10834160369125057,
+        "specific_port_match_bonus": 0.4433835663278458,
+        "number_diversity_bonus": 0.47040572699963734
     },
     "road_heuristics": {
-        "to_potential_settlement_spot_bonus": 0.5728963568491346,
-        "connects_to_own_settlement_bonus": 0.18534516964611059,
-        "longest_road_contribution_bonus": 0.5447916151739917,
-        "port_access_bonus": 0.2594564690579463,
-        "expansion_to_new_terrain_bonus": 0.22418012796171677,
-        "fallback_suboptimal_road_build_probability": 0.4991286933298277,
-        "fallback_suboptimal_road_action_score": 0.4543091584572758
+        "to_potential_settlement_spot_bonus": 0.6148618501689922,
+        "connects_to_own_settlement_bonus": 0.1288175497566187,
+        "longest_road_contribution_bonus": 0.4661889677368971,
+        "port_access_bonus": 0.41381500014875783,
+        "expansion_to_new_terrain_bonus": 0.6064398402119509,
+        "fallback_suboptimal_road_build_probability": 0.1257420612708004,
+        "fallback_suboptimal_road_action_score": 0.3580571327544674
     },
     "city_heuristics": {
-        "resource_value_base": 0.8907017687546881,
+        "resource_value_base": 2.370424157838219,
         "resource_priority": {
-            "3": 0.361203158292224,
-            "2": 0.41357650007855484,
-            "4": 0.6087168289864792,
-            "0": 1.4857247072572233,
-            "1": 1.0265530565071976
+            "3": 1.0,
+            "2": 0.19719837464546494,
+            "4": 0.6723655053655547,
+            "0": 0.7075445348529454,
+            "1": 0.8821905845443709
         },
-        "production_probability_exponent": 0.6781525643838445,
-        "multiple_high_prob_numbers_bonus": 2.437676466653162
+        "production_probability_exponent": 0.24671849303157162,
+        "multiple_high_prob_numbers_bonus": 4.665022907116415
     },
     "dev_card_heuristics": {
-        "base_value": 6.895495160984728,
-        "knight_bonus": 4.129263317405113,
-        "victory_point_bonus": 9.862163009021764,
-        "monopoly_bonus": 4.340046058806685,
-        "road_building_bonus": 3.866593059827354,
-        "year_of_plenty_bonus": 4.32709224831055
+        "base_value": 2.3949106279195114,
+        "knight_bonus": 0.9885894311105975,
+        "victory_point_bonus": 4.198805946246691,
+        "monopoly_bonus": 3.7188994975172864,
+        "road_building_bonus": 1.215713904271329,
+        "year_of_plenty_bonus": 1.5183189959212788
     },
     "initial_placement_settlement": {
-        "resource_production_base": 0.6082162981622778,
+        "resource_production_base": 0.3068447564573389,
         "resource_priority": {
-            "3": 0.8062646426578801,
-            "2": 1.0443693847443456,
-            "4": 0.5783384034167075,
-            "0": 1.365956402977944,
-            "1": 0.9924706386356335
+            "3": 0.18516386110779742,
+            "2": 0.7523845447282291,
+            "4": 0.6919748036826056,
+            "0": 1.0,
+            "1": 0.745225777618892
         },
-        "production_probability_exponent": 0.8806645733289762,
-        "new_resource_type_bonus": 1.5187194357708023,
-        "port_access_bonus": 0.45235450644247155,
-        "specific_port_match_bonus": 0.1458313976537938,
-        "number_diversity_bonus": 0.883808480464733,
-        "avoid_single_resource_concentration_penalty": -2.146435776643031,
-        "fallback_to_random_if_best_score_below": 2.788814495851062,
-        "use_heuristic_for_fallback_road": 0.09531024085562578,
+        "production_probability_exponent": 0.23519288149908685,
+        "new_resource_type_bonus": 1.1827752536750873,
+        "port_access_bonus": 0.3142729330593753,
+        "specific_port_match_bonus": 0.4491897237040623,
+        "number_diversity_bonus": 0.4578361794256982,
+        "avoid_single_resource_concentration_penalty": -1.0182530681121218,
+        "fallback_to_random_if_best_score_below": 2.3721787087097335,
+        "use_heuristic_for_fallback_road": 0.004399956195562729,
         "non_initial_player_multipliers": {
-            "resource_diversity_bonus": 0.5757005443201001,
-            "number_diversity_bonus": 1.4180178665456116,
-            "port_access_bonus": 0.6690069068336296,
-            "resource_production_base": 0.535550031268268
+            "resource_diversity_bonus": 3.272693610200753,
+            "number_diversity_bonus": 0.9513472232316531,
+            "port_access_bonus": 1.572610229500408,
+            "resource_production_base": 0.614422715060202
         }
     },
     "initial_placement_road": {
-        "to_second_potential_settlement_spot_bonus": 1.190654429283887,
-        "resource_variety_expansion_bonus": 0.6737223945096207,
-        "general_expansion_bonus": 0.14661685819241202,
-        "connect_to_high_prob_numbers_bonus": 0.4533587536627887
+        "to_second_potential_settlement_spot_bonus": 0.4741237697124245,
+        "resource_variety_expansion_bonus": 0.13167321593021225,
+        "general_expansion_bonus": 0.18389768376789933,
+        "connect_to_high_prob_numbers_bonus": 0.3681084132821504
     },
     "robber_placement_heuristics": {
-        "target_high_production_node_multiplier": 0.8458928842152159,
+        "target_high_production_node_multiplier": 0.3362773525642698,
         "block_specific_resource_priority": {
-            "3": 0.758468087821103,
-            "2": 0.6967894392824417,
-            "4": 0.8422411346265742,
-            "0": 0.9154780888569232,
-            "1": 0.527751815780778
+            "3": 0.4235789952882476,
+            "2": 0.267806375625387,
+            "4": 0.39599532534641513,
+            "0": 0.41059712185460007,
+            "1": 0.488033520567543
         },
-        "target_opponent_with_most_vps_bias": 0.4765643794009684,
-        "avoid_own_nodes_penalty": -2.884817729610361,
-        "randomness_factor": 0.10224713068648691,
-        "target_leader_high_production_resource_bonus": 1.3201506006648465,
-        "target_needed_resource_on_opponent_bonus": 0.9894538853714967,
-        "leader_vps_advantage_threshold_for_targeting": 2.325959971744906
+        "target_opponent_with_most_vps_bias": 0.6363925911511359,
+        "avoid_own_nodes_penalty": -4.171765240023148,
+        "randomness_factor": 0.025079101935022968,
+        "target_leader_high_production_resource_bonus": 1.7268790463022237,
+        "target_needed_resource_on_opponent_bonus": 1.0,
+        "leader_vps_advantage_threshold_for_targeting": 3.5766035683933834
     },
     "discard_heuristics": {
         "resource_value_priority": {
-            "3": 0.7320519224412947,
-            "2": 0.4760597036021428,
-            "4": 0.8472311435948702,
-            "0": 0.48508670872299636,
-            "1": 0.6673556253184697
+            "3": 0.4209789390700097,
+            "2": 0.8483311721204296,
+            "4": 0.4270841736142612,
+            "0": 0.30953395890890933,
+            "1": 1.0
         },
-        "keep_for_settlement_bonus": -0.5555503855702837,
-        "keep_for_city_bonus": -0.3393775263233011,
-        "keep_for_card_bonus": -0.3909343808184659
+        "keep_for_settlement_bonus": -0.7064970139000485,
+        "keep_for_city_bonus": -0.5227607757677318,
+        "keep_for_card_bonus": -0.40044088616598084
     },
     "trade_heuristics": {
-        "willingness_to_trade_general": 0.6418494303525835,
+        "willingness_to_trade_general": 0.2703541067979195,
         "resource_surplus_importance": {
-            "3": 0.33424291821554414,
-            "2": 0.5694614558209037,
-            "4": 1.1428846686147611,
-            "0": 0.7482663077101612,
-            "1": 0.6563165470065885
+            "3": 0.32288162288580113,
+            "2": 0.2608196633886547,
+            "4": 0.39622204447865006,
+            "0": 0.616331512525276,
+            "1": 0.1318730420521943
         },
         "resource_needed_importance": {
-            "3": 1.2297538078958725,
-            "2": 0.680660381237818,
-            "4": 0.6093334893225302,
-            "0": 0.7503366902980587,
-            "1": 1.1539244577631713
+            "3": 0.6904129983382203,
+            "2": 0.5056612321024686,
+            "4": 0.16938007889039497,
+            "0": 0.47815215420120916,
+            "1": 0.29025779242242167
         },
-        "bank_trade_ratio_modifier": -0.25531715636711316,
-        "port_trade_ratio_modifier": -0.05058242016631029,
-        "accept_offer_resource_gain_factor": 0.6399276406390004,
-        "accept_offer_fairness_threshold": 0.9517783823066841,
-        "min_score_for_self_initiated_trade": 0.4520597648144204,
-        "vps_threshold_consider_leader_trade": 4.392148743337582,
-        "penalty_trade_with_leader": 0.4953533243818039,
-        "resource_surplus_threshold_for_proactive_trade": 2.6952668570838885,
-        "proactive_trade_score_bonus": 0.204377733719424
+        "bank_trade_ratio_modifier": -0.09843227555702758,
+        "port_trade_ratio_modifier": -0.1763372700974885,
+        "accept_offer_resource_gain_factor": 1.4062096032168099,
+        "accept_offer_fairness_threshold": 0.4103828225648573,
+        "min_score_for_self_initiated_trade": 1.0,
+        "vps_threshold_consider_leader_trade": 3.6737792142849965,
+        "penalty_trade_with_leader": 0.28374975210685893,
+        "resource_surplus_threshold_for_proactive_trade": 5.010573513810559,
+        "proactive_trade_score_bonus": 0.667341259052725
     },
     "play_dev_card_heuristics": {
-        "knight_immediate_threat_bonus": 0.5906489034691743,
-        "knight_take_largest_army_bonus": 1.4734294675838044,
-        "knight_maintain_largest_army_bonus": 0.7907463669266187,
-        "knight_contest_largest_army_bonus": 0.9297311322604944,
-        "knight_for_win_bonus": 3.2723117521230423,
-        "monopoly_potential_gain_threshold": 4.42950557830547,
-        "year_of_plenty_immediate_build_bonus": 1.332467225149535,
-        "road_building_strategic_spot_bonus": 1.271773831902428,
-        "min_score_to_play_knight_on_start": 0.7241123937794824,
-        "early_game_turn_threshold": 12.886740495434845,
-        "early_game_knight_suboptimal_start_boost": 0.8200690480303158,
-        "early_game_knight_robber_on_key_tile_boost": 1.878207500203232
+        "knight_immediate_threat_bonus": 0.15803944757173097,
+        "knight_take_largest_army_bonus": 1.4005505050673122,
+        "knight_maintain_largest_army_bonus": 0.45557329616315023,
+        "knight_contest_largest_army_bonus": 1.0,
+        "knight_for_win_bonus": 7.182086991508513,
+        "monopoly_potential_gain_threshold": 2.953307915255669,
+        "year_of_plenty_immediate_build_bonus": 0.2810892737567539,
+        "road_building_strategic_spot_bonus": 0.5236615681105226,
+        "min_score_to_play_knight_on_start": 0.5323532713223691,
+        "early_game_turn_threshold": 12.468408318355344,
+        "early_game_knight_suboptimal_start_boost": 0.5070248617081883,
+        "early_game_knight_robber_on_key_tile_boost": 2.041986450016127
     }
 }
