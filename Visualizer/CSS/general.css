@@ -1073,3 +1073,139 @@ header h1 {
 .border-dashed {
     border-style: dashed !important;
 }
+
+/* Estilos para logs mejorados */
+.log-entry {
+    background-color: white;
+    border-radius: 6px;
+    border-left: 4px solid #1a73e8;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.1);
+    transition: all 0.2s ease-in-out;
+    animation: slideInLog 0.3s ease-out;
+}
+
+.log-entry:hover {
+    box-shadow: 0 2px 4px rgba(60,64,67,0.2);
+    transform: translateY(-1px);
+}
+
+/* Colores específicos para diferentes tipos de log */
+.log-entry.dice-roll {
+    border-left-color: #1a73e8; /* Azul para dados */
+}
+
+.log-entry.thief-move {
+    border-left-color: #ea4335; /* Rojo para ladrón */
+}
+
+.log-entry.trade-bank {
+    border-left-color: #34a853; /* Verde para comercio con banco */
+}
+
+.log-entry.trade-players {
+    border-left-color: #5f6368; /* Gris para comercio entre jugadores */
+}
+
+.log-entry.build {
+    border-left-color: #fbbc05; /* Amarillo para construcción */
+}
+
+.log-entry.buy-card {
+    border-left-color: #ff8a65; /* Naranja para comprar cartas */
+}
+
+.log-entry.play-card {
+    border-left-color: #ab47bc; /* Púrpura para jugar cartas */
+}
+
+.log-entry.discard {
+    border-left-color: #9aa0a6; /* Gris para descartes */
+}
+
+.log-entry.end-turn {
+    border-left-color: #5f6368; /* Gris para fin de turno */
+}
+
+@keyframes slideInLog {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Mejorar el área de logs */
+#commerce_log_text,
+#other_useful_info_text {
+    background: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+    overflow-y: auto;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+    height: 250px;
+    max-height: 250px;
+}
+
+#commerce_log_text::-webkit-scrollbar,
+#other_useful_info_text::-webkit-scrollbar {
+    width: 6px;
+}
+
+#commerce_log_text::-webkit-scrollbar-track,
+#other_useful_info_text::-webkit-scrollbar-track {
+    background: #f1f3f4;
+    border-radius: 3px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb,
+#other_useful_info_text::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 3px;
+}
+
+#commerce_log_text::-webkit-scrollbar-thumb:hover,
+#other_useful_info_text::-webkit-scrollbar-thumb:hover {
+    background: #9aa0a6;
+}
+
+/* Auto-scroll behavior for logs */
+#commerce_log_text,
+#other_useful_info_text {
+    scroll-behavior: smooth;
+}
+
+/* Mejorar controles de auto-play */
+.auto-play-indicator {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9rem;
+    animation: pulseIndicator 2s infinite;
+}
+
+@keyframes pulseIndicator {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+}
+
+.active-button {
+    background-color: #34a853 !important; /* Verde activo */
+    box-shadow: 0 2px 4px rgba(52, 168, 83, 0.3) !important;
+}
+
+.playing-mode {
+    animation: playingPulse 3s infinite ease-in-out;
+}
+
+@keyframes playingPulse {
+    0%, 100% { 
+        filter: brightness(1);
+    }
+    50% { 
+        filter: brightness(1.05);
+    }
+}
