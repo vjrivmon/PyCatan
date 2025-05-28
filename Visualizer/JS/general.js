@@ -113,6 +113,10 @@ function init_events() {
                 try {
                     game_obj = JSON.parse(evt.target.result);
                     console.log('[DEBUG] JSON parseado correctamente. game_obj:', game_obj); // DEBUG
+                    
+                    // Mostrar información detallada de la estructura del juego
+                    debugGameStructure(game_obj);
+                    
                 } catch (e) {
                     console.error('[DEBUG] Error al parsear JSON:', e); // DEBUG
                     alert('Error: El archivo JSON no es válido.');
@@ -168,8 +172,20 @@ function init_events() {
                 console.log('[DEBUG] Después de reset_game().'); // DEBUG
                 
                 // Actualizar UI con datos del JSON (esto repoblará info de jugadores, recursos, etc.)
+                console.log('[DEBUG] Antes de updateUIDataFromGameObj().'); // DEBUG
                 updateUIDataFromGameObj(game_obj); 
                 console.log('[DEBUG] Después de updateUIDataFromGameObj().'); // DEBUG
+                
+                // Añadir log de resumen de la partida cargada
+                setTimeout(() => {
+                    let summaryHtml = `<div class="log-entry summary-info mb-2" style="border-left-color: #17a2b8; background-color: rgba(23, 162, 184, 0.1);">
+                        <i class="fas fa-info-circle text-info me-2"></i>
+                        <strong>📊 Resumen de la partida</strong>
+                        <br><small class="ms-4">🎯 Navega con los controles o usa Play para ver la evolución automática</small>
+                    </div>`;
+                    jQuery('#other_useful_info_text').append(summaryHtml);
+                    autoScrollLog('other_useful_info_text');
+                }, 500);
                 
                 // Cerrar el modal
                 $('#uploadModal').modal('hide');
@@ -1885,117 +1901,131 @@ function updateUIDataFromGameObj(game_data) {
         return;
     }
 
+    // Mapeo de constantes de tipo de carta desde Python
     const DEV_CARD_TYPE_MAP = {
-        0: 'knight',       // KNIGHT_EFFECT (asumiendo type 0 es Knight)
-        1: 'victory_point',// VICTORY_POINT_EFFECT (asumiendo type 1 es VP)
+        0: 'knight',       // KNIGHT_EFFECT
+        1: 'victory_point',// VICTORY_POINT_EFFECT
         2: 'road_building',
         3: 'year_of_plenty',
         4: 'monopoly'
     };
-    // Mapeo de constantes de tipo de carta desde Python
+
+    // Mapeo de constantes
     const PYTHON_KNIGHT_CARD_TYPE = 0;
     const PYTHON_VICTORY_POINT_CARD_TYPE = 1;
     const PYTHON_PROGRESS_CARD_TYPE = 2;
 
-    // Mapeo de constantes de efecto de carta desde Python
-    // const PYTHON_KNIGHT_EFFECT = 0; // Coincide con DEV_CARD_TYPE_MAP[0]
-    // const PYTHON_VICTORY_POINT_EFFECT = 1; // Coincide con DEV_CARD_TYPE_MAP[1]
+    // Mapeo de efectos
     const PYTHON_ROAD_BUILDING_EFFECT = 2;
     const PYTHON_YEAR_OF_PLENTY_EFFECT = 3;
     const PYTHON_MONOPOLY_EFFECT = 4;
 
-    let lastRoundKey = 'round_0';
-    if (game_data.game && Object.keys(game_data.game).length > 0) {
-        lastRoundKey = Object.keys(game_data.game).sort((a, b) => parseInt(b.split('_')[1]) - parseInt(a.split('_')[1]))[0];
-    }
-    const lastRoundData = game_data.game[lastRoundKey];
-    if (!lastRoundData) {
-        console.error("[DEBUG] No se encontraron datos para la última ronda (", lastRoundKey, ")");
-        return;
-    }
-
-    let lastTurnKey = 'P0'; // Asumimos un jugador por defecto si no hay turnos
-    if (lastRoundData && Object.keys(lastRoundData).length > 0) {
-         // Los turnos son como P0, P1, P2, P3 o turn_P0, turn_P1 etc.
-         // Necesitamos encontrar el último turno procesado que tenga end_turn y start_turn.
-         // Las claves de turno podrían ser "turn_P0", "P0", etc.
-         // Vamos a buscar el índice de jugador más alto en las claves.
-        let playerIndexes = Object.keys(lastRoundData).map(key => {
-            const match = key.match(/(?:turn_P|P)(\d+)/);
-            return match ? parseInt(match[1]) : -1;
-        }).filter(idx => idx !== -1);
-
-        if (playerIndexes.length > 0) {
-            const maxPlayerIndex = Math.max(...playerIndexes);
-            // Intentar encontrar la clave de turno que contiene la información más completa (end_turn)
-            // Las claves pueden ser P0, P1... o start_turn, end_turn, etc. o turn_P0.
-            // Daremos prioridad a las claves que representen un turno de jugador (ej. P0, turn_P0)
-            const potentialTurnKeys = Object.keys(lastRoundData).filter(key => key.includes('P' + maxPlayerIndex));
-            if (potentialTurnKeys.length > 0) {
-                 // Idealmente, la traza debería tener una estructura consistente para el último estado.
-                 // Por ahora, tomaremos la primera clave que coincida con el jugador más alto.
-                 // Esto podría necesitar ajuste si la estructura de la traza varía mucho.
-                lastTurnKey = potentialTurnKeys.sort().pop(); // Tomar la última alfabéticamente, heurística.
-            } else {
-                 // Si no encontramos una clave específica de jugador, buscamos una general 'end_turn' o 'start_turn'
-                 // Esto es menos ideal, ya que el JSON podría no tener todos los datos en una sola de estas claves
-                 // para todos los jugadores al mismo tiempo.
-                if (lastRoundData['end_turn']) lastTurnKey = 'end_turn';
-                else if (lastRoundData['start_turn']) lastTurnKey = 'start_turn';
-                // Si no, se queda con P0 por defecto, lo cual es problemático.
-                console.warn("[DEBUG] No se encontró una clave de turno específica para el jugador", maxPlayerIndex, "en la ronda", lastRoundKey, ". Usando", lastTurnKey);
+    // Buscar la última fase con datos completos
+    let finalGameState = null;
+    
+    // Recorrer todas las rondas para encontrar la última información completa
+    for (let roundKey in game_data.game) {
+        let roundData = game_data.game[roundKey];
+        for (let turnKey in roundData) {
+            let turnData = roundData[turnKey];
+            for (let phaseKey in turnData) {
+                let phaseData = turnData[phaseKey];
+                
+                // Buscar el estado más completo posible
+                if (phaseData && typeof phaseData === 'object') {
+                    let hasPlayerData = false;
+                    let hasVictoryPoints = false;
+                    
+                    // Verificar si tiene datos de jugadores
+                    for (let i = 0; i < 4; i++) {
+                        if (phaseData['hand_P' + i] || phaseData['development_cards_P' + i]) {
+                            hasPlayerData = true;
+                        }
+                    }
+                    
+                    // Verificar si tiene puntos de victoria
+                    if (phaseData.victory_points) {
+                        hasVictoryPoints = true;
+                    }
+                    
+                    // Si tiene datos útiles, usarlo como estado final
+                    if (hasPlayerData || hasVictoryPoints) {
+                        finalGameState = phaseData;
+                        console.log("[DEBUG] Estado del juego encontrado en:", roundKey, turnKey, phaseKey);
+                    }
+                }
             }
         }
     }
-    
-    const turnData = lastRoundData[lastTurnKey];
-    // Si turnData no existe o está vacío, intentamos con el objeto de ronda directamente
-    // ya que a veces la información de 'hand_P*' y 'victory_points' puede estar allí.
-    const currentTurnState = (turnData && Object.keys(turnData).length > 0) ? turnData : lastRoundData;
 
-    if (!currentTurnState) {
-        console.error("[DEBUG] No se encontraron datos para el último turno (", lastTurnKey, ") en la ronda (", lastRoundKey, ")");
+    // Si no encontramos un estado final en las fases, buscar en el setup
+    if (!finalGameState && game_data.setup) {
+        console.log("[DEBUG] No se encontró estado final, usando datos de setup");
+        finalGameState = {
+            victory_points: {},
+            // Inicializar puntos de victoria basados en setup (2 por cada poblado inicial)
+        };
+        
+        // Calcular puntos de victoria iniciales del setup
+        for (let i = 0; i < 4; i++) {
+            if (game_data.setup['P' + i]) {
+                finalGameState.victory_points['J' + i] = game_data.setup['P' + i].length;
+            } else {
+                finalGameState.victory_points['J' + i] = 0;
+            }
+        }
+    }
+
+    if (!finalGameState) {
+        console.warn("[DEBUG] No se encontró estado del juego válido");
         return;
     }
 
-    console.log("[DEBUG] Datos del último turno (", lastTurnKey, ") a usar:", JSON.parse(JSON.stringify(currentTurnState)));
+    console.log("[DEBUG] Estado final del juego a usar:", JSON.parse(JSON.stringify(finalGameState)));
 
     const resourcesOrder = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
 
+    // Actualizar datos para cada jugador
     for (let i = 0; i < 4; i++) {
-        // 1. Actualizar Puntos de Victoria con animación
+        console.log(`[DEBUG] Actualizando jugador ${i}`);
+        
+        // 1. Actualizar Puntos de Victoria
         let victoryPoints = 0;
-        if (currentTurnState.victory_points && currentTurnState.victory_points['J' + i]) {
-            victoryPoints = parseInt(currentTurnState.victory_points['J' + i]) || 0;
+        if (finalGameState.victory_points && finalGameState.victory_points['J' + i] !== undefined) {
+            victoryPoints = parseInt(finalGameState.victory_points['J' + i]) || 0;
         } else if (game_data.setup && game_data.setup['P' + i]) {
-            // Los PV iniciales son 2 por los dos poblados de setup
-            // Esta es una heurística si no se encuentran en el último turno.
+            // Fallback al setup si no hay datos de victoria
             victoryPoints = game_data.setup['P' + i].length; 
         }
+        
         const vpElement = $('#puntos_victoria_J' + (i + 1));
-        const oldVP = parseInt(vpElement.text()) || 0;
-        animateNumberUpdate(vpElement, victoryPoints, oldVP);
+        console.log(`[DEBUG] Actualizando PV del jugador ${i} a ${victoryPoints}`);
+        animateNumberUpdate(vpElement, victoryPoints, parseInt(vpElement.text()) || 0);
 
-        // 2. Actualizar Recursos con animación
-        const playerHandResources = currentTurnState['hand_P' + i];
+        // 2. Actualizar Recursos
+        const playerHandResources = finalGameState['hand_P' + i];
+        console.log(`[DEBUG] Recursos del jugador ${i}:`, playerHandResources);
+        
         if (playerHandResources) {
             resourcesOrder.forEach(resourceName => {
                 const quantity = playerHandResources[resourceName] || 0;
                 const resourceElement = $('#hand_P' + i + ' .resources-grid .' + resourceName + ' .' + resourceName + '_quantity');
-                const oldQuantity = parseInt(resourceElement.text()) || 0;
-                animateNumberUpdate(resourceElement, quantity, oldQuantity);
+                console.log(`[DEBUG] Actualizando ${resourceName} del jugador ${i} a ${quantity}`);
+                animateNumberUpdate(resourceElement, quantity, parseInt(resourceElement.text()) || 0);
             });
         } else {
-            console.warn("[DEBUG] No se encontró hand_P" + i + " en los datos del turno/ronda.");
-             resourcesOrder.forEach(resourceName => {
+            console.warn(`[DEBUG] No se encontró hand_P${i} en el estado final`);
+            // Resetear a 0 si no hay datos
+            resourcesOrder.forEach(resourceName => {
                 const resourceElement = $('#hand_P' + i + ' .resources-grid .' + resourceName + ' .' + resourceName + '_quantity');
-                const oldQuantity = parseInt(resourceElement.text()) || 0;
-                animateNumberUpdate(resourceElement, 0, oldQuantity);
+                animateNumberUpdate(resourceElement, 0, parseInt(resourceElement.text()) || 0);
             });
         }
 
-        // 3. Actualizar Cartas de Desarrollo con animación
-        const devCardsOnHand = currentTurnState['development_cards_P' + i];
+        // 3. Actualizar Cartas de Desarrollo
+        const devCardsOnHand = finalGameState['development_cards_P' + i];
+        console.log(`[DEBUG] Cartas de desarrollo del jugador ${i}:`, devCardsOnHand);
+        
         const devCardCounts = {
             knight: 0,
             victory_point: 0,
@@ -2007,38 +2037,52 @@ function updateUIDataFromGameObj(game_data) {
         if (devCardsOnHand && Array.isArray(devCardsOnHand)) {
             devCardsOnHand.forEach(card => {
                 let cardName = null;
-                if (card.type === PYTHON_KNIGHT_CARD_TYPE) { // Knight
-                    cardName = DEV_CARD_TYPE_MAP[PYTHON_KNIGHT_EFFECT]; // Asume effect 0 para knight
-                } else if (card.type === PYTHON_VICTORY_POINT_CARD_TYPE) { // Victory Point
-                    cardName = DEV_CARD_TYPE_MAP[PYTHON_VICTORY_POINT_EFFECT]; // Asume effect 1 para VP
-                } else if (card.type === PYTHON_PROGRESS_CARD_TYPE) { // Progress Card
-                    cardName = DEV_CARD_TYPE_MAP[card.effect]; // Usa el efecto para determinar el tipo de carta de progreso
+                if (card.type === PYTHON_KNIGHT_CARD_TYPE) {
+                    cardName = 'knight';
+                } else if (card.type === PYTHON_VICTORY_POINT_CARD_TYPE) {
+                    cardName = 'victory_point';
+                } else if (card.type === PYTHON_PROGRESS_CARD_TYPE) {
+                    // Usar el efecto para determinar el tipo de carta de progreso
+                    if (card.effect === PYTHON_ROAD_BUILDING_EFFECT) {
+                        cardName = 'road_building';
+                    } else if (card.effect === PYTHON_YEAR_OF_PLENTY_EFFECT) {
+                        cardName = 'year_of_plenty';
+                    } else if (card.effect === PYTHON_MONOPOLY_EFFECT) {
+                        cardName = 'monopoly';
+                    }
                 }
 
                 if (cardName && devCardCounts.hasOwnProperty(cardName)) {
                     devCardCounts[cardName]++;
                 }
             });
-        }
-         else {
-            console.warn("[DEBUG] No se encontró development_cards_P" + i + " o no es un array en los datos del turno/ronda.");
+        } else {
+            console.warn(`[DEBUG] No se encontró development_cards_P${i} o no es un array`);
         }
 
+        // Actualizar UI de cartas de desarrollo
         for (const cardName in devCardCounts) {
             const cardElement = $('#hand_P' + i + ' .dev-cards-grid .' + cardName + ' .' + cardName + '_quantity');
-            const oldCount = parseInt(cardElement.text()) || 0;
-            animateNumberUpdate(cardElement, devCardCounts[cardName], oldCount);
+            console.log(`[DEBUG] Actualizando ${cardName} del jugador ${i} a ${devCardCounts[cardName]}`);
+            animateNumberUpdate(cardElement, devCardCounts[cardName], parseInt(cardElement.text()) || 0);
         }
         
-        // Actualizar badges de Mayor Ejército y Ruta más larga (si estuvieran en el JSON)
-        // Esta información no parece estar consistentemente en `end_turn` o `start_turn` de la traza actual.
-        // Se necesitaría añadir `largest_army_P${i}` y `longest_road_P${i}` al JSON.
-        // Por ahora, se dejan como estaban (ocultos o con el valor del último estado procesado por el visualizador)
-        // Ejemplo de cómo se haría si los datos estuvieran:
-        // if (currentTurnState['largest_army_P' + i]) { $('#largest_army_P' + i).show(); } else { $('#largest_army_P' + i).hide(); }
-        // if (currentTurnState['longest_road_P' + i]) { $('#longest_road_P' + i).show(); } else { $('#longest_road_P' + i).hide(); }
+        // 4. Actualizar badges especiales (si están disponibles en el JSON)
+        // Nota: Estos datos pueden no estar disponibles en el JSON actual
+        if (finalGameState['largest_army_P' + i]) {
+            $('#largest_army_P' + i).show();
+        } else {
+            $('#largest_army_P' + i).hide();
+        }
+        
+        if (finalGameState['longest_road_P' + i]) {
+            $('#longest_road_P' + i).show();
+        } else {
+            $('#longest_road_P' + i).hide();
+        }
     }
-    console.log("[DEBUG] UI actualizada con datos del JSON.");
+    
+    console.log("[DEBUG] UI actualizada completamente con datos del JSON.");
 }
 
 // Funciones auxiliares para los logs mejorados
@@ -2221,7 +2265,7 @@ function on_development_card_played(card_played_info) {
     let cardEmoji = getDevCardEmoji(card_played_info.played_card);
     let html = '<div class="log-entry play-card mb-2">';
     html += getCardIcon(card_played_info.played_card);
-    html += '<strong>🃏 Jugador ' + actual_player + '</strong> jugó ';
+    html += '<strong>🃏 Jugador ' + (actual_player + 1) + '</strong> jugó ';
     html += '<span class="fw-bold">' + cardEmoji + ' ' + getCardName(card_played_info.played_card) + '</span>';
     
     switch (card_played_info.played_card) {
@@ -2230,7 +2274,7 @@ function on_development_card_played(card_played_info) {
                 move_thief(card_played_info.past_thief_terrain, card_played_info.thief_terrain, card_played_info.robbed_player, card_played_info.stolen_material_id, true);
                 html += '<br><small class="ms-4">🥷 Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
                 if (card_played_info.robbed_player !== undefined && card_played_info.robbed_player !== -1) {
-                    html += '<br>💰 Robó una carta al Jugador ' + card_played_info.robbed_player;
+                    html += '<br>💰 Robó una carta al Jugador ' + (card_played_info.robbed_player + 1);
                 }
                 html += '</small>';
             }
@@ -2521,7 +2565,7 @@ function handleStartTurn(phase_obj, phaseKey) {
             let diceEmoji = getDiceEmoji(phase_obj.dice);
             let html = `<div class="log-entry dice-roll mb-2">
                 <i class="fas fa-dice text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player}</strong> inició su turno
+                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
                 <br><small class="ms-4">🎲 Tiró los dados: ${diceEmoji} <span class="badge bg-primary">${phase_obj.dice}</span></small>
             </div>`;
             jQuery('#other_useful_info_text').append(html);
@@ -2529,7 +2573,7 @@ function handleStartTurn(phase_obj, phaseKey) {
         } else {
             let html = `<div class="log-entry start-turn mb-2">
                 <i class="fas fa-play text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player}</strong> inició su turno
+                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
             </div>`;
             jQuery('#other_useful_info_text').append(html);
             autoScrollLog('other_useful_info_text');
@@ -2540,10 +2584,43 @@ function handleStartTurn(phase_obj, phaseKey) {
     updatePhaseData(phase_obj);
 }
 
+// Función para obtener el jugador actual
+function getCurrentPlayer() {
+    // Intentar obtener el jugador desde el contador de turnos
+    let currentTurnKey = $('#contador_turnos').val();
+    if (currentTurnKey) {
+        // Si el turno es como "P0", "P1", etc., extraer el número
+        let match = currentTurnKey.match(/P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si el turno es como "turn_P0", extraer el número
+        match = currentTurnKey.match(/turn_P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si es un número directo
+        if (!isNaN(parseInt(currentTurnKey))) {
+            return parseInt(currentTurnKey) - 1; // Convertir de 1-based a 0-based
+        }
+    }
+    
+    // Fallback: intentar obtener desde phase_obj global
+    if (phase_obj && phase_obj.player !== undefined) {
+        return phase_obj.player;
+    }
+    
+    return 0; // Fallback al jugador 0
+}
+
 // Función para manejar la fase de comercio
 function handleCommercePhase(phase_obj, phaseKey) {
     console.log('[DEBUG] handleCommercePhase - Datos completos:', JSON.stringify(phase_obj, null, 2));
     console.log('[DEBUG] handleCommercePhase - Claves disponibles:', Object.keys(phase_obj || {}));
+    
+    let hasLoggedActivity = false; // Para evitar logs duplicados
     
     if (phase_obj && typeof phase_obj === 'object') {
         // Buscar actividades de comercio en el objeto
@@ -2622,29 +2699,36 @@ function handleCommercePhase(phase_obj, phaseKey) {
                 switch(activity.type) {
                     case 'bank':
                         logBankTrade(activity.data);
+                        hasLoggedActivity = true;
                         break;
                     case 'players':
                         logPlayerTrade(activity.data);
+                        hasLoggedActivity = true;
                         break;
                     case 'buy_card':
                         logCardPurchase(activity.data);
+                        hasLoggedActivity = true;
                         break;
                     case 'construction':
                         logConstruction(activity.data);
+                        hasLoggedActivity = true;
                         break;
                 }
             });
-        } else {
-            // Mostrar log general de fase de comercio
-            console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general');
-            let html = `<div class="log-entry commerce-general mb-2">
-                <i class="fas fa-store text-info me-2"></i>
-                <strong>🛍️ Fase de Comercio</strong> - Oportunidad para intercambios
-                <br><small class="ms-4">💼 Los jugadores pueden comerciar recursos, comprar cartas o construir</small>
-            </div>`;
-            jQuery('#commerce_log_text').append(html);
-            autoScrollLog('commerce_log_text');
         }
+    }
+    
+    // Solo mostrar log general si no hubo actividades específicas
+    if (!hasLoggedActivity) {
+        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general');
+        let currentPlayer = getCurrentPlayer();
+        let html = `<div class="log-entry commerce-general mb-2">
+            <i class="fas fa-store text-info me-2"></i>
+            <strong>🛍️ Jugador ${currentPlayer + 1}</strong> - Fase de Comercio
+            <br><small class="ms-4">💼 Oportunidad para intercambios, compras y construcciones</small>
+        </div>`;
+        jQuery('#commerce_log_text').append(html);
+        autoScrollLog('commerce_log_text');
     }
     
     updatePhaseData(phase_obj);
@@ -2654,6 +2738,8 @@ function handleCommercePhase(phase_obj, phaseKey) {
 function handleBuildPhase(phase_obj, phaseKey) {
     console.log('[DEBUG] handleBuildPhase:', phase_obj);
     
+    let hasLoggedActivity = false; // Para evitar logs duplicados
+    
     if (phase_obj && typeof phase_obj === 'object') {
         // Buscar construcciones en el objeto
         let hasConstruction = false;
@@ -2662,6 +2748,7 @@ function handleBuildPhase(phase_obj, phaseKey) {
         if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
             hasConstruction = true;
             logConstruction(phase_obj);
+            hasLoggedActivity = true;
         }
         
         // Buscar construcciones en subclaves
@@ -2672,41 +2759,43 @@ function handleBuildPhase(phase_obj, phaseKey) {
                        (phase_obj[key].what_build || phase_obj[key].node_id)) {
                         hasConstruction = true;
                         logConstruction(phase_obj[key]);
+                        hasLoggedActivity = true;
                         break;
                     }
                 }
             }
         }
-        
-        // Si no hay construcción específica, mostrar mensaje general
-        if (!hasConstruction) {
-            let html = `<div class="log-entry build-phase mb-2">
-                <i class="fas fa-tools text-warning me-2"></i>
-                <strong>🏗️ Fase de Construcción</strong> - Oportunidad para construir
-                <br><small class="ms-4">🔨 Los jugadores pueden construir poblados, ciudades y carreteras</small>
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-            autoScrollLog('other_useful_info_text');
-        }
     }
     
-    updatePhaseData(phase_obj);
+    // Solo mostrar mensaje general si no hay construcción específica
+    if (!hasLoggedActivity) {
+        let currentPlayer = getCurrentPlayer();
+        let html = `<div class="log-entry build-phase mb-2">
+            <i class="fas fa-tools text-warning me-2"></i>
+            <strong>🏗️ Jugador ${currentPlayer + 1}</strong> - Fase de Construcción
+            <br><small class="ms-4">🔨 Oportunidad para construir poblados, ciudades y carreteras</small>
+        </div>`;
+        jQuery('#other_useful_info_text').append(html);
+        autoScrollLog('other_useful_info_text');
+    }
 }
 
 // Función para manejar el fin de turno
 function handleEndTurn(phase_obj, phaseKey) {
     console.log('[DEBUG] handleEndTurn:', phase_obj);
     
+    let currentPlayer = getCurrentPlayer();
     if (phase_obj && phase_obj.player !== undefined) {
+        currentPlayer = phase_obj.player;
         $('#hand_P' + phase_obj.player).css('border', 'solid 0px black');
-        
-        let html = `<div class="log-entry end-turn mb-2">
-            <i class="fas fa-stop text-secondary me-2"></i>
-            <strong>🏁 Jugador ${phase_obj.player}</strong> terminó su turno
-        </div>`;
-        jQuery('#other_useful_info_text').append(html);
-        autoScrollLog('other_useful_info_text');
     }
+    
+    let html = `<div class="log-entry end-turn mb-2">
+        <i class="fas fa-stop text-secondary me-2"></i>
+        <strong>🏁 Jugador ${currentPlayer + 1}</strong> terminó su turno
+    </div>`;
+    jQuery('#other_useful_info_text').append(html);
+    autoScrollLog('other_useful_info_text');
     
     updatePhaseData(phase_obj);
 }
@@ -2769,6 +2858,129 @@ function updatePhaseData(phase_obj) {
     if (phase_obj.player !== undefined && phase_obj['development_cards_P' + phase_obj.player]) {
         updateDevCards(phase_obj.player, phase_obj['development_cards_P' + phase_obj.player]);
     }
+    
+    // Después de un breve delay, actualizar con los datos completos del juego
+}
+
+// Aplicar movimiento del ladrón en el tablero
+function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let actual_player = parseInt($('#contador_turnos').val()) - 1;
+
+    // Mover el ladrón del terreno anterior
+    if (past_terrain !== undefined && game_obj && game_obj.setup && game_obj.setup.board && game_obj.setup.board.board_terrain[past_terrain]) {
+        if (game_obj.setup.board.board_terrain[past_terrain]['probability'] != 0) {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('<span>' + game_obj.setup.board.board_terrain[past_terrain]['probability'] + '</span>');
+        } else {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('')
+        }
+    }
+
+    // Colocar el ladrón en el nuevo terreno
+    if (new_terrain !== undefined) {
+        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('<i class="fa-solid fa-user-ninja fa-2x" data-toggle="tooltip" data-placement="top" title="Ladrón"></i>');
+    }
+
+    // Manejar el robo de recursos si aplica
+    if (comes_from_card && stolen_material_id !== undefined && robbed_player !== undefined && robbed_player !== -1) {
+        let actual_player_material_quantity = $('#hand_P' + actual_player + ' .' + materials[stolen_material_id] + '_quantity');
+        let robbed_player_material_quantity = $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + '_quantity');
+        
+        // Actualizar las cantidades si los elementos existen
+        if (actual_player_material_quantity.length && robbed_player_material_quantity.length) {
+            let actualValue = parseInt(actual_player_material_quantity.text()) || 0;
+            let robbedValue = parseInt(robbed_player_material_quantity.text()) || 0;
+            
+            actual_player_material_quantity.text(actualValue + 1);
+            robbed_player_material_quantity.text(Math.max(0, robbedValue - 1));
+        }
+    }
+}
+
+// Función para mostrar información de debugging sobre el juego cargado
+function debugGameStructure(game_data) {
+    console.log('[DEBUG] === INFORMACIÓN DEL JUEGO CARGADO ===');
+    
+    if (!game_data) {
+        console.log('[DEBUG] No hay datos del juego');
+        return;
+    }
+    
+    // Información básica
+    console.log('[DEBUG] Claves principales:', Object.keys(game_data));
+    
+    // Información del setup
+    if (game_data.setup) {
+        console.log('[DEBUG] Setup disponible con claves:', Object.keys(game_data.setup));
+        for (let i = 0; i < 4; i++) {
+            if (game_data.setup['P' + i]) {
+                console.log(`[DEBUG] Jugador ${i} en setup:`, game_data.setup['P' + i].length, 'construcciones iniciales');
+            }
+        }
+    }
+    
+    // Información del juego
+    if (game_data.game) {
+        console.log('[DEBUG] Rondas disponibles:', Object.keys(game_data.game).length);
+        
+        // Analizar una ronda de muestra para entender la estructura
+        let firstRoundKey = Object.keys(game_data.game)[0];
+        let firstRound = game_data.game[firstRoundKey];
+        console.log(`[DEBUG] Primera ronda (${firstRoundKey}) tiene turnos:`, Object.keys(firstRound));
+        
+        // Analizar un turno de muestra
+        let firstTurnKey = Object.keys(firstRound)[0];
+        let firstTurn = firstRound[firstTurnKey];
+        console.log(`[DEBUG] Primer turno (${firstTurnKey}) tiene fases:`, Object.keys(firstTurn));
+        
+        // Buscar datos de jugadores en las fases
+        for (let phaseKey of Object.keys(firstTurn)) {
+            let phase = firstTurn[phaseKey];
+            if (phase && typeof phase === 'object') {
+                let hasPlayerData = false;
+                for (let i = 0; i < 4; i++) {
+                    if (phase['hand_P' + i] || phase['development_cards_P' + i] || phase.victory_points) {
+                        hasPlayerData = true;
+                        break;
+                    }
+                }
+                if (hasPlayerData) {
+                    console.log(`[DEBUG] Fase ${phaseKey} contiene datos de jugadores`);
+                    
+                    // Mostrar ejemplo de datos de un jugador
+                    for (let i = 0; i < 4; i++) {
+                        if (phase['hand_P' + i]) {
+                            console.log(`[DEBUG] Jugador ${i} recursos:`, phase['hand_P' + i]);
+                        }
+                        if (phase['development_cards_P' + i]) {
+                            console.log(`[DEBUG] Jugador ${i} cartas desarrollo:`, phase['development_cards_P' + i]);
+                        }
+                    }
+                    
+                    if (phase.victory_points) {
+                        console.log('[DEBUG] Puntos de victoria:', phase.victory_points);
+                    }
+                    break; // Solo mostrar el primer ejemplo encontrado
+                }
+            }
+        }
+    }
+    
+    console.log('[DEBUG] === FIN INFORMACIÓN DEL JUEGO ===');
+}
+
+// Variable para evitar logs duplicados
+let lastLoggedPhase = '';
+let lastLoggedMessage = '';
+
+// Función para evitar logs duplicados
+function shouldSkipLog(phaseKey, message) {
+    let currentLog = phaseKey + '|' + message;
+    if (currentLog === lastLoggedMessage) {
+        return true; // Saltar este log porque es duplicado
+    }
+    lastLoggedMessage = currentLog;
+    return false;
 }
 
 // Función para logging de comercio bancario
@@ -2777,7 +2989,7 @@ function logBankTrade(tradeData) {
     
     let giveText = 'N/A';
     let receiveText = 'N/A';
-    let player = tradeData.player || 'Desconocido';
+    let player = tradeData.player !== undefined ? tradeData.player : getCurrentPlayer();
     
     if (tradeData.give && typeof tradeData.give === 'object') {
         let giveItems = [];
@@ -2803,7 +3015,7 @@ function logBankTrade(tradeData) {
     
     let html = `<div class="log-entry trade-bank mb-2">
         <i class="fas fa-university text-success me-2"></i>
-        <strong>🏛️ Jugador ${player}</strong> comerció con el banco
+        <strong>🏛️ Jugador ${player + 1}</strong> comerció con el banco
         <br><small class="ms-4">
             📤 Dio: ${giveText}
             <br>📥 Recibió: ${receiveText}
@@ -2818,43 +3030,37 @@ function logBankTrade(tradeData) {
 function logPlayerTrade(tradeData) {
     console.log('[DEBUG] logPlayerTrade:', tradeData);
     
-    let playerSend = tradeData.player_id_send || tradeData.from || 'Desconocido';
-    let playerReceive = tradeData.player_id_receive || tradeData.to || 'Desconocido';
-    let offerText = 'N/A';
-    
-    if (tradeData.offer && typeof tradeData.offer === 'object') {
-        let offerItems = [];
-        for (let resource in tradeData.offer) {
-            if (tradeData.offer[resource] !== 0) {
-                let emoji = getResourceEmoji(resource);
-                let amount = Math.abs(tradeData.offer[resource]);
-                let direction = tradeData.offer[resource] > 0 ? '📤' : '📥';
-                offerItems.push(`${direction} ${emoji} ${amount}`);
-            }
-        }
-        offerText = offerItems.join(' ') || 'N/A';
-    }
+    let fromPlayer = tradeData.player_id_send !== undefined ? tradeData.player_id_send : getCurrentPlayer();
+    let toPlayer = tradeData.player_id_receive !== undefined ? tradeData.player_id_receive : -1;
     
     let html = `<div class="log-entry trade-players mb-2">
         <i class="fas fa-handshake text-info me-2"></i>
-        <strong>🤝 Jugador ${playerSend}</strong> comerció con <strong>Jugador ${playerReceive}</strong>
-        <br><small class="ms-4">💼 Intercambio: ${offerText}</small>
+        <strong>🤝 Comercio entre jugadores</strong>
+        <br><small class="ms-4">`;
+    
+    if (toPlayer !== -1) {
+        html += `👤 Jugador ${fromPlayer + 1} ↔️ Jugador ${toPlayer + 1}`;
+    } else {
+        html += `👤 Jugador ${fromPlayer + 1} ↔️ Otro jugador`;
+    }
+    
+    html += `</small>
     </div>`;
     
     jQuery('#commerce_log_text').append(html);
     autoScrollLog('commerce_log_text');
 }
 
-// Función para logging de compra de cartas
-function logCardPurchase(cardData) {
-    console.log('[DEBUG] logCardPurchase:', cardData);
+// Función para logging de compra de cartas de desarrollo
+function logCardPurchase(purchaseData) {
+    console.log('[DEBUG] logCardPurchase:', purchaseData);
     
-    let player = cardData.player || 'Desconocido';
+    let player = purchaseData.player !== undefined ? purchaseData.player : getCurrentPlayer();
     
     let html = `<div class="log-entry buy-card mb-2">
         <i class="fas fa-shopping-cart text-warning me-2"></i>
-        <strong>🛒 Jugador ${player}</strong> compró una carta de desarrollo 🃏✨
-        <br><small class="ms-4">💳 Nueva carta añadida a la mano</small>
+        <strong>🛒 Jugador ${player + 1}</strong> compró una carta de desarrollo
+        <br><small class="ms-4">💳 Gastó recursos para obtener una carta</small>
     </div>`;
     
     jQuery('#commerce_log_text').append(html);
@@ -2862,119 +3068,54 @@ function logCardPurchase(cardData) {
 }
 
 // Función para logging de construcciones
-function logConstruction(buildData) {
-    console.log('[DEBUG] logConstruction:', buildData);
+function logConstruction(constructionData) {
+    console.log('[DEBUG] logConstruction:', constructionData);
     
-    let building = buildData.what_build || buildData.type || 'construcción';
-    let player = buildData.player || 'Desconocido';
-    let nodeId = buildData.node_id;
-    let roadTo = buildData.road_to;
-    
+    let player = constructionData.player !== undefined ? constructionData.player : getCurrentPlayer();
+    let building = constructionData.what_build || constructionData.construction || 'construcción';
     let buildingEmoji = getBuildingEmoji2(building);
     let buildingName = getBuildingName(building);
     
     let html = `<div class="log-entry construction mb-2">
         <i class="fas fa-hammer text-warning me-2"></i>
-        <strong>🔨 Jugador ${player}</strong> construyó ${buildingEmoji} ${buildingName}`;
+        <strong>🔨 Jugador ${player + 1}</strong> construyó ${buildingEmoji} ${buildingName}`;
     
-    if (nodeId !== undefined && roadTo !== undefined) {
-        html += ` <span class="text-muted">(nodo ${nodeId} → ${roadTo})</span>`;
-    } else if (nodeId !== undefined) {
-        html += ` <span class="text-muted">(nodo ${nodeId})</span>`;
+    if (constructionData.node_id !== undefined) {
+        html += `<br><small class="ms-4">📍 Ubicación: nodo ${constructionData.node_id}</small>`;
     }
     
-    html += `</div>`;
+    html += '</div>';
     
-    jQuery('#commerce_log_text').append(html);
-    autoScrollLog('commerce_log_text');
-    
-    // Aplicar cambios visuales en el tablero
-    if (building === 'S舎' || building === 'settlement' || building === 'town') {
-        animateBuilding(nodeId, building, player);
-    } else if (building === 'C都市' || building === 'city') {
-        animateBuilding(nodeId, building, player);
-    } else if (building === 'R道' || building === 'road') {
-        let road_id_str = nodeId < roadTo ? `road_${nodeId}_${roadTo}` : `road_${roadTo}_${nodeId}`;
-        animateRoadBuilding(road_id_str, player);
-    }
-}
-
-// Función para logging de distribución de recursos
-function logResourceDistribution(resourceData) {
-    console.log('[DEBUG] logResourceDistribution:', resourceData);
-    
-    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-    
-    let html = `<div class="log-entry give-cards mb-2">
-        <i class="fas fa-gift text-success me-2"></i>
-        <strong>🎲 Distribución de recursos (dados: ${resourceData.dice || 'N/A'})</strong>
-        <br><small class="ms-4">`;
-    
-    let playersGotResources = false;
-    for (let i = 0; i < 4; i++) {
-        if (resourceData['given_to_P' + i]) {
-            let playerResources = [];
-            playersGotResources = true;
-            
-            for (let j = 0; j < materials.length; j++) {
-                if (resourceData['given_to_P' + i][materials[j]] > 0) {
-                    let emoji = getResourceEmoji(materials[j]);
-                    playerResources.push(`${emoji} +${resourceData['given_to_P' + i][materials[j]]}`);
-                }
-            }
-            
-            if (playerResources.length > 0) {
-                html += `👤 Jugador ${i}: ${playerResources.join(' ')} <br>`;
-            }
-        }
-    }
-    
-    if (!playersGotResources) {
-        html += '❌ Ningún jugador recibió recursos';
-    }
-    
-    html += '</small></div>';
     jQuery('#other_useful_info_text').append(html);
     autoScrollLog('other_useful_info_text');
+}
+
+// Función para logging de distribución de recursos por dados
+function logResourceDistribution(distributionData) {
+    console.log('[DEBUG] logResourceDistribution:', distributionData);
     
-    // Animar recursos ganados
-    for (let i = 0; i < 4; i++) {
-        if (resourceData['given_to_P' + i]) {
-            for (let j = 0; j < materials.length; j++) {
-                if (resourceData['given_to_P' + i][materials[j]] > 0) {
-                    animateResourceGain(i, materials[j], resourceData['given_to_P' + i][materials[j]]);
-                }
-            }
-        }
-    }
+    let html = `<div class="log-entry resource-distribution mb-2">
+        <i class="fas fa-coins text-success me-2"></i>
+        <strong>💰 Distribución de recursos</strong>
+        <br><small class="ms-4">🎲 Los jugadores recibieron recursos por la tirada de dados</small>
+    </div>`;
+    
+    jQuery('#other_useful_info_text').append(html);
+    autoScrollLog('other_useful_info_text');
 }
 
 // Función para logging de descarte de cartas
 function logCardDiscard(discardData) {
     console.log('[DEBUG] logCardDiscard:', discardData);
     
-    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-    let player = discardData.player || 'Desconocido';
+    let player = discardData.player !== undefined ? discardData.player : getCurrentPlayer();
     
-    let html = `<div class="log-entry discard-cards mb-2">
+    let html = `<div class="log-entry card-discard mb-2">
         <i class="fas fa-trash text-danger me-2"></i>
-        <strong>🗑️ Jugador ${player}</strong> descartó cartas por ladrón 🥷 (7)
-        <br><small class="ms-4">📉 Descartó: `;
+        <strong>🗑️ Jugador ${player + 1}</strong> descartó cartas
+        <br><small class="ms-4">😈 Por efecto del ladrón (más de 7 cartas)</small>
+    </div>`;
     
-    if (discardData.discarded) {
-        let discardedItems = [];
-        for (let j = 0; j < materials.length; j++) {
-            if (discardData.discarded[materials[j]] > 0) {
-                let emoji = getResourceEmoji(materials[j]);
-                discardedItems.push(`${emoji} -${discardData.discarded[materials[j]]}`);
-            }
-        }
-        html += discardedItems.length > 0 ? discardedItems.join(' ') : 'Ninguna carta';
-    } else {
-        html += 'Información no disponible';
-    }
-    
-    html += '</small></div>';
     jQuery('#other_useful_info_text').append(html);
     autoScrollLog('other_useful_info_text');
 }
@@ -2983,24 +3124,22 @@ function logCardDiscard(discardData) {
 function logThiefMovement(thiefData) {
     console.log('[DEBUG] logThiefMovement:', thiefData);
     
-    let player = thiefData.player || 'Desconocido';
+    let player = thiefData.player !== undefined ? thiefData.player : getCurrentPlayer();
     
-    let html = `<div class="log-entry thief-move mb-2">
-        <i class="fas fa-user-ninja text-danger me-2"></i>
-        <strong>🥷 Jugador ${player}</strong> movió el ladrón`;
+    let html = `<div class="log-entry thief-movement mb-2">
+        <i class="fas fa-user-ninja text-dark me-2"></i>
+        <strong>🥷 Jugador ${player + 1}</strong> movió el ladrón`;
     
-    if (thiefData.past_thief_terrain !== undefined && thiefData.thief_terrain !== undefined) {
-        html += `<br><small class="ms-4">📍 Del terreno ${thiefData.past_thief_terrain} → terreno ${thiefData.thief_terrain}</small>`;
+    if (thiefData.thief_terrain !== undefined) {
+        html += `<br><small class="ms-4">📍 Nuevo terreno: ${thiefData.thief_terrain}</small>`;
     }
     
     if (thiefData.robbed_player !== undefined && thiefData.robbed_player !== -1) {
-        html += `<br><small class="ms-4">💰 Robó una carta al Jugador ${thiefData.robbed_player}</small>`;
+        html += `<br><small class="ms-4">💰 Robó una carta al Jugador ${thiefData.robbed_player + 1}</small>`;
     }
     
-    html += `</div>`;
+    html += '</div>';
+    
     jQuery('#other_useful_info_text').append(html);
     autoScrollLog('other_useful_info_text');
-    
-    // Aplicar movimiento del ladrón en el tablero
-    move_thief(thiefData.past_thief_terrain, thiefData.thief_terrain, thiefData.robbed_player, thiefData.stolen_material_id, false);
 }
