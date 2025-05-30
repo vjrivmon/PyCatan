@@ -295,6 +295,12 @@
                                 <div class="terrain bottom_terrain"></div>
                             </div>
                         </div>
+                        <!-- Controles de zoom y pantalla completa -->
+                        <div class="map-controls">
+                            <button id="zoom-in" title="Acercar"><i class="fas fa-search-plus"></i></button>
+                            <button id="zoom-out" title="Alejar"><i class="fas fa-search-minus"></i></button>
+                            <button id="fullscreen" title="Pantalla completa"><i class="fas fa-expand"></i></button>
+                        </div>
                     </div>
                     
                     <!-- Control panel debajo del tablero -->
@@ -344,6 +350,9 @@
                                         </button>
                                         <button id="play_btn" class="btn btn-sm btn-success ms-2" title="Play/Pausa">
                                             <i class="fas fa-play"></i> <span id="play-text" style="display: none;">Play</span>
+                                        </button>
+                                        <button id="test_dice_btn" class="btn btn-sm btn-warning ms-2" title="Probar Dados">
+                                            <i class="fas fa-dice"></i>
                                         </button>
                                     </div>
                                 </div>

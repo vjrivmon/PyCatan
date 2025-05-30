@@ -837,3 +837,88 @@
         opacity: 1;
     }
 }
+
+/* Estilos para los controles de zoom y pantalla completa */
+.map-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 100;
+}
+
+.map-controls button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.map-controls button:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.map-controls button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Mejorar visibilidad de los controles en modo pantalla completa */
+#gamefield_external.fullscreen .map-controls {
+    bottom: 20px;
+    right: 20px;
+}
+
+#gamefield_external.fullscreen .map-controls button {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para el mapa con zoom */
+#gamefield.zoomed-in {
+    transform: scale(1.5);
+    transform-origin: center center;
+}
+
+#gamefield.zoomed-out {
+    transform: scale(0.8);
+    transform-origin: center center;
+}
+
+/* Estilos para pantalla completa */
+#gamefield_external.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+}
+
+#gamefield_external.fullscreen #gamefield {
+    transform: scale(1.2);
+}
+
+/* Transición suave para los efectos de zoom */
+#gamefield {
+    transition: transform 0.3s ease;
+}

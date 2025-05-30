@@ -15,6 +15,9 @@ function init_events() {
     // Inicializar controles de auto-play
     initAutoPlayControls();
     
+    // Inicializar controles de zoom y pantalla completa
+    initZoomControls();
+    
     // Modificar el comportamiento del botón para abrir el modal en lugar del selector de archivos
     load_game.on('click', function (e) {
         $('#uploadModal').modal('show');
@@ -550,6 +553,12 @@ function setup() {
 
     // Inicializar controles de reproducción automática (Play/Stop)
     initAutoPlayControls();
+    
+    // Verificar si ya existen los controles de zoom
+    if (!document.querySelector('.map-controls button')) {
+        console.log('[DEBUG] Inicializando controles de zoom.');
+        initZoomControls();
+    }
 }
 
 function init_events_with_game_obj() {
@@ -3142,4 +3151,108 @@ function logThiefMovement(thiefData) {
     
     jQuery('#other_useful_info_text').append(html);
     autoScrollLog('other_useful_info_text');
+}
+
+// Función para inicializar los controles de zoom y pantalla completa
+function initZoomControls() {
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const fullscreenBtn = document.getElementById('fullscreen');
+    const gamefield = document.getElementById('gamefield');
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    
+    // Estado de zoom actual
+    let zoomState = 'normal'; // 'normal', 'zoomed-in', 'zoomed-out'
+    let isFullscreen = false;
+    
+    // Evento para acercar
+    zoomInBtn.addEventListener('click', function() {
+        // Solo permitir zoom in si no estamos ya en ese estado
+        if (zoomState !== 'zoomed-in') {
+            // Eliminar clase previa
+            gamefield.classList.remove('zoomed-out');
+            // Añadir nueva clase
+            gamefield.classList.add('zoomed-in');
+            zoomState = 'zoomed-in';
+        }
+    });
+    
+    // Evento para alejar
+    zoomOutBtn.addEventListener('click', function() {
+        // Solo permitir zoom out si no estamos ya en ese estado
+        if (zoomState !== 'zoomed-out') {
+            // Eliminar clase previa
+            gamefield.classList.remove('zoomed-in');
+            // Añadir nueva clase
+            gamefield.classList.add('zoomed-out');
+            zoomState = 'zoomed-out';
+        }
+    });
+    
+    // Evento para restablecer zoom (doble clic en el mapa)
+    gamefield.addEventListener('dblclick', function() {
+        // Eliminar todas las clases de zoom
+        gamefield.classList.remove('zoomed-in', 'zoomed-out');
+        zoomState = 'normal';
+    });
+    
+    // Evento para pantalla completa
+    fullscreenBtn.addEventListener('click', function() {
+        toggleFullscreen();
+    });
+    
+    // Función para alternar pantalla completa
+    function toggleFullscreen() {
+        if (!isFullscreen) {
+            // Entrar en modo pantalla completa
+            gamefieldExternal.classList.add('fullscreen');
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+            fullscreenBtn.title = "Salir de pantalla completa";
+            isFullscreen = true;
+            
+            // Capturar tecla ESC para salir de pantalla completa
+            document.addEventListener('keydown', handleEscKey);
+        } else {
+            // Salir de modo pantalla completa
+            exitFullscreen();
+        }
+    }
+    
+    // Función para salir de pantalla completa
+    function exitFullscreen() {
+        gamefieldExternal.classList.remove('fullscreen');
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        fullscreenBtn.title = "Pantalla completa";
+        isFullscreen = false;
+        
+        // Eliminar listener de tecla ESC
+        document.removeEventListener('keydown', handleEscKey);
+    }
+    
+    // Función para manejar la tecla ESC
+    function handleEscKey(e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            exitFullscreen();
+        }
+    }
+    
+    // También podemos añadir soporte para el API Fullscreen nativo del navegador
+    if (document.documentElement.requestFullscreen) {
+        // Agregar un segundo botón para pantalla completa nativa del navegador
+        const nativeFullscreenBtn = document.createElement('button');
+        nativeFullscreenBtn.id = 'native-fullscreen';
+        nativeFullscreenBtn.title = 'Pantalla completa del navegador';
+        nativeFullscreenBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+        document.querySelector('.map-controls').appendChild(nativeFullscreenBtn);
+        
+        nativeFullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                gamefieldExternal.requestFullscreen().catch(err => {
+                    console.error(`Error al intentar mostrar en pantalla completa: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    }
 }
