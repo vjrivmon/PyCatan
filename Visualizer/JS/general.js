@@ -15,6 +15,14 @@ function init_events() {
     // Inicializar controles de auto-play
     initAutoPlayControls();
     
+    // Inicializar controles de zoom y pantalla completa
+    initZoomControls();
+    
+    // Añadir evento para probar la animación de dados
+    jQuery('#test_dice_btn').on('click', function() {
+        testDiceAnimation();
+    });
+    
     // Modificar el comportamiento del botón para abrir el modal en lugar del selector de archivos
     load_game.on('click', function (e) {
         $('#uploadModal').modal('show');
@@ -550,6 +558,12 @@ function setup() {
 
     // Inicializar controles de reproducción automática (Play/Stop)
     initAutoPlayControls();
+    
+    // Verificar si ya existen los controles de zoom
+    if (!document.querySelector('.map-controls button')) {
+        console.log('[DEBUG] Inicializando controles de zoom.');
+        initZoomControls();
+    }
 }
 
 function init_events_with_game_obj() {
@@ -810,29 +824,74 @@ function showVictoryConfetti(playerIndex) {
     // Obtener los colores según el jugador
     let colors = getPlayerColors(playerIndex);
     
+    // Obtener emojis de recursos para elementos flotantes
+    const catanEmojis = [
+        '🏠', '🏛️', '🛣️', '🌾', '🧱', '🪵', '⛰️', '🐑', 
+        '🎲', '📊', '📈', '🎯', '🏆', '👑', '💎', '🔄'
+    ];
+    
+    // Modificar el nombre del ganador con estilo y animación
+    const playerNames = ['Rojo', 'Azul', 'Verde', 'Amarillo'];
+    const playerName = playerNames[playerIndex] || `Jugador ${playerIndex + 1}`;
+    
+    // Añadir emoji según el color del jugador
+    const playerEmoji = getPlayerEmoji(playerIndex);
+    
+    $('#winner-name').html(`
+        <span style="color:${colors[0]};">
+            ${playerEmoji} ¡Jugador ${playerName} ha ganado! ${playerEmoji}
+        </span>
+    `);
+    
     // Mostrar el modal de victoria
-    $('#winner-name').text('¡Jugador ' + (playerIndex + 1) + ' ha ganado!');
     $('#victory-modal').modal('show');
     
+    // Limpiar elementos anteriores
+    $('.catan-elements-container').empty();
+    $('.floating-particle').remove();
+    
+    // Añadir elementos flotantes relacionados con Catán
+    for (let i = 0; i < 20; i++) {
+        const randomEmoji = catanEmojis[Math.floor(Math.random() * catanEmojis.length)];
+        const delay = Math.random() * 5;
+        const size = 20 + Math.random() * 40;
+        const left = Math.random() * 100;
+        
+        const element = $(`<div class="catan-element" style="
+            left: ${left}%;
+            font-size: ${size}px;
+            animation-delay: ${delay}s;
+        ">${randomEmoji}</div>`);
+        
+        $('.catan-elements-container').append(element);
+    }
+    
+    // Crear partículas flotantes con los colores del jugador
+    for (let i = 0; i < 30; i++) {
+        createFloatingParticle(colors);
+    }
+    
     // Configuración del confeti usando canvas-confetti
-    const duration = 5 * 1000;
+    const duration = 8 * 1000; // 8 segundos de duración
     const animationEnd = Date.now() + duration;
     const defaults = { 
         startVelocity: 30, 
         spread: 360, 
         ticks: 60, 
         zIndex: 9999,
-        colors: colors 
+        colors: colors,
+        shapes: ['circle', 'square'],
+        scalar: 1.2
     };
 
     function randomInRange(min, max) {
         return Math.random() * (max - min) + min;
     }
 
-    // Disparar confeti inmediatamente
+    // Disparar confeti inicial grande
     confetti({
         ...defaults,
-        particleCount: 100,
+        particleCount: 150,
         origin: { x: 0.5, y: 0.5 }
     });
 
@@ -879,7 +938,77 @@ function showVictoryConfetti(playerIndex) {
         });
     }, 1000);
     
+    // Efecto de explosión final después de unos segundos
+    setTimeout(() => {
+        confetti({
+            particleCount: 150,
+            spread: 180,
+            origin: { x: 0.5, y: 0.5 },
+            colors: colors,
+            scalar: 2,
+            shapes: ['star', 'circle'],
+            zIndex: 9999
+        });
+    }, 3500);
+    
+    // Manejar el botón de compartir victoria
+    $('.share-victory-btn').off('click').on('click', function() {
+        // Mostrar un mensaje informativo
+        alert(`¡Comparte tu victoria del Jugador ${playerName} con tus amigos!`);
+    });
+    
     console.log(`[DEBUG] Confeti de victoria mostrado para Jugador ${playerIndex + 1}`);
+}
+
+// Función para crear partículas flotantes decorativas
+function createFloatingParticle(colors) {
+    const particle = document.createElement('div');
+    particle.className = 'floating-particle';
+    
+    // Tamaño aleatorio
+    const size = 5 + Math.random() * 15;
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    
+    // Color aleatorio del array de colores
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    particle.style.backgroundColor = color;
+    
+    // Posición inicial aleatoria
+    const startX = Math.random() * 100;
+    const startY = Math.random() * 100;
+    particle.style.left = `${startX}%`;
+    particle.style.top = `${startY}%`;
+    
+    // Forma aleatoria (círculo o cuadrado)
+    particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    
+    // Movimiento aleatorio
+    const endX = (Math.random() - 0.5) * 80;
+    const endY = (Math.random() - 0.5) * 80;
+    const rotation = Math.random() * 360;
+    
+    particle.style.setProperty('--end-x', `${endX}px`);
+    particle.style.setProperty('--end-y', `${endY}px`);
+    particle.style.setProperty('--rotation', `${rotation}deg`);
+    
+    // Duración aleatoria
+    const duration = 3 + Math.random() * 7;
+    particle.style.animationDuration = `${duration}s`;
+    
+    // Retraso aleatorio
+    const delay = Math.random() * 5;
+    particle.style.animationDelay = `${delay}s`;
+    
+    // Añadir al modal
+    document.querySelector('.victory-animation-container').appendChild(particle);
+    
+    // Eliminar después de la animación
+    setTimeout(() => {
+        if (particle.parentNode) {
+            particle.parentNode.removeChild(particle);
+        }
+    }, (duration + delay) * 1000);
 }
 
 // Función para obtener colores según el jugador
@@ -1178,6 +1307,7 @@ function checkVictory() {
             
             // Mostrar efectos de victoria después de un breve delay
             setTimeout(() => {
+                // Mostrar la animación de confeti para el jugador ganador
                 showVictoryConfetti(i - 1);
                 
                 // Log de victoria
@@ -1192,6 +1322,7 @@ function checkVictory() {
                 // Resaltar el jugador ganador
                 $(`#player-card-${i-1}`).addClass('winner-glow');
                 
+                console.log(`[INFO] Partida finalizada: Jugador ${i} ha ganado con ${victoryPoints} puntos de victoria.`);
             }, 500);
             
             return true; // Victoria detectada
@@ -1580,9 +1711,18 @@ function animateOceanWaves() {
 
 // Función para probar la animación de dados
 function testDiceAnimation() {
-    // Obtener un número aleatorio entre 1 y 6
-    const randomValue = Math.floor(Math.random() * 6) + 1;
-    console.log("Probando animación de dados con valor: " + randomValue);
+    // Obtener un número aleatorio entre 2 y 12 (suma de dos dados)
+    const randomValue = Math.floor(Math.random() * 11) + 2;
+    console.log("Probando animación de dados con valor total: " + randomValue);
+    
+    // Agregar mensaje en el log del juego
+    const diceEmoji = getDiceEmoji(randomValue);
+    const logHtml = `<div class="log-entry dice-roll mb-2" style="border-left-color: #9b59b6; background-color: rgba(155, 89, 182, 0.1);">
+        <i class="fas fa-dice text-purple me-2"></i>
+        <strong>🎲 Prueba de dados: ${diceEmoji} ${randomValue}</strong>
+    </div>`;
+    jQuery('#other_useful_info_text').append(logHtml);
+    autoScrollLog('other_useful_info_text');
     
     // Ejecutar la animación
     animateDiceRoll(randomValue);
@@ -1590,16 +1730,7 @@ function testDiceAnimation() {
 
 // Añadir evento para probar la animación al cargar la página
 jQuery(document).ready(function($) {
-    console.log("Documento listo, añadiendo botón de prueba de dados");
-    
-    // Botón para probar manualmente
-    $('#load_game').after('<button id="test_dice" class="btn btn-secondary ms-2"><i class="fas fa-dice me-2"></i>Probar dados</button>');
-    
-    // Evento de prueba
-    $(document).on('click', '#test_dice', function() {
-        console.log("Botón de prueba de dados clickeado");
-        testDiceAnimation();
-    });
+    console.log("Documento listo para animación de dados");
     
     // Verificar que el overlay existe
     const overlay = document.getElementById('dice-overlay');
@@ -1807,11 +1938,72 @@ function startAutoPlay() {
                     // Si llegamos al final del juego, detener la reproducción
                     stopAutoPlay();
                     
-                    // Verificar si hay un ganador
-                    checkVictory();
+                    // Verificar si algún jugador ha ganado (10 puntos de victoria)
+                    let hasWinner = false;
+                    let winnerIndex = -1;
+                    let maxPoints = 0;
                     
-                    // Mostrar un mensaje de que el juego ha terminado
-                    alert('¡La partida ha terminado!');
+                    for (let i = 1; i <= 4; i++) {
+                        const victoryPoints = parseInt($('#puntos_victoria_J' + i).text()) || 0;
+                        if (victoryPoints >= 10) {
+                            hasWinner = true;
+                            winnerIndex = i - 1;
+                            maxPoints = victoryPoints;
+                            break;
+                        } else if (victoryPoints > maxPoints) {
+                            maxPoints = victoryPoints;
+                            winnerIndex = i - 1;
+                        }
+                    }
+                    
+                    // Mostrar animación de victoria
+                    setTimeout(() => {
+                        if (hasWinner) {
+                            // Mostrar la animación de confeti para el jugador ganador
+                            showVictoryConfetti(winnerIndex);
+                            
+                            // Log de victoria
+                            let html = `<div class="log-entry victory mb-2">
+                                <i class="fas fa-crown text-warning me-2"></i>
+                                <strong class="text-warning">🎉 ¡JUGADOR ${winnerIndex + 1} HA GANADO! 🎉</strong>
+                                <br><small class="ms-4">Victoria con ${maxPoints} puntos</small>
+                            </div>`;
+                            jQuery('#other_useful_info_text').append(html);
+                            autoScrollLog('other_useful_info_text');
+                            
+                            // Resaltar el jugador ganador
+                            $(`#player-card-${winnerIndex}`).addClass('winner-glow');
+                        } else if (winnerIndex >= 0) {
+                            // Si no hay un ganador con 10 puntos, mostrar al jugador con más puntos
+                            // Añadir un mensaje al log indicando el fin de la partida
+                            let finPartidaHtml = `<div class="log-entry end-game mb-2" style="border-left-color: #6c757d; background-color: rgba(108, 117, 125, 0.1);">
+                                <i class="fas fa-flag-checkered text-secondary me-2"></i>
+                                <strong>🏁 ¡La partida ha terminado!</strong>
+                                <br><small class="ms-4">Jugador ${winnerIndex + 1} lidera con ${maxPoints} puntos</small>
+                            </div>`;
+                            jQuery('#other_useful_info_text').append(finPartidaHtml);
+                            autoScrollLog('other_useful_info_text');
+                            
+                            // Mostrar confeti para el jugador con más puntos aunque no haya ganado oficialmente
+                            showVictoryConfetti(winnerIndex);
+                            
+                            // Resaltar al jugador con mayor puntuación
+                            $(`#player-card-${winnerIndex}`).addClass('winner-glow');
+                        } else {
+                            // Si no hay un ganador claro
+                            let finPartidaHtml = `<div class="log-entry end-game mb-2" style="border-left-color: #6c757d; background-color: rgba(108, 117, 125, 0.1);">
+                                <i class="fas fa-flag-checkered text-secondary me-2"></i>
+                                <strong>🏁 ¡La partida ha terminado!</strong>
+                            </div>`;
+                            jQuery('#other_useful_info_text').append(finPartidaHtml);
+                            autoScrollLog('other_useful_info_text');
+                            
+                            // Fallback a alert si no hay ganador
+                            setTimeout(() => {
+                                alert('¡La partida ha terminado!');
+                            }, 500);
+                        }
+                    }, 500);
                 }
             }
         }
@@ -2083,6 +2275,11 @@ function updateUIDataFromGameObj(game_data) {
     }
     
     console.log("[DEBUG] UI actualizada completamente con datos del JSON.");
+    
+    // Verificar si hay un ganador después de actualizar los datos
+    // Esta verificación es importante para detectar automáticamente
+    // cuando un jugador ha alcanzado los 10 puntos de victoria
+    checkVictory();
 }
 
 // Funciones auxiliares para los logs mejorados
@@ -2173,6 +2370,696 @@ function deleteCaretStyling() {
     jQuery('.hand .increment').removeClass('fa-caret-up fa-caret-down fa-minus');
 }
 
+function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let actual_player = parseInt($('#contador_turnos').val()) - 1;
+
+    // Mover el ladrón del terreno anterior
+    if (past_terrain !== undefined && game_obj && game_obj.setup && game_obj.setup.board && game_obj.setup.board.board_terrain[past_terrain]) {
+        if (game_obj.setup.board.board_terrain[past_terrain]['probability'] != 0) {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('<span>' + game_obj.setup.board.board_terrain[past_terrain]['probability'] + '</span>');
+        } else {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('')
+        }
+    }
+
+    // Colocar el ladrón en el nuevo terreno
+    if (new_terrain !== undefined) {
+        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('<i class="fa-solid fa-user-ninja fa-2x" data-toggle="tooltip" data-placement="top" title="Ladrón"></i>');
+    }
+
+    // Manejar el robo de recursos si aplica
+    if (comes_from_card && stolen_material_id !== undefined && robbed_player !== undefined && robbed_player !== -1) {
+        let actual_player_material_quantity = $('#hand_P' + actual_player + ' .' + materials[stolen_material_id] + '_quantity');
+        let robbed_player_material_quantity = $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + '_quantity');
+        
+        // Actualizar las cantidades si los elementos existen
+        if (actual_player_material_quantity.length && robbed_player_material_quantity.length) {
+            let actualValue = parseInt(actual_player_material_quantity.text()) || 0;
+            let robbedValue = parseInt(robbed_player_material_quantity.text()) || 0;
+            
+            actual_player_material_quantity.text(actualValue + 1);
+            robbed_player_material_quantity.text(Math.max(0, robbedValue - 1));
+        }
+    }
+}
+
+function changeHandObject(player, hand_obj) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let dev_cards = ['knight', 'victory_point', 'road_building', 'year_of_plenty', 'monopoly'];
+
+    // Actualizar recursos con animación
+    materials.forEach(function (material) {
+        if (hand_obj && hand_obj[material] !== undefined) {
+            const resourceElement = $('#hand_P' + player + ' .resources-grid .' + material + ' .' + material + '_quantity');
+            const oldValue = parseInt(resourceElement.text()) || 0;
+            animateNumberUpdate(resourceElement, hand_obj[material], oldValue);
+        }
+    });
+
+    // Actualizar cartas de desarrollo con animación
+    dev_cards.forEach(function (card) {
+        let cardElement = null;
+        let newValue = null;
+        
+        // Asumiendo que las cartas de desarrollo están dentro del mismo objeto `hand_obj`
+        if (hand_obj && hand_obj[card] !== undefined) {
+            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
+            newValue = hand_obj[card];
+        } else if (hand_obj && hand_obj['development_cards'] && hand_obj['development_cards'][card] !== undefined) {
+            // Alternativa: si las cartas están en un sub-objeto 'development_cards'
+            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
+            newValue = hand_obj['development_cards'][card];
+        }
+        
+        if (cardElement && cardElement.length && newValue !== null) {
+            const oldValue = parseInt(cardElement.text()) || 0;
+            animateNumberUpdate(cardElement, newValue, oldValue);
+        }
+    });
+}
+
+function on_development_card_played(card_played_info) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+
+    let contador_turnos = jQuery('#contador_turnos');
+    let other_useful_info_text = jQuery('#other_useful_info_text');
+    let actual_player = $('#contador_turnos').val() - 1;
+    
+    if (!card_played_info || !card_played_info.played_card) {
+        console.warn("[DEBUG] on_development_card_played: card_played_info no válido");
+        return;
+    }
+    
+    let quantity = jQuery('#hand_P' + actual_player + ' .dev-cards-grid .' + card_played_info.played_card + ' .' + card_played_info.played_card + '_quantity');
+
+    // Actualizar el contador de la carta jugada
+    if (quantity.length) {
+        let currentValue = parseInt(quantity.text()) || 0;
+        animateNumberUpdate(quantity, Math.max(0, currentValue - 1), currentValue);
+    }
+
+    let cardEmoji = getDevCardEmoji(card_played_info.played_card);
+    let html = '<div class="log-entry play-card mb-2">';
+    html += getCardIcon(card_played_info.played_card);
+    html += '<strong>🃏 Jugador ' + (actual_player + 1) + '</strong> jugó ';
+    html += '<span class="fw-bold">' + cardEmoji + ' ' + getCardName(card_played_info.played_card) + '</span>';
+    
+    switch (card_played_info.played_card) {
+        case 'knight':
+            if (card_played_info.past_thief_terrain !== undefined && card_played_info.thief_terrain !== undefined) {
+                move_thief(card_played_info.past_thief_terrain, card_played_info.thief_terrain, card_played_info.robbed_player, card_played_info.stolen_material_id, true);
+                html += '<br><small class="ms-4">🥷 Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
+                if (card_played_info.robbed_player !== undefined && card_played_info.robbed_player !== -1) {
+                    html += '<br>💰 Robó una carta al Jugador ' + (card_played_info.robbed_player + 1);
+                }
+                html += '</small>';
+            }
+            break;
+        case 'victory_point':
+            html += '<br><small class="ms-4">🏆 Punto de Victoria revelado ✨</small>';
+            break;
+        case 'monopoly':
+            if (card_played_info.material_chosen !== undefined) {
+                let material_chosen = materials[card_played_info.material_chosen];
+                let materialEmoji = getResourceEmoji(material_chosen);
+                html += '<br><small class="ms-4">💰 Monopolio de: ' + materialEmoji + ' ' + material_chosen.toUpperCase() + '</small>';
+                
+                // Actualizar las manos de todos los jugadores si está disponible
+                for (let i = 0; i < 4; i++) {
+                    if (card_played_info['hand_P' + i]) {
+                        changeHandObject(i, card_played_info['hand_P' + i]);
+                    }
+                }
+            }
+            break;
+        case 'year_of_plenty':
+            if (card_played_info.materials_selected) {
+                let material1Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material]);
+                let material2Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material_2]);
+                let materials_chosen = [
+                    material1Emoji + ' ' + materials[card_played_info.materials_selected.material].toUpperCase(), 
+                    material2Emoji + ' ' + materials[card_played_info.materials_selected.material_2].toUpperCase()
+                ];
+                html += '<br><small class="ms-4">🎁 Recursos elegidos: ' + materials_chosen.join(', ') + '</small>';
+                
+                if (card_played_info['hand_P' + actual_player]) {
+                    changeHandObject(actual_player, card_played_info['hand_P' + actual_player]);
+                }
+            }
+            break;
+        case 'road_building':
+            if (card_played_info.roads) {
+                html += '<br><small class="ms-4">🛤️ Construcción de carreteras:<br>';
+                if (card_played_info.valid_road_1) {
+                    html += '🚧 Carretera 1: nodo ' + card_played_info.roads.node_id + ' → ' + card_played_info.roads.road_to + '<br>';
+                    // Dibujar la carretera en el tablero
+                    let road_id_str = card_played_info.roads.node_id < card_played_info.roads.road_to ? 
+                        `road_${card_played_info.roads.node_id}_${card_played_info.roads.road_to}` : 
+                        `road_${card_played_info.roads.road_to}_${card_played_info.roads.node_id}`;
+                    animateRoadBuilding(road_id_str, actual_player);
+                }
+                if (card_played_info.valid_road_2) {
+                    html += '🚧 Carretera 2: nodo ' + card_played_info.roads.node_id_2 + ' → ' + card_played_info.roads.road_to_2;
+                    // Dibujar la segunda carretera en el tablero
+                    let road_id_str = card_played_info.roads.node_id_2 < card_played_info.roads.road_to_2 ? 
+                        `road_${card_played_info.roads.node_id_2}_${card_played_info.roads.road_to_2}` : 
+                        `road_${card_played_info.roads.road_to_2}_${card_played_info.roads.node_id_2}`;
+                    animateRoadBuilding(road_id_str, actual_player);
+                }
+                html += '</small>';
+            }
+            break;
+        default:
+            break;
+    }
+    
+    html += '</div>';
+    other_useful_info_text.append(html);
+    autoScrollLog('other_useful_info_text');
+    
+    // Animar la carta que se acaba de jugar
+    animateCardPlay(actual_player, card_played_info.played_card);
+}
+
+function animateDiceRoll(totalValue) {
+    // Dividir el valor total en dos dados (simulando dos dados de 6 caras)
+    let dice1Value, dice2Value;
+    
+    if (totalValue <= 6) {
+        dice1Value = Math.floor(Math.random() * Math.min(totalValue, 6)) + 1;
+        dice2Value = totalValue - dice1Value;
+        if (dice2Value < 1) {
+            dice2Value = 1;
+            dice1Value = totalValue - 1;
+        }
+    } else {
+        dice1Value = Math.floor(Math.random() * 6) + 1;
+        dice2Value = totalValue - dice1Value;
+        if (dice2Value > 6) {
+            dice1Value = totalValue - 6;
+            dice2Value = 6;
+        }
+    }
+
+    // Actualizar el valor total en la UI
+    $('#diceroll .dice-value').text(totalValue);
+    
+    // Mostrar el overlay de dados
+    const overlay = $('#dice-overlay');
+    overlay.fadeIn(300);
+    
+    // Animar los dados individualmente
+    const dice1 = $('.dice-1');
+    const dice2 = $('.dice-2');
+    
+    // Limpiar clases anteriores
+    dice1.removeClass('rolling').removeClass(function (index, className) {
+        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
+    });
+    dice2.removeClass('rolling').removeClass(function (index, className) {
+        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
+    });
+    
+    // Añadir animación de rotación
+    dice1.addClass('rolling');
+    dice2.addClass('rolling');
+    
+    // Actualizar valores mostrados en el resultado
+    $('#dice-value-1').text(dice1Value);
+    $('#dice-value-2').text(dice2Value);
+    $('#dice-total').text(totalValue);
+    
+    // Después de un tiempo, mostrar el resultado y quitar la animación
+    setTimeout(function() {
+        dice1.removeClass('rolling').addClass('show-' + dice1Value);
+        dice2.removeClass('rolling').addClass('show-' + dice2Value);
+        
+        // Ocultar el overlay después de mostrar el resultado
+        setTimeout(function() {
+            overlay.fadeOut(500);
+        }, 2000);
+    }, 2000);
+    
+    console.log(`[DEBUG] Dados animados: ${dice1Value} + ${dice2Value} = ${totalValue}`);
+}
+
+// Nueva función para actualizar cartas de desarrollo con animación
+function updateDevCards(playerIndex, devCardsArray) {
+    const devCardCounts = {
+        knight: 0,
+        victory_point: 0,
+        road_building: 0,
+        year_of_plenty: 0,
+        monopoly: 0
+    };
+    
+    const DEV_CARD_TYPE_MAP = {
+        0: 'knight',
+        1: 'victory_point',
+        2: 'road_building',
+        3: 'year_of_plenty',
+        4: 'monopoly'
+    };
+    
+    if (devCardsArray && Array.isArray(devCardsArray)) {
+        devCardsArray.forEach(card => {
+            let cardName = null;
+            if (card.type === 0) { // Knight
+                cardName = 'knight';
+            } else if (card.type === 1) { // Victory Point
+                cardName = 'victory_point';
+            } else if (card.type === 2) { // Progress Card
+                cardName = DEV_CARD_TYPE_MAP[card.effect];
+            }
+            
+            if (cardName && devCardCounts.hasOwnProperty(cardName)) {
+                devCardCounts[cardName]++;
+            }
+        });
+    }
+    
+    // Actualizar UI con animación
+    for (const cardName in devCardCounts) {
+        const cardElement = $(`#hand_P${playerIndex} .dev-cards-grid .${cardName} .${cardName}_quantity`);
+        if (cardElement.length) {
+            const oldValue = parseInt(cardElement.text()) || 0;
+            const newValue = devCardCounts[cardName];
+            
+            // Usar la nueva función de animación
+            animateNumberUpdate(cardElement, newValue, oldValue);
+        }
+    }
+}
+
+// Función helper para animar la actualización de números
+function animateNumberUpdate(element, newValue, oldValue = null) {
+    if (!element || !element.length) return;
+    
+    // Determinar el tipo de cambio
+    const currentValue = parseInt(element.text()) || 0;
+    const finalValue = parseInt(newValue) || 0;
+    
+    // Actualizar el valor
+    element.text(finalValue);
+    
+    // Determinar el tipo de animación según el cambio
+    let animationClass = 'quantity-updated';
+    if (oldValue !== null) {
+        if (finalValue > oldValue) {
+            animationClass = 'quantity-increase';
+        } else if (finalValue < oldValue) {
+            animationClass = 'quantity-decrease';
+        } else {
+            animationClass = 'quantity-neutral';
+        }
+    }
+    
+    // Añadir la clase de animación
+    element.addClass(animationClass);
+    
+    // Después de 750ms, quitar la clase y añadir la transición a normal
+    setTimeout(() => {
+        element.removeClass(animationClass);
+        element.addClass('fade-to-normal');
+        
+        // Quitar la clase fade-to-normal después de completar la transición
+        setTimeout(() => {
+            element.removeClass('fade-to-normal');
+        }, 750);
+    }, 750);
+    
+    console.log(`[DEBUG] Animando actualización: ${currentValue} → ${finalValue}`);
+}
+
+// Función para obtener emojis de recursos
+function getResourceEmoji(resourceName) {
+    const resourceEmojis = {
+        'cereal': '🌾',
+        'mineral': '⛰️', 
+        'clay': '🧱',
+        'wood': '🪵',
+        'wool': '🐑'
+    };
+    return resourceEmojis[resourceName] || '❓';
+}
+
+// Función para obtener emojis de cartas de desarrollo
+function getDevCardEmoji(cardName) {
+    const cardEmojis = {
+        'knight': '⚔️',
+        'victory_point': '🏆',
+        'road_building': '🛣️',
+        'year_of_plenty': '🎁',
+        'monopoly': '💰'
+    };
+    return cardEmojis[cardName] || '🃏';
+}
+
+// Función para obtener emojis de construcciones
+function getBuildingEmoji2(buildingType) {
+    const buildingEmojis = {
+        'S舎': '🏠',
+        'settlement': '🏠',
+        'town': '🏠',
+        'C都市': '🏛️',
+        'city': '🏛️',
+        'R道': '🛤️',
+        'road': '🛤️'
+    };
+    return buildingEmojis[buildingType] || '🏗️';
+}
+
+// Función para obtener emoji de dados según el valor
+function getDiceEmoji(diceValue) {
+    const diceEmojis = {
+        1: '⚀',
+        2: '⚁', 
+        3: '⚂',
+        4: '⚃',
+        5: '⚄',
+        6: '⚅',
+        7: '⚀⚀',  // Dos dados que suman 7
+        8: '⚁⚂',  // Dos dados que suman 8
+        9: '⚂⚂',  // Dos dados que suman 9
+        10: '⚃⚃', // Dos dados que suman 10
+        11: '⚄⚄', // Dos dados que suman 11
+        12: '⚅⚅'  // Dos dados que suman 12
+    };
+    return diceEmojis[diceValue] || '🎲';
+}
+
+// Función para manejar el inicio de turno
+function handleStartTurn(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleStartTurn:', phase_obj);
+    
+    if (phase_obj && phase_obj.player !== undefined) {
+        $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
+        
+        if (phase_obj.dice !== undefined) {
+            updateDiceRoll(phase_obj.dice);
+            
+            let diceEmoji = getDiceEmoji(phase_obj.dice);
+            let html = `<div class="log-entry dice-roll mb-2">
+                <i class="fas fa-dice text-primary me-2"></i>
+                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
+                <br><small class="ms-4">🎲 Tiró los dados: ${diceEmoji} <span class="badge bg-primary">${phase_obj.dice}</span></small>
+            </div>`;
+            jQuery('#other_useful_info_text').append(html);
+            autoScrollLog('other_useful_info_text');
+        } else {
+            let html = `<div class="log-entry start-turn mb-2">
+                <i class="fas fa-play text-primary me-2"></i>
+                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
+            </div>`;
+            jQuery('#other_useful_info_text').append(html);
+            autoScrollLog('other_useful_info_text');
+        }
+    }
+    
+    // Actualizar manos y datos
+    updatePhaseData(phase_obj);
+}
+
+// Función para obtener el jugador actual
+function getCurrentPlayer() {
+    // Intentar obtener el jugador desde el contador de turnos
+    let currentTurnKey = $('#contador_turnos').val();
+    if (currentTurnKey) {
+        // Si el turno es como "P0", "P1", etc., extraer el número
+        let match = currentTurnKey.match(/P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si el turno es como "turn_P0", extraer el número
+        match = currentTurnKey.match(/turn_P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si es un número directo
+        if (!isNaN(parseInt(currentTurnKey))) {
+            return parseInt(currentTurnKey) - 1; // Convertir de 1-based a 0-based
+        }
+    }
+    
+    // Fallback: intentar obtener desde phase_obj global
+    if (phase_obj && phase_obj.player !== undefined) {
+        return phase_obj.player;
+    }
+    
+    return 0; // Fallback al jugador 0
+}
+
+// Función para manejar la fase de comercio
+function handleCommercePhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleCommercePhase - Datos completos:', JSON.stringify(phase_obj, null, 2));
+    console.log('[DEBUG] handleCommercePhase - Claves disponibles:', Object.keys(phase_obj || {}));
+    
+    let hasLoggedActivity = false; // Para evitar logs duplicados
+    
+    if (phase_obj && typeof phase_obj === 'object') {
+        // Buscar actividades de comercio en el objeto
+        let commerceActivities = [];
+        let hasActivity = false;
+        
+        // Verificar si hay comercio con el banco
+        if (phase_obj.trade_bank || phase_obj.bank_trade || phase_obj.give || phase_obj.receive) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'bank',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay comercio entre jugadores
+        if (phase_obj.trade_players || phase_obj.player_trade || phase_obj.player_id_send || phase_obj.offer) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'players',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay compra de cartas de desarrollo
+        if (phase_obj.buy_card || phase_obj.development_card_purchased || 
+           (phase_obj.player !== undefined && Object.keys(phase_obj).some(key => key.includes('development_cards')))) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'buy_card',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay construcciones (gastar recursos)
+        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'construction',
+                data: phase_obj
+            });
+        }
+        
+        // Si no hay actividades específicas detectadas, buscar en cualquier subclave
+        if (!hasActivity) {
+            // Recorrer todas las claves del objeto para buscar actividades
+            for (let key in phase_obj) {
+                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
+                    if (key.includes('trade') || key.includes('bank')) {
+                        commerceActivities.push({
+                            type: 'bank',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    } else if (key.includes('build') || key.includes('construction')) {
+                        commerceActivities.push({
+                            type: 'construction',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    } else if (key.includes('buy') || key.includes('card')) {
+                        commerceActivities.push({
+                            type: 'buy_card',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    }
+                }
+            }
+        }
+        
+        // Si hay actividades específicas, procesarlas
+        if (hasActivity && commerceActivities.length > 0) {
+            console.log('[DEBUG] Actividades de comercio encontradas:', commerceActivities);
+            commerceActivities.forEach(activity => {
+                switch(activity.type) {
+                    case 'bank':
+                        logBankTrade(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'players':
+                        logPlayerTrade(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'buy_card':
+                        logCardPurchase(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'construction':
+                        logConstruction(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                }
+            });
+        }
+    }
+    
+    // Solo mostrar log general si no hubo actividades específicas
+    if (!hasLoggedActivity) {
+        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general');
+        let currentPlayer = getCurrentPlayer();
+        let html = `<div class="log-entry commerce-general mb-2">
+            <i class="fas fa-store text-info me-2"></i>
+            <strong>🛍️ Jugador ${currentPlayer + 1}</strong> - Fase de Comercio
+            <br><small class="ms-4">💼 Oportunidad para intercambios, compras y construcciones</small>
+        </div>`;
+        jQuery('#commerce_log_text').append(html);
+        autoScrollLog('commerce_log_text');
+    }
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para manejar la fase de construcción
+function handleBuildPhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleBuildPhase:', phase_obj);
+    
+    let hasLoggedActivity = false; // Para evitar logs duplicados
+    
+    if (phase_obj && typeof phase_obj === 'object') {
+        // Buscar construcciones en el objeto
+        let hasConstruction = false;
+        
+        // Verificar construcciones directas
+        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
+            hasConstruction = true;
+            logConstruction(phase_obj);
+            hasLoggedActivity = true;
+        }
+        
+        // Buscar construcciones en subclaves
+        if (!hasConstruction) {
+            for (let key in phase_obj) {
+                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
+                    if (key.includes('build') || key.includes('construction') || 
+                       (phase_obj[key].what_build || phase_obj[key].node_id)) {
+                        hasConstruction = true;
+                        logConstruction(phase_obj[key]);
+                        hasLoggedActivity = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Solo mostrar mensaje general si no hay construcción específica
+    if (!hasLoggedActivity) {
+        let currentPlayer = getCurrentPlayer();
+        let html = `<div class="log-entry build-phase mb-2">
+            <i class="fas fa-tools text-warning me-2"></i>
+            <strong>🏗️ Jugador ${currentPlayer + 1}</strong> - Fase de Construcción
+            <br><small class="ms-4">🔨 Oportunidad para construir poblados, ciudades y carreteras</small>
+        </div>`;
+        jQuery('#other_useful_info_text').append(html);
+        autoScrollLog('other_useful_info_text');
+    }
+}
+
+// Función para manejar el fin de turno
+function handleEndTurn(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleEndTurn:', phase_obj);
+    
+    let currentPlayer = getCurrentPlayer();
+    if (phase_obj && phase_obj.player !== undefined) {
+        currentPlayer = phase_obj.player;
+        $('#hand_P' + phase_obj.player).css('border', 'solid 0px black');
+    }
+    
+    let html = `<div class="log-entry end-turn mb-2">
+        <i class="fas fa-stop text-secondary me-2"></i>
+        <strong>🏁 Jugador ${currentPlayer + 1}</strong> terminó su turno
+    </div>`;
+    jQuery('#other_useful_info_text').append(html);
+    autoScrollLog('other_useful_info_text');
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para manejar fases genéricas
+function handleGenericPhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleGenericPhase:', phaseKey, phase_obj);
+    
+    // Procesar según el tipo de fase usando la lógica original
+    if (phaseKey.includes('trade_bank') || (phase_obj && phase_obj.phase_type == "trade_bank")) {
+        logBankTrade(phase_obj);
+    } else if (phaseKey.includes('trade_players') || (phase_obj && phase_obj.phase_type == "trade_players")) {
+        logPlayerTrade(phase_obj);
+    } else if (phaseKey.includes('build') || (phase_obj && phase_obj.phase_type == "build")) {
+        logConstruction(phase_obj);
+    } else if (phaseKey.includes('buy_card') || (phase_obj && phase_obj.phase_type == "buy_card")) {
+        logCardPurchase(phase_obj);
+    } else if (phaseKey.includes('play_card') || (phase_obj && phase_obj.phase_type == "play_card")) {
+        on_development_card_played(phase_obj);
+    } else if (phaseKey.includes('give_cards') || (phase_obj && phase_obj.phase_type == "give_cards")) {
+        logResourceDistribution(phase_obj);
+    } else if (phaseKey.includes('discard') || (phase_obj && phase_obj.phase_type == "discard_cards")) {
+        logCardDiscard(phase_obj);
+    } else if (phaseKey.includes('rob') || phaseKey.includes('bandit') || (phase_obj && (phase_obj.phase_type == "rob_player" || phase_obj.phase_type == "move_bandit"))) {
+        logThiefMovement(phase_obj);
+    }
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para actualizar datos de fase común
+function updatePhaseData(phase_obj) {
+    if (!phase_obj) return;
+    
+    // Actualizar manos de jugadores
+    if (phase_obj.player !== undefined && phase_obj['hand_P' + phase_obj.player]) {
+        changeHandObject(phase_obj.player, phase_obj['hand_P' + phase_obj.player]);
+    }
+    
+    // Actualizar todas las manos si están disponibles
+    for (let i = 0; i < 4; i++) {
+        if (phase_obj['hand_P' + i]) {
+            changeHandObject(i, phase_obj['hand_P' + i]);
+        }
+    }
+    
+    // Actualizar puntos de victoria
+    if (phase_obj.victory_points) {
+        for (let i = 0; i < 4; i++) {
+            if (phase_obj.victory_points['J' + i] !== undefined) {
+                const vpElement = $('#puntos_victoria_J' + (i + 1));
+                const oldVP = parseInt(vpElement.text()) || 0;
+                const newVP = phase_obj.victory_points['J' + i];
+                animateNumberUpdate(vpElement, newVP, oldVP);
+            }
+        }
+    }
+    
+    // Actualizar cartas de desarrollo
+    if (phase_obj.player !== undefined && phase_obj['development_cards_P' + phase_obj.player]) {
+        updateDevCards(phase_obj.player, phase_obj['development_cards_P' + phase_obj.player]);
+    }
+    
+    // Después de un breve delay, actualizar con los datos completos del juego
+}
+
+// Aplicar movimiento del ladrón en el tablero
 function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
     let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
     let actual_player = parseInt($('#contador_turnos').val()) - 1;
@@ -3142,4 +4029,108 @@ function logThiefMovement(thiefData) {
     
     jQuery('#other_useful_info_text').append(html);
     autoScrollLog('other_useful_info_text');
+}
+
+// Función para inicializar los controles de zoom y pantalla completa
+function initZoomControls() {
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const fullscreenBtn = document.getElementById('fullscreen');
+    const gamefield = document.getElementById('gamefield');
+    const gamefieldExternal = document.getElementById('gamefield_external');
+    
+    // Estado de zoom actual
+    let zoomState = 'normal'; // 'normal', 'zoomed-in', 'zoomed-out'
+    let isFullscreen = false;
+    
+    // Evento para acercar
+    zoomInBtn.addEventListener('click', function() {
+        // Solo permitir zoom in si no estamos ya en ese estado
+        if (zoomState !== 'zoomed-in') {
+            // Eliminar clase previa
+            gamefield.classList.remove('zoomed-out');
+            // Añadir nueva clase
+            gamefield.classList.add('zoomed-in');
+            zoomState = 'zoomed-in';
+        }
+    });
+    
+    // Evento para alejar
+    zoomOutBtn.addEventListener('click', function() {
+        // Solo permitir zoom out si no estamos ya en ese estado
+        if (zoomState !== 'zoomed-out') {
+            // Eliminar clase previa
+            gamefield.classList.remove('zoomed-in');
+            // Añadir nueva clase
+            gamefield.classList.add('zoomed-out');
+            zoomState = 'zoomed-out';
+        }
+    });
+    
+    // Evento para restablecer zoom (doble clic en el mapa)
+    gamefield.addEventListener('dblclick', function() {
+        // Eliminar todas las clases de zoom
+        gamefield.classList.remove('zoomed-in', 'zoomed-out');
+        zoomState = 'normal';
+    });
+    
+    // Evento para pantalla completa
+    fullscreenBtn.addEventListener('click', function() {
+        toggleFullscreen();
+    });
+    
+    // Función para alternar pantalla completa
+    function toggleFullscreen() {
+        if (!isFullscreen) {
+            // Entrar en modo pantalla completa
+            gamefieldExternal.classList.add('fullscreen');
+            fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+            fullscreenBtn.title = "Salir de pantalla completa";
+            isFullscreen = true;
+            
+            // Capturar tecla ESC para salir de pantalla completa
+            document.addEventListener('keydown', handleEscKey);
+        } else {
+            // Salir de modo pantalla completa
+            exitFullscreen();
+        }
+    }
+    
+    // Función para salir de pantalla completa
+    function exitFullscreen() {
+        gamefieldExternal.classList.remove('fullscreen');
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        fullscreenBtn.title = "Pantalla completa";
+        isFullscreen = false;
+        
+        // Eliminar listener de tecla ESC
+        document.removeEventListener('keydown', handleEscKey);
+    }
+    
+    // Función para manejar la tecla ESC
+    function handleEscKey(e) {
+        if (e.key === 'Escape' && isFullscreen) {
+            exitFullscreen();
+        }
+    }
+    
+    // También podemos añadir soporte para el API Fullscreen nativo del navegador
+    if (document.documentElement.requestFullscreen) {
+        // Agregar un segundo botón para pantalla completa nativa del navegador
+        const nativeFullscreenBtn = document.createElement('button');
+        nativeFullscreenBtn.id = 'native-fullscreen';
+        nativeFullscreenBtn.title = 'Pantalla completa del navegador';
+        nativeFullscreenBtn.innerHTML = '<i class="fas fa-desktop"></i>';
+        document.querySelector('.map-controls').appendChild(nativeFullscreenBtn);
+        
+        nativeFullscreenBtn.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                gamefieldExternal.requestFullscreen().catch(err => {
+                    console.error(`Error al intentar mostrar en pantalla completa: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        });
+    }
 }
