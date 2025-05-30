@@ -351,9 +351,6 @@
                                         <button id="play_btn" class="btn btn-sm btn-success ms-2" title="Play/Pausa">
                                             <i class="fas fa-play"></i> <span id="play-text" style="display: none;">Play</span>
                                         </button>
-                                        <button id="test_dice_btn" class="btn btn-sm btn-warning ms-2" title="Probar Dados">
-                                            <i class="fas fa-dice"></i>
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -405,16 +402,33 @@
         
         <!-- Modals y elementos flotantes -->
         <div id="victory-modal" class="modal fade" tabindex="-1" role="dialog">
-            <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">¡Victoria!</h5>
+                        <h5 class="modal-title">¡VICTORIA!</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
+                        <!-- Trofeo 3D -->
+                        <div class="trophy-container">
+                            <div class="trophy">
+                                <span class="trophy-emoji">🏆</span>
+                            </div>
+                        </div>
+                        
                         <h2 id="winner-name" class="mb-4 animate__animated animate__bounceIn"></h2>
+                        
+                        <!-- Botón para compartir -->
+                        <button class="share-victory-btn">
+                            <i class="fas fa-share-alt"></i> Compartir Victoria
+                        </button>
+                        
+                        <!-- Contenedor para el confeti -->
                         <div class="victory-animation-container">
                             <div id="confetti-canvas"></div>
+                            
+                            <!-- Elementos flotantes de Catán (se añadirán dinámicamente) -->
+                            <div class="catan-elements-container"></div>
                         </div>
                     </div>
                 </div>
