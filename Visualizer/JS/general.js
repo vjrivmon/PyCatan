@@ -624,6 +624,9 @@ function addSetupBuildings() {
 
             paint_it_player_color(i, node);
             paint_it_player_color(i, road);
+            
+            // Aplicar z-index alto a las carreteras de configuración inicial
+            road.css('z-index', '35');
 
             // Agregar emoticonos para poblados y caminos iniciales
             let playerEmoji = getPlayerEmoji(i);
@@ -1450,8 +1453,9 @@ function animateBuilding(nodeId, buildingType, playerIndex) {
             'background-color': playerMainColor,
             'border': `3px solid ${colors[1]}`,
             'border-radius': buildingType === 'city' || buildingType === 'C都市' ? '8px' : '50%',
-            'transform': 'scale(1)',
-            'z-index': '10'
+            // 'transform': 'scale(1)', // GSAP se encargará de la escala
+            'z-index': '10',
+            'opacity': 1 // Asegurar que sea visible desde el principio
         });
         
         // Añadir emoji según el tipo de construcción
@@ -1466,15 +1470,27 @@ function animateBuilding(nodeId, buildingType, playerIndex) {
             nodeElement.html(`<span style="font-size: 16px; line-height: 1;">${emoji}</span>`);
         }
         
-        // Animación de aparición
-        nodeElement.addClass('animate__animated animate__bounceIn');
+        // Animación de aparición con GSAP (sin ocultar)
+        if (typeof gsap !== 'undefined') {
+            gsap.fromTo(nodeElement, 
+                { scale: 0.8, opacity: 1 }, // Comienza visible y un poco más pequeño
+                {
+                    duration: 0.5,
+                    scale: 1, // Anima a tamaño completo
+                    opacity: 1,
+                    ease: "power1.out"
+                }
+            );
+        }
         
-        // Efecto de construcción
+        // Efecto de construcción (si aún se desea, puede mantenerse)
         createConstructionEffect(nodeElement.offset().left, nodeElement.offset().top);
         
-        setTimeout(() => {
-            nodeElement.removeClass('animate__animated animate__bounceIn');
-        }, 1000);
+        // Se elimina la clase animate__bounceIn y el setTimeout correspondiente
+        // nodeElement.addClass('animate__animated animate__bounceIn');
+        // setTimeout(() => {
+        //     nodeElement.removeClass('animate__animated animate__bounceIn');
+        // }, 1000);
         
         console.log(`[DEBUG] Construido ${buildingType} para Jugador ${playerIndex} en nodo ${nodeId}`);
     }
@@ -1492,18 +1508,17 @@ function animateRoadBuilding(roadId, playerIndex) {
             'background-color': playerMainColor,
             'border': `2px solid ${colors[1]}`,
             'transform': 'scale(1)',
-            'z-index': '15' // Ajustado para estar sobre terrenos y nodos base
+            'z-index': '35' // Ajustado para estar sobre terrenos y nodos base
         });
         
         // Añadir emoji de carretera
         roadElement.html(`<span style="font-size: 12px; color: white;">🛤️</span>`);
         
-        // Animación de construcción
-        roadElement.addClass('animate__animated animate__fadeIn');
-        
-        setTimeout(() => {
-            roadElement.removeClass('animate__animated animate__fadeIn');
-        }, 1000);
+        // Animación de construcción eliminada para que nunca se escondan
+        // roadElement.addClass('animate__animated animate__fadeIn');
+        // setTimeout(() => {
+        //     roadElement.removeClass('animate__animated animate__fadeIn');
+        // }, 1000);
         
         console.log(`[DEBUG] Construida carretera para Jugador ${playerIndex}: ${roadId}`);
     }
@@ -1628,12 +1643,18 @@ function paint_it_player_color(player, object_to_paint) {
     // Añadir efecto de iluminación
     object_to_paint.css('box-shadow', '0 0 10px ' + object_to_paint.css('background-color'));
     
-    // Animar la aparición
-    gsap.from(object_to_paint, {
-        duration: 0.5,
-        opacity: 0,
-        ease: "power1.out"
-    });
+    // Animar la aparición sin ocultar el objeto
+    if (typeof gsap !== 'undefined') {
+        gsap.fromTo(object_to_paint, 
+            { scale: 0.8, opacity: 1 }, // Comienza ligeramente más pequeño pero totalmente opaco
+            {
+                duration: 0.5,
+                scale: 1, // Anima al tamaño completo
+                opacity: 1, // Asegura que la opacidad se mantenga en 1
+                ease: "power1.out"
+            }
+        );
+    }
 }
 
 // Modificar función de tirar dados para incluir animación
@@ -1689,7 +1710,7 @@ function initAnimations() {
             gsap.from(this, {
                 duration: 0.8,
                 delay: index * 0.05,
-                y: -50,
+                //y: -50,
                 opacity: 0,
                 ease: "power2.out"
             });
