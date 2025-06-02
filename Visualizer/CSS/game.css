@@ -279,6 +279,19 @@
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 }
 
+/*
+  Regla específica para los nodos de jugador (ej. 'player-red').
+  Asegura que estos nodos tengan una escala mayor (1.2) para destacarlos,
+  anulando cualquier transformación de escala en línea que pudiera reducirlos (como scale(0.8, 0.8)).
+  Utiliza !important para garantizar la precedencia sobre estilos en línea y asegurar la visibilidad deseada.
+  Si existen otros colores de jugador (ej. player-blue, player-green) que requieran
+  este mismo comportamiento, esta regla puede extenderse o duplicarse según sea necesario.
+  Por ejemplo: .node.player-red, .node.player-blue { ... }
+*/
+.node.player-red {
+    transform: scale(1.2, 1.2) !important;
+}
+
 .filler_node {
     background: #00aacc;
     height: 30px !important;
