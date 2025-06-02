@@ -279,6 +279,19 @@
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 }
 
+/*
+  Regla específica para los nodos de jugador (ej. 'player-red').
+  Asegura que estos nodos tengan una escala mayor (1.2) para destacarlos,
+  anulando cualquier transformación de escala en línea que pudiera reducirlos (como scale(0.8, 0.8)).
+  Utiliza !important para garantizar la precedencia sobre estilos en línea y asegurar la visibilidad deseada.
+  Si existen otros colores de jugador (ej. player-blue, player-green) que requieran
+  este mismo comportamiento, esta regla puede extenderse o duplicarse según sea necesario.
+  Por ejemplo: .node.player-red, .node.player-blue { ... }
+*/
+.node {
+    transform: scale(1.2, 1.2) !important;
+}
+
 .filler_node {
     background: #00aacc;
     height: 30px !important;
@@ -921,4 +934,121 @@
 /* Transición suave para los efectos de zoom */
 #gamefield {
     transition: transform 0.3s ease;
+}
+
+/* Añadir nuevas clases CSS al final del archivo o en una sección apropiada */
+
+.harbor-content-dynamic {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 12; /* Encima del nodo base, pero debajo de construcciones */
+    font-size: 0.8em; /* Ajusta según sea necesario */
+    text-align: center;
+    pointer-events: none; /* Para que no interfiera con clics en el nodo */
+}
+
+.harbor-content-dynamic i {
+    display: block;
+    margin-bottom: 2px; /* Espacio entre icono y texto */
+}
+
+.building-on-node { /* Clase para el span que contiene los emojis de poblado/ciudad */
+    position: relative; 
+    z-index: 25 !important; 
+    display: inline-block; 
+    /* Puedes añadir un background ligero o padding si los emojis se solapan mal con el nodo */
+}
+
+.node.is-harbor-active {
+    /* Estilos especiales para nodos de puerto activos */
+    /* background-color: rgba(200, 200, 255, 0.3); */ /* Ejemplo: un ligero tinte azul */
+    /* border: 1px dashed #007bff; */ /* Ejemplo: un borde punteado */
+}
+
+/* Asegúrate de que los estilos de .node no sobreescriban el z-index de forma inesperada */
+.node {
+    /* ... tus estilos existentes para .node ... */
+    /* Si .node tiene un z-index, asegúrate de que sea menor que .building-on-node */
+    /* y que .harbor-content-dynamic (12) esté por encima del z-index base del nodo si lo tiene */
+    width: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    height: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    border-radius: 50%;
+    background-color: rgba(0,0,0,0.2); /* Un color base para verlos si no tienen contenido */
+    cursor: pointer;
+}
+
+/* Estilos para los contenedores de Log */
+.log-box,
+.turno-a-turno-log-box, /* Añadido para log de turno a turno */
+.comercio-log-box { /* Añadido para log de comercio */
+    height: 150px; /* Altura deseada, ajústala según tus necesidades */
+    border: 1px solid #ccc;
+    overflow-y: auto; /* Crucial para habilitar el scroll vertical */
+    padding: 10px;
+    background-color: #f0f0f0; /* Un fondo sutil */
+    margin-bottom: 15px; /* Espacio entre cajas de log */
+    border-radius: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente legible */
+    font-size: 0.9em;
+    line-height: 1.4; /* Espaciado de línea para mejor lectura */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Sombra interior sutil */
+}
+
+/* Estilo para cada mensaje individual dentro del log */
+.log-box p,
+.turno-a-turno-log-box p, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p { /* Añadido para mensajes en log de comercio */
+    margin: 0 0 8px 0; /* Espacio debajo de cada mensaje */
+    padding: 5px;
+    border-bottom: 1px dashed #e0e0e0; /* Separador ligero */
+    word-wrap: break-word; /* Asegura que palabras largas no rompan el layout */
+}
+
+/* Elimina el borde del último mensaje para un look más limpio */
+.log-box p:last-child,
+.turno-a-turno-log-box p:last-child, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p:last-child { /* Añadido para mensajes en log de comercio */
+    border-bottom: none;
+}
+
+/* Estilos opcionales para las secciones de log */
+.log-section h2 {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 5px;
+    border-bottom: 2px solid #3498db; /* Un acento de color */
+    padding-bottom: 3px;
+}
+
+.game-logs-container {
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo semitransparente si está sobre el juego */
+    border-radius: 8px;
+    margin-top: 20px; /* Espacio si está debajo del tablero */
+}
+
+/* Nuevas clases para estilizar mensajes de log con estructura título/detalle */
+.log-mensaje-titulo {
+    font-weight: bold; /* Destaca la línea principal del mensaje */
+    display: block; /* Asegura que ocupe su propia línea si es necesario */
+    margin-bottom: 2px; /* Pequeño espacio antes del detalle, si lo hay */
+}
+
+.log-mensaje-detalle {
+    display: block; /* Asegura que ocupe su propia línea */
+    font-size: 0.9em; /* Ligeramente más pequeño que el título */
+    color: #4A4A4A; /* Un color de texto ligeramente más suave para el detalle */
+    padding-left: 1.5em; /* Indentación para el detalle, simulando una sub-lista */
+    position: relative; /* Necesario para el pseudo-elemento de viñeta */
+}
+
+/* Opcional: Añadir un pequeño marcador visual al detalle, como un guion o punto */
+.log-mensaje-detalle::before {
+    content: "↳"; /* O puedes usar "-", "•", etc. */
+    position: absolute;
+    left: 0.5em;
+    top: 0;
+    color: #3498db; /* Color del marcador, coordinado con otros acentos */
 }
