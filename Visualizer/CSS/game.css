@@ -288,7 +288,7 @@
   este mismo comportamiento, esta regla puede extenderse o duplicarse según sea necesario.
   Por ejemplo: .node.player-red, .node.player-blue { ... }
 */
-.node.player-red {
+.node {
     transform: scale(1.2, 1.2) !important;
 }
 
