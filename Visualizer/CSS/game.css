@@ -922,3 +922,46 @@
 #gamefield {
     transition: transform 0.3s ease;
 }
+
+/* Añadir nuevas clases CSS al final del archivo o en una sección apropiada */
+
+.harbor-content-dynamic {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 12; /* Encima del nodo base, pero debajo de construcciones */
+    font-size: 0.8em; /* Ajusta según sea necesario */
+    text-align: center;
+    pointer-events: none; /* Para que no interfiera con clics en el nodo */
+}
+
+.harbor-content-dynamic i {
+    display: block;
+    margin-bottom: 2px; /* Espacio entre icono y texto */
+}
+
+.building-on-node { /* Clase para el span que contiene los emojis de poblado/ciudad */
+    position: relative; 
+    z-index: 25 !important; 
+    display: inline-block; 
+    /* Puedes añadir un background ligero o padding si los emojis se solapan mal con el nodo */
+}
+
+.node.is-harbor-active {
+    /* Estilos especiales para nodos de puerto activos */
+    /* background-color: rgba(200, 200, 255, 0.3); */ /* Ejemplo: un ligero tinte azul */
+    /* border: 1px dashed #007bff; */ /* Ejemplo: un borde punteado */
+}
+
+/* Asegúrate de que los estilos de .node no sobreescriban el z-index de forma inesperada */
+.node {
+    /* ... tus estilos existentes para .node ... */
+    /* Si .node tiene un z-index, asegúrate de que sea menor que .building-on-node */
+    /* y que .harbor-content-dynamic (12) esté por encima del z-index base del nodo si lo tiene */
+    width: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    height: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    border-radius: 50%;
+    background-color: rgba(0,0,0,0.2); /* Un color base para verlos si no tienen contenido */
+    cursor: pointer;
+}

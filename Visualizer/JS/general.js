@@ -6,6 +6,210 @@ let phase_obj = {};
 let game_direction = 'forward'; // or "backward"
 let autoPlayInterval = null;
 let isPlaying = false;
+let originalNodePositions = {}; // Nueva variable global para almacenar posiciones
+
+// Coordenadas predefinidas para los nodos (internas y externas para puertos)
+// NOTA: Estas coordenadas necesitarán un ajuste fino.
+// Las 'internal' se basan en el HTML original.
+// Las 'external' son una aproximación y deben ser verificadas/ajustadas.
+const nodeCoordinates = [
+    { internal: { top: '97px', left: '184px' }, external: { top: '87px', left: '174px'} }, // 0 - Puerto potencial
+    { internal: { top: '75px', left: '232px' }, external: { top: '65px', left: '232px'} }, // 1 - Puerto potencial
+    { internal: { top: '97px', left: '282px' }, external: { top: '87px', left: '292px'} }, // 2 - Puerto potencial
+    { internal: { top: '75px', left: '330px' }, external: { top: '65px', left: '330px'} }, // 3 - Puerto potencial
+    { internal: { top: '97px', left: '379px' }, external: { top: '87px', left: '389px'} }, // 4 - Puerto potencial
+    { internal: { top: '75px', left: '428px' }, external: { top: '65px', left: '428px'} }, // 5 - Puerto potencial
+    { internal: { top: '97px', left: '477px' }, external: { top: '87px', left: '487px'} }, // 6 - Puerto potencial
+    { internal: { top: '184px', left: '138px' }, external: { top: '184px', left: '128px'} }, // 7 - Puerto potencial
+    { internal: { top: '157px', left: '184px' }, external: null }, // 8
+    { internal: { top: '184px', left: '234px' }, external: null }, // 9
+    { internal: { top: '157px', left: '282px' }, external: null }, // 10
+    { internal: { top: '184px', left: '334px' }, external: null }, // 11 (ejemplo interno)
+    { internal: { top: '157px', left: '379px' }, external: null }, // 12
+    { internal: { top: '184px', left: '432px' }, external: null }, // 13
+    { internal: { top: '157px', left: '477px' }, external: null }, // 14
+    { internal: { top: '184px', left: '530px' }, external: { top: '184px', left: '540px'} }, // 15 - Puerto potencial
+    { internal: { top: '270px', left: '86px' }, external: { top: '270px', left: '76px'} },   // 16 - Puerto potencial
+    { internal: { top: '247px', left: '138px' }, external: null }, // 17
+    { internal: { top: '270px', left: '184px' }, external: null }, // 18
+    { internal: { top: '247px', left: '232px' }, external: null }, // 19
+    { internal: { top: '270px', left: '282px' }, external: { top: '280px', left: '282px' } }, // 20 (ejemplo externo tuyo, ajustado top levemente)
+    { internal: { top: '247px', left: '330px' }, external: null }, // 21
+    { internal: { top: '270px', left: '379px' }, external: null }, // 22
+    { internal: { top: '247px', left: '428px' }, external: null }, // 23
+    { internal: { top: '270px', left: '477px' }, external: null }, // 24
+    { internal: { top: '247px', left: '530px' }, external: null }, // 25
+    { internal: { top: '270px', left: '578px' }, external: { top: '270px', left: '588px'} }, // 26 - Puerto potencial
+    { internal: { top: '330px', left: '86px' }, external: { top: '330px', left: '76px'} },   // 27 - Puerto potencial
+    { internal: { top: '355px', left: '138px' }, external: null }, // 28
+    { internal: { top: '330px', left: '184px' }, external: null }, // 29
+    { internal: { top: '355px', left: '234px' }, external: null }, // 30
+    { internal: { top: '330px', left: '282px' }, external: null }, // 31
+    { internal: { top: '355px', left: '334px' }, external: null }, // 32
+    { internal: { top: '330px', left: '379px' }, external: null }, // 33
+    { internal: { top: '355px', left: '432px' }, external: null }, // 34
+    { internal: { top: '330px', left: '477px' }, external: null }, // 35
+    { internal: { top: '355px', left: '530px' }, external: null }, // 36
+    { internal: { top: '330px', left: '578px' }, external: { top: '330px', left: '588px'} }, // 37 - Puerto potencial
+    { internal: { top: '419px', left: '138px' }, external: { top: '419px', left: '128px'} }, // 38 - Puerto potencial
+    { internal: { top: '442px', left: '184px' }, external: null }, // 39
+    { internal: { top: '419px', left: '232px' }, external: null }, // 40
+    { internal: { top: '442px', left: '282px' }, external: null }, // 41
+    { internal: { top: '419px', left: '330px' }, external: null }, // 42
+    { internal: { top: '442px', left: '379px' }, external: null }, // 43
+    { internal: { top: '419px', left: '428px' }, external: null }, // 44
+    { internal: { top: '442px', left: '477px' }, external: null }, // 45
+    { internal: { top: '419px', left: '530px' }, external: { top: '419px', left: '540px'} }, // 46 - Puerto potencial
+    { internal: { top: '502px', left: '184px' }, external: { top: '512px', left: '174px'} }, // 47 - Puerto potencial
+    { internal: { top: '529px', left: '234px' }, external: { top: '539px', left: '234px'} }, // 48 - Puerto potencial
+    { internal: { top: '502px', left: '282px' }, external: { top: '512px', left: '292px'} }, // 49 - Puerto potencial
+    { internal: { top: '529px', left: '334px' }, external: { top: '539px', left: '334px'} }, // 50 - Puerto potencial
+    { internal: { top: '502px', left: '379px' }, external: { top: '512px', left: '389px'} }, // 51 - Puerto potencial
+    { internal: { top: '529px', left: '432px' }, external: { top: '539px', left: '432px'} }, // 52 - Puerto potencial
+    { internal: { top: '502px', left: '477px' }, external: { top: '512px', left: '487px'} }  // 53 - Puerto potencial
+];
+
+// Identificadores de nodos que son elegibles para mostrarse como puertos exteriores.
+// Esto es una suposición basada en un tablero estándar de Catan. Ajustar según sea necesario.
+const harborEligibleNodeIds = [0, 1, 2, 3, 4, 5, 6, 7, 15, 16, 26, 27, 37, 38, 46, 47, 48, 49, 50, 51, 52, 53];
+
+// Variable para almacenar las posiciones originales de los nodos (si se cargan del HTML al inicio)
+// ESTA ES LA DECLARACIÓN GLOBAL EN LÍNEA 8, SE MANTIENE INTACTA.
+// let originalNodePositions = {}; 
+
+// Almacenar posiciones originales al cargar el DOM (si aún hay nodos en el HTML al inicio)
+jQuery(document).ready(function() {
+    // La línea que el error marcaba como 77:
+    // DEBE SER UNA ASIGNACIÓN O ELIMINARSE SI NO ES NECESARIA AQUÍ.
+    // Si antes era 'let originalNodePositions = {}' o 'var ...', ahora es solo asignación:
+    originalNodePositions = {}; // Asegura que se inicializa/vacía el objeto global.
+    
+    // jQuery('.node').each(function() {
+    //     const nodeId = this.id;
+    //     if (nodeId) { // Asegurarse de que el nodo tenga un ID
+    //         const position = jQuery(this).position(); // Usar .position() para coordenadas relativas al offset parent
+    //         if (position) {
+    //             originalNodePositions[nodeId] = {
+    //                 top: jQuery(this).css('top'), // Mantener como string 'px'
+    //                 left: jQuery(this).css('left') // Mantener como string 'px'
+    //             };
+    //         }
+    //     }
+    // });
+    // console.log("[DEBUG] Posiciones originales de nodos capturadas:", originalNodePositions);
+});
+
+
+function renderBoardNodes(boardNodesData) {
+    const nodesContainer = jQuery('.nodes');
+    nodesContainer.empty(); // Limpiar nodos existentes
+
+    if (!boardNodesData) {
+        console.error("[DEBUG] renderBoardNodes: No se proporcionaron datos de nodos.");
+        return;
+    }
+
+    boardNodesData.forEach(nodeData => {
+        if (typeof nodeData.id === 'undefined') {
+            console.warn("[DEBUG] renderBoardNodes: Nodo sin ID encontrado.", nodeData);
+            return; // Saltar este nodo
+        }
+
+        const nodeId = nodeData.id;
+        const coordsDefinition = nodeCoordinates[nodeId];
+
+        if (!coordsDefinition) {
+            console.warn('[DEBUG] renderBoardNodes: No hay coordenadas definidas para el nodo ' + nodeId + '.');
+            return; // Saltar este nodo si no hay coordenadas
+        }
+
+        let chosenCoords;
+        let isHarborVisual = false;
+
+        // Determinar si el nodo debe visualizarse como un puerto exterior
+        // HarborConstants.NONE es -1 en el backend
+        if (nodeData.harbor !== -1 && harborEligibleNodeIds.includes(nodeId) && coordsDefinition.external) {
+            chosenCoords = coordsDefinition.external;
+            isHarborVisual = true;
+        } else {
+            chosenCoords = coordsDefinition.internal;
+        }
+        
+        if (!chosenCoords || typeof chosenCoords.top === 'undefined' || typeof chosenCoords.left === 'undefined') {
+            console.warn('[DEBUG] renderBoardNodes: Coordenadas incompletas o no válidas para el nodo ' + nodeId + '. Se usarán las internas por defecto o (0,0).');
+            chosenCoords = coordsDefinition.internal || { top: '0px', left: '0px' }; // Fallback
+        }
+
+        const nodeDiv = jQuery('<div>')
+            .addClass('node')
+            .attr('id', 'node_' + nodeId)
+            .css({
+                top: chosenCoords.top,
+                left: chosenCoords.left,
+                position: 'absolute',
+                'z-index': 10 // z-index base para nodos
+            });
+
+        if (isHarborVisual) {
+            nodeDiv.addClass('is-harbor-active'); // Clase para estilizar puertos activos si es necesario
+            // Aquí se podría añadir el ícono del puerto específico.
+            // Por ejemplo, basándose en nodeData.harbor y constantes de tipo de puerto.
+            // enhanceHarborNodes() podría ser adaptada para esto o llamada después.
+            const harborType = getHarborTypeConstant(nodeData.harbor); // Necesitarás mapear el int a un string
+            const harborIcon = getHarborIcon(harborType); // Función para obtener el icono HTML
+            nodeDiv.append('<div class="harbor-content-dynamic">' + harborIcon + '</div>');
+        }
+        
+        // Si el nodo tiene un jugador (poblado/ciudad), añadir clase de jugador y emoji
+        if (nodeData.player !== -1) {
+            paint_it_player_color(nodeData.player, nodeDiv); // Aplica clase de color
+            let buildingType = nodeData.has_city ? 'city' : 'settlement';
+            let playerEmoji = getPlayerEmoji(nodeData.player);
+            let buildingEmoji = getBuildingEmoji(buildingType); // Debería devolver 🏠 o 🏛️
+            
+            // Asegurar que el contenido del emoji tenga un z-index alto
+            let emojiSpan = jQuery('<span>')
+                .addClass('building-on-node') // Nueva clase para control de z-index específico
+                .css({'z-index': 25 }) // z-index alto para edificios sobre nodos
+                .html('<span class="player-emoji">' + playerEmoji + '</span><span class="building-emoji">' + buildingEmoji + '</span>');
+            nodeDiv.append(emojiSpan);
+
+        }
+
+
+        nodesContainer.append(nodeDiv);
+    });
+    // console.log("[DEBUG] Nodos renderizados dinámicamente.");
+}
+
+// Función auxiliar para mapear el tipo de puerto numérico a un string (ejemplo)
+function getHarborTypeConstant(harborId) {
+    // Estos valores deben coincidir con HarborConstants en Python
+    const harborTypes = {
+        0: 'HARBOR_CEREAL', 
+        1: 'HARBOR_MINERAL',
+        2: 'HARBOR_CLAY',
+        3: 'HARBOR_WOOD',
+        4: 'HARBOR_WOOL',
+        5: 'HARBOR_ALL', // Puerto 3:1
+        // -1 o cualquier otro valor sería HarborConstants.NONE
+    };
+    return harborTypes[harborId] || 'NONE';
+}
+
+// Función auxiliar para obtener el icono HTML del puerto (ejemplo)
+function getHarborIcon(harborTypeString) {
+    // Deberás tener iconos/clases CSS para cada tipo de puerto
+    switch (harborTypeString) {
+        case 'HARBOR_CEREAL': return '<i class="fas fa-wheat-awn"></i><span>2:1</span>';
+        case 'HARBOR_MINERAL': return '<i class="fas fa-mountain"></i><span>2:1</span>';
+        case 'HARBOR_CLAY': return '<i class="fas fa-dumpster-fire"></i><span>2:1</span>'; //  ej icono para arcilla
+        case 'HARBOR_WOOD': return '<i class="fas fa-tree"></i><span>2:1</span>';
+        case 'HARBOR_WOOL': return '<i class="fas fa-sheep"></i><span>2:1</span>';
+        case 'HARBOR_ALL': return '<span>3:1</span>';
+        default: return ''; // Sin icono si no es un puerto conocido
+    }
+}
 
 
 function init_events() {
@@ -116,107 +320,67 @@ function init_events() {
 
             reader.onload = function (evt) {
                 console.log('[DEBUG] FileReader.onload disparado.'); // DEBUG
-                console.log('[DEBUG] Contenido crudo del archivo:', evt.target.result.substring(0, 500) + '...'); // Muestra los primeros 500 chars
-                
+                console.log('[DEBUG] Contenido crudo del archivo:', evt.target.result.substring(0, 200) + "..."); // Loguear solo una parte
                 try {
                     game_obj = JSON.parse(evt.target.result);
-                    console.log('[DEBUG] JSON parseado correctamente. game_obj:', game_obj); // DEBUG
-                    
-                    // Mostrar información detallada de la estructura del juego
-                    debugGameStructure(game_obj);
-                    
+                    console.log('[DEBUG] JSON parseado correctamente. game_obj:', game_obj);
                 } catch (e) {
-                    console.error('[DEBUG] Error al parsear JSON:', e); // DEBUG
-                    alert('Error: El archivo JSON no es válido.');
-                    // Limpiar selección en caso de error de parseo
-                    selectedFile = null;
-                    loadSelectedFileBtn.disabled = true;
-                    $('#uploadModal').modal('hide'); // Opcional: cerrar modal en error
+                    console.error('[DEBUG] Error al parsear JSON:', e);
+                    alert("Error al leer el archivo JSON. Asegúrate de que el formato es correcto.");
+                    $('#uploadModal').modal('hide');
+                    if (loadSelectedFileBtn) loadSelectedFileBtn.disabled = true; // Corregido
                     return;
                 }
-                
-                console.log('[DEBUG] Antes de resetear tablero y contadores.'); // DEBUG
-                // Resetear el tablero
-                jQuery('.node').add('.road').add('.vertical_road').css('background', 'none').css('border', 'none').text('');
-                $('#contador_rondas').val('').change();
-                $('#contador_turnos').val('').change();
-                $('#contador_fases').val('').change();
-                console.log('[DEBUG] Tablero y contadores reseteados.'); // DEBUG
-                
-                // Limpiar logs antes de cargar nueva partida
-                jQuery('#commerce_log_text').html('');
-                jQuery('#other_useful_info_text').html('');
-                
-                // Añadir mensaje de bienvenida
-                let welcomeHtml = `<div class="log-entry welcome-message mb-2" style="border-left-color: #28a745; background-color: rgba(40, 167, 69, 0.1);">
-                    <i class="fas fa-play-circle text-success me-2"></i>
-                    <strong>🎮 ¡Partida cargada correctamente!</strong>
-                    <br><small class="ms-4">📊 Usa los controles para navegar por la partida o presiona Play para ver la evolución automática</small>
-                </div>`;
-                jQuery('#other_useful_info_text').append(welcomeHtml);
-                autoScrollLog('other_useful_info_text');
-                
-                // Detener la reproducción automática si está activa
-                console.log('[DEBUG] Antes de stopAutoPlay().'); // DEBUG
-                stopAutoPlay();
-                console.log('[DEBUG] Después de stopAutoPlay().'); // DEBUG
 
-                // Primero ejecutar setup para dibujar el tablero base y luego inicializar eventos con el juego
-                console.log('[DEBUG] Antes de setup().'); // DEBUG
-                setup(); 
-                console.log('[DEBUG] Después de setup().'); // DEBUG
-                
-                // Inicializar juego con el objeto cargado
-                console.log('[DEBUG] Antes de init_events_with_game_obj(). game_obj:', JSON.parse(JSON.stringify(game_obj))); // DEBUG
-                init_events_with_game_obj();
-                console.log('[DEBUG] Después de init_events_with_game_obj().'); // DEBUG
+                debugGameStructure(game_obj); // Loguea la estructura del juego
 
-                console.log('[DEBUG] Antes de addLogFromJSON().'); // DEBUG
-                addLogFromJSON();
-                console.log('[DEBUG] Después de addLogFromJSON().'); // DEBUG
+                console.log('[DEBUG] Antes de stopAutoPlay().');
+                stopAutoPlay(); // Detener cualquier autoplay previo
+                console.log('[DEBUG] Después de stopAutoPlay().');
 
-                console.log('[DEBUG] Antes de reset_game().'); // DEBUG
-                reset_game(); // Resetear información de jugadores, etc.
-                console.log('[DEBUG] Después de reset_game().'); // DEBUG
+                console.log('[DEBUG] Antes de setup() (preparación inicial).');
+                setup(); // Esto llama a terrainSetup, nodeSetup y addSetupBuildings. nodeSetup aquí configura clases y tooltips, pero su ajuste de posición será sobreescrito por reset_game.
+                console.log('[DEBUG] Después de setup().');
                 
-                // Actualizar UI con datos del JSON (esto repoblará info de jugadores, recursos, etc.)
-                console.log('[DEBUG] Antes de updateUIDataFromGameObj().'); // DEBUG
-                updateUIDataFromGameObj(game_obj); 
-                console.log('[DEBUG] Después de updateUIDataFromGameObj().'); // DEBUG
+                console.log('[DEBUG] Antes de init_events_with_game_obj().');
+                init_events_with_game_obj(); // Inicializa eventos que dependen del game_obj (como los de autoplay)
+                console.log('[DEBUG] Después de init_events_with_game_obj().');
+
+                console.log('[DEBUG] Antes de addLogFromJSON().');
+                addLogFromJSON(); // Carga el log del juego si existe en el JSON
+                console.log('[DEBUG] Después de addLogFromJSON().');
+
+                console.log('[DEBUG] Antes de reset_game().');
+                reset_game(); // Esta función es CLAVE: limpia el tablero y RESTAURA las posiciones originales de los nodos desde 'originalNodePositions'.
+                console.log('[DEBUG] Después de reset_game().');
+
+                // CON LAS POSICIONES BASE YA ESTABLECIDAS POR reset_game(), PROCEDEMOS A AJUSTAR PUERTOS Y COLOCAR EDIFICIOS INICIALES.
+                console.log('[DEBUG] Antes de la llamada DEFINITIVA a nodeSetup() para ajustar puertos.');
+                nodeSetup(); // AHORA nodeSetup ajustará los puertos basándose en las posiciones restauradas por reset_game. Los console.log internos de nodeSetup nos dirán si el .css() funciona.
+                console.log('[DEBUG] Después de la llamada DEFINITIVA a nodeSetup().');
+
+                console.log('[DEBUG] Antes de la llamada DEFINITIVA a addSetupBuildings().');
+                addSetupBuildings(); // Coloca los edificios iniciales (pueblos, carreteras) según el game_obj.setup.
+                console.log('[DEBUG] Después de la llamada DEFINITIVA a addSetupBuildings().');
+
+                console.log('[DEBUG] Antes de updateUIDataFromGameObj().');
+                updateUIDataFromGameObj(game_obj); // Actualiza la UI (puntos, cartas, etc.) con el estado del juego.
+                console.log('[DEBUG] Después de updateUIDataFromGameObj().');
                 
-                // Añadir log de resumen de la partida cargada
-                setTimeout(() => {
-                    let summaryHtml = `<div class="log-entry summary-info mb-2" style="border-left-color: #17a2b8; background-color: rgba(23, 162, 184, 0.1);">
-                        <i class="fas fa-info-circle text-info me-2"></i>
-                        <strong>📊 Resumen de la partida</strong>
-                        <br><small class="ms-4">🎯 Navega con los controles o usa Play para ver la evolución automática</small>
-                    </div>`;
-                    jQuery('#other_useful_info_text').append(summaryHtml);
-                    autoScrollLog('other_useful_info_text');
-                }, 500);
-                
-                // Cerrar el modal
+                // Mejoras visuales y controles post-carga
+                enhanceHarborNodes(); 
+                enhanceDiceRoll();  
+                applyWaterEffects(); 
+                initZoomControls(); 
+
                 $('#uploadModal').modal('hide');
-                console.log('[DEBUG] Modal cerrado. Carga de partida completada.'); // DEBUG
+                if (loadSelectedFileBtn) loadSelectedFileBtn.disabled = false; // Corregido (asumimos que queremos habilitarlo tras éxito)
                 
-                // Limpiar selección
-                selectedFile = null;
-                loadSelectedFileBtn.disabled = true;
+                checkVictory(); // Comprobar si hay victoria al cargar el juego
 
-                // Iniciar juego automáticamente si el botón play está presente y no deshabilitado
-                // Esto asume que `initAutoPlayControls` ya ha sido llamado (ej. en `setup`)
-                // y que el botón play/stop ya existe.
-                if ($('#play_btn').length && !$('#play_btn').prop('disabled')) {
-                     // Comprobamos si el juego tiene datos antes de intentar iniciar.
-                    if (Object.keys(game_obj).length > 0) {
-                        console.log('[DEBUG] Intentando iniciar reproducción automática después de cargar partida.');
-                        // startAutoPlay(); // Descomentar si se desea que inicie solo al cargar.
-                                          // Por ahora, el usuario debe dar al play.
-                    } else {
-                        console.warn('[DEBUG] game_obj está vacío, no se iniciará la reproducción automática.');
-                    }
-                }
-            }
+                console.log('[DEBUG] Modal cerrado. Carga de partida completada.');
+                $(document).trigger('gameLoaded'); // Evento para otros scripts, si es necesario.
+            };
             reader.onerror = function (evt) {
                 console.error('[DEBUG] FileReader.onerror disparado. Error:', evt); // DEBUG
                 alert('Error al leer el archivo.');
@@ -238,11 +402,13 @@ function init_events() {
                 // TODO: Mejora a futuro: falta añadir "mayor ejercito" / "carretera más larga"
                 init_events_with_game_obj();
                 addLogFromJSON();
-                setup();
-                reset_game();
-                // Renderizar perfiles de jugador y actualizar con datos del JSON
-                // renderPlayerProfiles(); // ELIMINAR: Ya se llama dentro de setup()
-                updateUIDataFromGameObj(game_obj); // Nueva función para poblar datos
+                setup(); // This will call nodeSetup() and addSetupBuildings() for the initial state
+                reset_game(); // This resets the board, restoring original positions
+                // updateUIDataFromGameObj(game_obj); // Moved later
+                // ¡VUELVO A DIBUJAR LOS PUERTOS! (también en el flujo del input clásico)
+                nodeSetup(); // This call is crucial to re-apply harbor logic AND compensation
+                addSetupBuildings(); // Ensure setup buildings are placed correctly after node adjustments
+                updateUIDataFromGameObj(game_obj); // Finally, update all UI data
             }
             reader.onerror = function (evt) {
                 console.log('Error al cargar el archivo');
@@ -266,21 +432,84 @@ function init_events() {
     
     // Inicializar el botón de play/stop
     initAutoPlayControls();
+
+    // Asegurar que todos los nodos sean absolutamente posicionados ANTES de capturar sus estilos.
+    // Esto es crucial para que top/left se interpreten correctamente desde el HTML.
+    jQuery('.node').css('position', 'absolute');
+
+    // Almacenar posiciones originales de los nodos del HTML al inicio
+    // Esto debe hacerse antes de cualquier operación que pueda modificar los estilos inline
+    // jQuery('.node').each(function() {
+    //     if (this.id) {
+    //         const topPos = jQuery(this).css('top');
+    //         const leftPos = jQuery(this).css('left');
+            
+    //         originalNodePositions[this.id] = { 
+    //             top: topPos, 
+    //             left: leftPos 
+    //         };
+    //         console.log(`[DEBUG init_events] Nodo ${this.id}: Almacenando posición original leída como top=${topPos}, left=${leftPos}`);
+    //     } else {
+    //         console.warn('[DEBUG init_events] Se encontró un nodo sin ID, no se almacenará su posición.');
+    //     }
+    // });
 }
 
 function reset_game() {
-    // Limpiar completamente el tablero
-    jQuery('.node').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
+    // Limpiar contenido y clases de jugador del tablero.
+    jQuery('.node').empty().removeClass('player-red player-blue player-green player-yellow');
     jQuery('.road').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
     jQuery('.vertical_road').empty().removeAttr('style').removeClass('player-red player-blue player-green player-yellow');
+
+    // Remover 'style' de los nodos para una limpieza completa antes de restaurar posiciones.
+    jQuery('.node').removeAttr('style');
+
+    // Restaurar posiciones base de los nodos y asegurar position: absolute usando nodeCoordinates
+    jQuery('.node').each(function() {
+        const nodeIdNumeric = parseInt(this.id.replace('node_', '')); // Obtener el índice numérico del nodo
+        if (!isNaN(nodeIdNumeric) && nodeCoordinates[nodeIdNumeric] && nodeCoordinates[nodeIdNumeric].internal) {
+            // Determinar si usar coordenadas externas o internas para puertos (lógica similar a renderBoardNodes)
+            // Esto es importante para que nodeSetup parta de la misma base visual que renderBoardNodes.
+            let coordsToUse;
+            const gameNodeData = (game_obj && game_obj.setup && game_obj.setup.board && game_obj.setup.board.board_nodes) 
+                               ? game_obj.setup.board.board_nodes[nodeIdNumeric] : null;
+
+            if (gameNodeData && gameNodeData.harbor !== -1 && harborEligibleNodeIds.includes(nodeIdNumeric) && nodeCoordinates[nodeIdNumeric].external) {
+                coordsToUse = nodeCoordinates[nodeIdNumeric].external;
+                 console.log(`[DEBUG reset_game] Nodo ${this.id}: Usando coordenadas EXTERNAS de nodeCoordinates para reset: top=${coordsToUse.top}, left=${coordsToUse.left}`);
+            } else {
+                coordsToUse = nodeCoordinates[nodeIdNumeric].internal;
+                 console.log(`[DEBUG reset_game] Nodo ${this.id}: Usando coordenadas INTERNAS de nodeCoordinates para reset: top=${coordsToUse.top}, left=${coordsToUse.left}`);
+            }
+            
+            if (!coordsToUse || typeof coordsToUse.top === 'undefined' || typeof coordsToUse.left === 'undefined') {
+                console.warn(`[DEBUG reset_game] Coordenadas (internal/external) incompletas o no válidas en nodeCoordinates para ${this.id}. Usando (0,0).`);
+                coordsToUse = { top: '0px', left: '0px' }; 
+            }
+
+            jQuery(this).css({
+                top: coordsToUse.top,
+                left: coordsToUse.left,
+                position: 'absolute' // Crucial para que top/left tengan efecto
+            });
+        } else if (this.id) {
+            console.warn(`[DEBUG reset_game] No hay coordenadas en nodeCoordinates para ${this.id} o falta .internal/.external. Usando (0,0).`);
+            jQuery(this).css({
+                 position: 'absolute',
+                 top: '0px', 
+                 left: '0px' 
+             });
+        }
+    });
     
-    // Resetear estilos de los nodos y carreteras
+    // Resetear estilos visuales de los nodos (esto NO debe sobreescribir top, left, position)
     jQuery('.node').css({
         'background-color': '',
         'border': '',
-        'border-radius': '',
+        'border-radius': '', // O un valor por defecto si los nodos siempre son redondos
         'transform': '',
-        'z-index': ''
+        'box-shadow': '', // Limpiar sombra de puertos
+        'z-index': ''    // Resetear z-index
     });
     
     jQuery('.road, .vertical_road').css({
@@ -435,76 +664,196 @@ function terrainSetup() {
 
 // Función mejorada para configurar los nodos y sus puertos
 function nodeSetup() {
-    nodes = game_obj['setup']['board']['board_nodes'];
+    if (!game_obj || !game_obj.setup || !game_obj.setup.board || !game_obj.setup.board.board_nodes) {
+        console.warn("[DEBUG] nodeSetup: game_obj.setup.board.board_nodes no está disponible. No se pueden configurar los nodos.");
+        return;
+    }
+    const nodes = game_obj.setup.board.board_nodes;
+    const compensationShift = 5; // AJUSTADO A 5px
+
+    // Loguear box-sizing una vez para el primer nodo que se procese
+    let boxSizingLogged = false;
 
     for (let i = 0; i < nodes.length; i++) {
-        let node = jQuery('#node_' + i);
-        
-        // Limpiar contenido anterior del nodo
-        node.removeClass('is-harbor').removeAttr('data-bs-toggle').removeAttr('title');
-        node.html('');
-        
-        // Si el nodo tiene un valor de puerto, añadirlo
-        if (nodes[i]['harbor'] !== -1) {
-            node.addClass('is-harbor');
-            node.attr('data-bs-toggle', 'tooltip');
-            
-            // Establecer título según el tipo de puerto
-            let tooltipTitle = '';
-            let harborContent = '';
-            switch (nodes[i]['harbor']) {
-                case 0:
-                    tooltipTitle = 'Puerto de Cereal 2:1';
-                    harborContent = '<div class="harbor-content harbor-cereal"><i class="fas fa-wheat-awn" style="color: #fbbc05;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
-                    break;
-                case 1:
-                    tooltipTitle = 'Puerto de Mineral 2:1';
-                    harborContent = '<div class="harbor-content harbor-mineral"><i class="fas fa-mountain" style="color: #9aa0a6;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
-                    break;
-                case 2:
-                    tooltipTitle = 'Puerto de Arcilla 2:1';
-                    harborContent = '<div class="harbor-content harbor-clay"><i class="fas fa-cube" style="color: #ff8a65;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
-                    break;
-                case 3:
-                    tooltipTitle = 'Puerto de Madera 2:1';
-                    harborContent = '<div class="harbor-content harbor-wood"><i class="fas fa-tree" style="color: #34a853;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
-                    break;
-                case 4:
-                    tooltipTitle = 'Puerto de Lana 2:1';
-                    harborContent = '<div class="harbor-content harbor-wool"><i class="fas fa-cut" style="color: #a5d6a7;"></i><span style="font-size: 10px; font-weight: bold;">2:1</span></div>';
-                    break;
-                case 5:
-                    tooltipTitle = 'Puerto General 3:1';
-                    harborContent = '<div class="harbor-content harbor-general"><i class="fas fa-anchor" style="color: #1a73e8;"></i><span style="font-size: 10px; font-weight: bold;">3:1</span></div>';
-                    break;
+        let nodeDiv = jQuery('#node_' + i);
+        const nodeId = nodeDiv.attr('id'); // es 'node_X'
+
+        if (nodeDiv && typeof nodeDiv.length !== 'undefined' && nodeDiv.length > 0) {
+            if (!boxSizingLogged) {
+                const firstNodeElement = nodeDiv[0];
+                if (firstNodeElement) {
+                    const computedStyle = window.getComputedStyle(firstNodeElement);
+                    console.log(`[nodeSetup INIT] Box-sizing del primer nodo (${nodeId}): ${computedStyle.boxSizing}`);
+                    boxSizingLogged = true;
+                }
             }
-            node.attr('title', tooltipTitle);
-            node.html(harborContent);
+        } else {
+            console.error(`[nodeSetup INIT] nodeDiv para ${nodeId} no es un objeto jQuery válido o está vacío. Saltando este nodo.`);
+            continue;
+        }
+
+        nodeDiv.empty()
+               .removeClass('is-harbor')
+               .removeAttr('data-bs-toggle')
+               .removeAttr('data-bs-original-title')
+               .removeAttr('title');
+
+        // La restauración de estilos base (top, left, position) ahora la hace reset_game() de forma más robusta.
+        // nodeDiv[0].style.cssText = ''; // No es necesario si reset_game limpia bien.
+        
+        const nodeIdNumeric = i; // i es el índice numérico del nodo
+        let baseCoords;
+
+        if (nodeCoordinates[nodeIdNumeric]) {
+            const nodeDataFromBoard = nodes[i]; // Es game_obj.setup.board.board_nodes[i]
             
-            // Añadir estilos específicos para puertos
-            node.css({
+            // Determinar si usar coordenadas externas o internas como base para el cálculo de 'compensationShift'
+            // Esta lógica debe ser consistente con la usada en renderBoardNodes y reset_game para 'chosenCoords' o 'coordsToUse'.
+            if (nodeDataFromBoard.harbor !== -1 && harborEligibleNodeIds.includes(nodeIdNumeric) && nodeCoordinates[nodeIdNumeric].external) {
+                baseCoords = nodeCoordinates[nodeIdNumeric].external;
+                 console.log(`[DEBUG nodeSetup] Nodo ${nodeId}: Usando base EXTERNA de nodeCoordinates: top=${baseCoords.top}, left=${baseCoords.left}`);
+            } else {
+                baseCoords = nodeCoordinates[nodeIdNumeric].internal;
+                 console.log(`[DEBUG nodeSetup] Nodo ${nodeId}: Usando base INTERNA de nodeCoordinates: top=${baseCoords.top}, left=${baseCoords.left}`);
+            }
+
+            if (!baseCoords || typeof baseCoords.top === 'undefined' || typeof baseCoords.left === 'undefined') {
+                 console.warn(`[nodeSetup] Coordenadas base (internal/external) incompletas en nodeCoordinates para ${nodeId}. Usando 0,0.`);
+                 baseCoords = { top: '0px', left: '0px' };
+            }
+        } else {
+            console.warn(`[nodeSetup] No se encontraron nodeCoordinates para ${nodeId} (índice ${nodeIdNumeric}). El nodo podría no posicionarse correctamente. Usando 0,0.`);
+            baseCoords = { top: '0px', left: '0px' };
+        }
+        
+        // Asegurar que la posición base esté aplicada antes de cualquier modificación para puertos
+        // Esto ya debería estar correcto por reset_game, pero una reafirmación no daña.
+        nodeDiv.css({
+            top: baseCoords.top,
+            left: baseCoords.left,
+            position: 'absolute'
+        });
+
+        if (nodes[i]['harbor'] !== -1) {
+            nodeDiv.addClass('is-harbor');
+            nodeDiv.attr('data-bs-toggle', 'tooltip');
+
+            let tooltipTitle = '';
+            let harborContent = ''; 
+            const spanStyle = 'font-size: 10px; font-weight: bold;';
+
+            // Mapeo corregido y detallado para harborContent
+            switch (nodes[i]['harbor']) {
+                case 0: // Cereal (Trigo)
+                    tooltipTitle = 'Puerto de Cereal 2:1';
+                    harborContent = `<div class="harbor-content harbor-cereal"><i class="fas fa-wheat-awn" style="color: #fbbc05;"></i><span style="${spanStyle}">2:1</span></div>`;
+                    break;
+                case 1: // Mineral
+                    tooltipTitle = 'Puerto de Mineral 2:1';
+                    harborContent = `<div class="harbor-content harbor-mineral"><i class="fas fa-mountain" style="color: #9aa0a6;"></i><span style="${spanStyle}">2:1</span></div>`;
+                    break;
+                case 2: // Arcilla (Ladrillo)
+                    tooltipTitle = 'Puerto de Arcilla 2:1';
+                    harborContent = `<div class="harbor-content harbor-clay"><i class="fas fa-cube" style="color: #ff8a65;"></i><span style="${spanStyle}">2:1</span></div>`;
+                    break;
+                case 3: // Madera
+                    tooltipTitle = 'Puerto de Madera 2:1';
+                    harborContent = `<div class="harbor-content harbor-wood"><i class="fas fa-tree" style="color: #34a853;"></i><span style="${spanStyle}">2:1</span></div>`;
+                    break;
+                case 4: // Lana
+                    tooltipTitle = 'Puerto de Lana 2:1';
+                    harborContent = `<div class="harbor-content harbor-wool"><i class="fas fa-scroll" style="color: #a5d6a7;"></i><span style="${spanStyle}">2:1</span></div>`; // fas fa-scroll o fas fa-sheep
+                    break;
+                case 5: // General
+                    tooltipTitle = 'Puerto General 3:1';
+                    harborContent = `<div class="harbor-content harbor-general"><i class="fas fa-anchor" style="color: #1a73e8;"></i><span style="${spanStyle}">3:1</span></div>`;
+                    break;
+                default:
+                    tooltipTitle = 'Puerto Desconocido';
+                    harborContent = '<i class="fas fa-question-circle"></i> ?'; // Icono genérico para desconocido
+            }
+
+            nodeDiv.html(harborContent);
+            nodeDiv.attr('title', tooltipTitle);
+            nodeDiv.attr('data-bs-original-title', tooltipTitle);
+
+            nodeDiv.css({
                 'background-color': 'rgba(26, 115, 232, 0.2)',
                 'border': '2px solid #1a73e8',
                 'border-radius': '50%',
                 'box-shadow': '0 0 10px rgba(26, 115, 232, 0.3)',
-                'z-index': '5'
+                'z-index': '5' 
             });
-        } else {
-            // Para nodos sin puerto, limpiar cualquier estilo previo
-            node.css({
-                'background-color': '',
-                'border': '',
-                'border-radius': '',
-                'box-shadow': '',
-                'z-index': ''
-            });
+
+            // Usar baseCoords (obtenidas de nodeCoordinates) para el cálculo del shift
+            let originalTopStr = baseCoords.top;
+            let originalLeftStr = baseCoords.left;
+
+            let currentTopPx = parseInt(originalTopStr, 10);
+            let currentLeftPx = parseInt(originalLeftStr, 10);
+
+            if (isNaN(currentTopPx) || isNaN(currentLeftPx)) {
+                console.warn(`[DEBUG nodeSetup] Coordenadas base parseadas inválidas para ${nodeId}: top='${originalTopStr}', left='${originalLeftStr}'. Usando 0,0 como fallback para el shift.`);
+                currentTopPx = 0;
+                currentLeftPx = 0;
+            }
+
+            const newTop = (currentTopPx - compensationShift) + 'px';
+            const newLeft = (currentLeftPx - compensationShift) + 'px';
+
+            const domElement = nodeDiv[0];
+            if (domElement && domElement.style) {
+                domElement.style.setProperty('top', newTop, 'important');
+                domElement.style.setProperty('left', newLeft, 'important');
+                 console.log(`[DEBUG nodeSetup] Puerto ${nodeId}: Aplicando SHIFT. Base: (${originalTopStr}, ${originalLeftStr}), Shifted: (${newTop}, ${newLeft})`);
+            } else {
+                console.error(`[DEBUG nodeSetup] No se pudo acceder a .style para ${nodeId} al aplicar shift de puerto.`);
+            }
+
+            // --- INICIO SUPER DEBUG (SOLO PARA PUERTOS) ---
+            if (domElement) { 
+                const computed = window.getComputedStyle(domElement);
+                console.groupCollapsed(`[SUPER DEBUG ${nodeId}] Estado final del puerto`);
+                console.log(`Originales leídos para cálculo: top=${originalTopStr}, left=${originalLeftStr}. Shift: ${compensationShift}`);
+                console.log(`Valores compensados esperados: top=${newTop}, left=${newLeft}`);
+                console.log("--- Valores DIRECTOS de node.style ---");
+                console.log(`  node.style.top: '${domElement.style.top}'`);
+                console.log(`  node.style.left: '${domElement.style.left}'`);
+                console.log(`  node.style.position: '${domElement.style.position}'`);
+                console.log(`  node.style.backgroundColor: '${domElement.style.backgroundColor}'`);
+                console.log(`  node.style.borderColor: '${domElement.style.borderColor}'`);
+                console.log(`  node.style.borderWidth: '${domElement.style.borderWidth}'`);
+                console.log(`  node.style.width (inline): '${domElement.style.width}'`); 
+                console.log(`  node.style.height (inline): '${domElement.style.height}'`); 
+                console.log("--- Valores COMPUTADOS (getComputedStyle) ---");
+                console.log(`  Computed top: ${computed.top}`);
+                console.log(`  Computed left: ${computed.left}`);
+                console.log(`  Computed position: ${computed.position}`);
+                console.log(`  Computed backgroundColor: ${computed.backgroundColor}`);
+                console.log(`  Computed borderColor: ${computed.borderColor}`);
+                console.log(`  Computed borderWidth: ${computed.borderTopWidth} (top)`); 
+                console.log(`  Computed width (total): ${computed.width}`);
+                console.log(`  Computed height (total): ${computed.height}`);
+                console.log(`  Computed box-sizing: ${computed.boxSizing}`);
+                console.log("--- Dimensiones Offset ---");
+                console.log(`  offsetWidth: ${domElement.offsetWidth}px`);
+                console.log(`  offsetHeight: ${domElement.offsetHeight}px`);
+                console.groupEnd();
+            }
+            // --- FIN SUPER DEBUG ---
+        } 
+    } 
+
+    if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tooltip !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        })
+    } else {
+        if (jQuery.ui) {
+            $(document).tooltip(); 
         }
     }
-    
-    // Inicializar tooltips para los puertos después de un breve delay
-    setTimeout(() => {
-        $('[data-bs-toggle="tooltip"]').tooltip();
-    }, 100);
 }
 
 function getTerrainTypeClass(terrainType) {
@@ -539,7 +888,7 @@ function setup() {
     // Es importante que game_obj esté disponible aquí si se quiere cargar el estado del tablero desde el JSON
     if (game_obj && game_obj.setup && game_obj.setup.board) {
         terrainSetup(); // Dibuja terrenos, números de probabilidad y ladrón inicial
-        nodeSetup();    // Dibuja los puertos en los nodos
+        renderBoardNodes(game_obj.setup.board.board_nodes); // NUEVA LLAMADA
         addSetupBuildings(); // Dibuja los edificios y carreteras iniciales
     } else {
         console.warn("[DEBUG] setup: game_obj.setup.board no está disponible. No se puede renderizar el tablero completamente.");
@@ -1143,7 +1492,7 @@ function animateRoadBuilding(roadId, playerIndex) {
             'background-color': playerMainColor,
             'border': `2px solid ${colors[1]}`,
             'transform': 'scale(1)',
-            'z-index': '5'
+            'z-index': '15' // Ajustado para estar sobre terrenos y nodos base
         });
         
         // Añadir emoji de carretera
@@ -1496,7 +1845,9 @@ function enhanceHarborNodes() {
             // Añadir un efecto de brillo para destacar los puertos
             $(this).css('box-shadow', '0 0 15px rgba(52, 152, 219, 0.5)');
             
-            // Agregar animación de pulsación
+            // --- SECCIÓN ELIMINADA PARA QUITAR EFECTO DE LATIDO ---
+            // Ya no aplicamos la animación de pulsación con GSAP
+            /*
             gsap.to(this, {
                 duration: 2,
                 repeat: -1,
@@ -1504,6 +1855,8 @@ function enhanceHarborNodes() {
                 scale: 1.1,
                 ease: "sine.inOut"
             });
+            */
+            // --- FIN DE SECCIÓN ELIMINADA ---
         });
     }, 1000);
 }
@@ -2370,696 +2723,6 @@ function deleteCaretStyling() {
     jQuery('.hand .increment').removeClass('fa-caret-up fa-caret-down fa-minus');
 }
 
-function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
-    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-    let actual_player = parseInt($('#contador_turnos').val()) - 1;
-
-    // Mover el ladrón del terreno anterior
-    if (past_terrain !== undefined && game_obj && game_obj.setup && game_obj.setup.board && game_obj.setup.board.board_terrain[past_terrain]) {
-        if (game_obj.setup.board.board_terrain[past_terrain]['probability'] != 0) {
-            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('<span>' + game_obj.setup.board.board_terrain[past_terrain]['probability'] + '</span>');
-        } else {
-            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('')
-        }
-    }
-
-    // Colocar el ladrón en el nuevo terreno
-    if (new_terrain !== undefined) {
-        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('<i class="fa-solid fa-user-ninja fa-2x" data-toggle="tooltip" data-placement="top" title="Ladrón"></i>');
-    }
-
-    // Manejar el robo de recursos si aplica
-    if (comes_from_card && stolen_material_id !== undefined && robbed_player !== undefined && robbed_player !== -1) {
-        let actual_player_material_quantity = $('#hand_P' + actual_player + ' .' + materials[stolen_material_id] + '_quantity');
-        let robbed_player_material_quantity = $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + '_quantity');
-        
-        // Actualizar las cantidades si los elementos existen
-        if (actual_player_material_quantity.length && robbed_player_material_quantity.length) {
-            let actualValue = parseInt(actual_player_material_quantity.text()) || 0;
-            let robbedValue = parseInt(robbed_player_material_quantity.text()) || 0;
-            
-            actual_player_material_quantity.text(actualValue + 1);
-            robbed_player_material_quantity.text(Math.max(0, robbedValue - 1));
-        }
-    }
-}
-
-function changeHandObject(player, hand_obj) {
-    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-    let dev_cards = ['knight', 'victory_point', 'road_building', 'year_of_plenty', 'monopoly'];
-
-    // Actualizar recursos con animación
-    materials.forEach(function (material) {
-        if (hand_obj && hand_obj[material] !== undefined) {
-            const resourceElement = $('#hand_P' + player + ' .resources-grid .' + material + ' .' + material + '_quantity');
-            const oldValue = parseInt(resourceElement.text()) || 0;
-            animateNumberUpdate(resourceElement, hand_obj[material], oldValue);
-        }
-    });
-
-    // Actualizar cartas de desarrollo con animación
-    dev_cards.forEach(function (card) {
-        let cardElement = null;
-        let newValue = null;
-        
-        // Asumiendo que las cartas de desarrollo están dentro del mismo objeto `hand_obj`
-        if (hand_obj && hand_obj[card] !== undefined) {
-            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
-            newValue = hand_obj[card];
-        } else if (hand_obj && hand_obj['development_cards'] && hand_obj['development_cards'][card] !== undefined) {
-            // Alternativa: si las cartas están en un sub-objeto 'development_cards'
-            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
-            newValue = hand_obj['development_cards'][card];
-        }
-        
-        if (cardElement && cardElement.length && newValue !== null) {
-            const oldValue = parseInt(cardElement.text()) || 0;
-            animateNumberUpdate(cardElement, newValue, oldValue);
-        }
-    });
-}
-
-function on_development_card_played(card_played_info) {
-    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
-
-    let contador_turnos = jQuery('#contador_turnos');
-    let other_useful_info_text = jQuery('#other_useful_info_text');
-    let actual_player = $('#contador_turnos').val() - 1;
-    
-    if (!card_played_info || !card_played_info.played_card) {
-        console.warn("[DEBUG] on_development_card_played: card_played_info no válido");
-        return;
-    }
-    
-    let quantity = jQuery('#hand_P' + actual_player + ' .dev-cards-grid .' + card_played_info.played_card + ' .' + card_played_info.played_card + '_quantity');
-
-    // Actualizar el contador de la carta jugada
-    if (quantity.length) {
-        let currentValue = parseInt(quantity.text()) || 0;
-        animateNumberUpdate(quantity, Math.max(0, currentValue - 1), currentValue);
-    }
-
-    let cardEmoji = getDevCardEmoji(card_played_info.played_card);
-    let html = '<div class="log-entry play-card mb-2">';
-    html += getCardIcon(card_played_info.played_card);
-    html += '<strong>🃏 Jugador ' + (actual_player + 1) + '</strong> jugó ';
-    html += '<span class="fw-bold">' + cardEmoji + ' ' + getCardName(card_played_info.played_card) + '</span>';
-    
-    switch (card_played_info.played_card) {
-        case 'knight':
-            if (card_played_info.past_thief_terrain !== undefined && card_played_info.thief_terrain !== undefined) {
-                move_thief(card_played_info.past_thief_terrain, card_played_info.thief_terrain, card_played_info.robbed_player, card_played_info.stolen_material_id, true);
-                html += '<br><small class="ms-4">🥷 Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
-                if (card_played_info.robbed_player !== undefined && card_played_info.robbed_player !== -1) {
-                    html += '<br>💰 Robó una carta al Jugador ' + (card_played_info.robbed_player + 1);
-                }
-                html += '</small>';
-            }
-            break;
-        case 'victory_point':
-            html += '<br><small class="ms-4">🏆 Punto de Victoria revelado ✨</small>';
-            break;
-        case 'monopoly':
-            if (card_played_info.material_chosen !== undefined) {
-                let material_chosen = materials[card_played_info.material_chosen];
-                let materialEmoji = getResourceEmoji(material_chosen);
-                html += '<br><small class="ms-4">💰 Monopolio de: ' + materialEmoji + ' ' + material_chosen.toUpperCase() + '</small>';
-                
-                // Actualizar las manos de todos los jugadores si está disponible
-                for (let i = 0; i < 4; i++) {
-                    if (card_played_info['hand_P' + i]) {
-                        changeHandObject(i, card_played_info['hand_P' + i]);
-                    }
-                }
-            }
-            break;
-        case 'year_of_plenty':
-            if (card_played_info.materials_selected) {
-                let material1Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material]);
-                let material2Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material_2]);
-                let materials_chosen = [
-                    material1Emoji + ' ' + materials[card_played_info.materials_selected.material].toUpperCase(), 
-                    material2Emoji + ' ' + materials[card_played_info.materials_selected.material_2].toUpperCase()
-                ];
-                html += '<br><small class="ms-4">🎁 Recursos elegidos: ' + materials_chosen.join(', ') + '</small>';
-                
-                if (card_played_info['hand_P' + actual_player]) {
-                    changeHandObject(actual_player, card_played_info['hand_P' + actual_player]);
-                }
-            }
-            break;
-        case 'road_building':
-            if (card_played_info.roads) {
-                html += '<br><small class="ms-4">🛤️ Construcción de carreteras:<br>';
-                if (card_played_info.valid_road_1) {
-                    html += '🚧 Carretera 1: nodo ' + card_played_info.roads.node_id + ' → ' + card_played_info.roads.road_to + '<br>';
-                    // Dibujar la carretera en el tablero
-                    let road_id_str = card_played_info.roads.node_id < card_played_info.roads.road_to ? 
-                        `road_${card_played_info.roads.node_id}_${card_played_info.roads.road_to}` : 
-                        `road_${card_played_info.roads.road_to}_${card_played_info.roads.node_id}`;
-                    animateRoadBuilding(road_id_str, actual_player);
-                }
-                if (card_played_info.valid_road_2) {
-                    html += '🚧 Carretera 2: nodo ' + card_played_info.roads.node_id_2 + ' → ' + card_played_info.roads.road_to_2;
-                    // Dibujar la segunda carretera en el tablero
-                    let road_id_str = card_played_info.roads.node_id_2 < card_played_info.roads.road_to_2 ? 
-                        `road_${card_played_info.roads.node_id_2}_${card_played_info.roads.road_to_2}` : 
-                        `road_${card_played_info.roads.road_to_2}_${card_played_info.roads.node_id_2}`;
-                    animateRoadBuilding(road_id_str, actual_player);
-                }
-                html += '</small>';
-            }
-            break;
-        default:
-            break;
-    }
-    
-    html += '</div>';
-    other_useful_info_text.append(html);
-    autoScrollLog('other_useful_info_text');
-    
-    // Animar la carta que se acaba de jugar
-    animateCardPlay(actual_player, card_played_info.played_card);
-}
-
-function animateDiceRoll(totalValue) {
-    // Dividir el valor total en dos dados (simulando dos dados de 6 caras)
-    let dice1Value, dice2Value;
-    
-    if (totalValue <= 6) {
-        dice1Value = Math.floor(Math.random() * Math.min(totalValue, 6)) + 1;
-        dice2Value = totalValue - dice1Value;
-        if (dice2Value < 1) {
-            dice2Value = 1;
-            dice1Value = totalValue - 1;
-        }
-    } else {
-        dice1Value = Math.floor(Math.random() * 6) + 1;
-        dice2Value = totalValue - dice1Value;
-        if (dice2Value > 6) {
-            dice1Value = totalValue - 6;
-            dice2Value = 6;
-        }
-    }
-
-    // Actualizar el valor total en la UI
-    $('#diceroll .dice-value').text(totalValue);
-    
-    // Mostrar el overlay de dados
-    const overlay = $('#dice-overlay');
-    overlay.fadeIn(300);
-    
-    // Animar los dados individualmente
-    const dice1 = $('.dice-1');
-    const dice2 = $('.dice-2');
-    
-    // Limpiar clases anteriores
-    dice1.removeClass('rolling').removeClass(function (index, className) {
-        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
-    });
-    dice2.removeClass('rolling').removeClass(function (index, className) {
-        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
-    });
-    
-    // Añadir animación de rotación
-    dice1.addClass('rolling');
-    dice2.addClass('rolling');
-    
-    // Actualizar valores mostrados en el resultado
-    $('#dice-value-1').text(dice1Value);
-    $('#dice-value-2').text(dice2Value);
-    $('#dice-total').text(totalValue);
-    
-    // Después de un tiempo, mostrar el resultado y quitar la animación
-    setTimeout(function() {
-        dice1.removeClass('rolling').addClass('show-' + dice1Value);
-        dice2.removeClass('rolling').addClass('show-' + dice2Value);
-        
-        // Ocultar el overlay después de mostrar el resultado
-        setTimeout(function() {
-            overlay.fadeOut(500);
-        }, 2000);
-    }, 2000);
-    
-    console.log(`[DEBUG] Dados animados: ${dice1Value} + ${dice2Value} = ${totalValue}`);
-}
-
-// Nueva función para actualizar cartas de desarrollo con animación
-function updateDevCards(playerIndex, devCardsArray) {
-    const devCardCounts = {
-        knight: 0,
-        victory_point: 0,
-        road_building: 0,
-        year_of_plenty: 0,
-        monopoly: 0
-    };
-    
-    const DEV_CARD_TYPE_MAP = {
-        0: 'knight',
-        1: 'victory_point',
-        2: 'road_building',
-        3: 'year_of_plenty',
-        4: 'monopoly'
-    };
-    
-    if (devCardsArray && Array.isArray(devCardsArray)) {
-        devCardsArray.forEach(card => {
-            let cardName = null;
-            if (card.type === 0) { // Knight
-                cardName = 'knight';
-            } else if (card.type === 1) { // Victory Point
-                cardName = 'victory_point';
-            } else if (card.type === 2) { // Progress Card
-                cardName = DEV_CARD_TYPE_MAP[card.effect];
-            }
-            
-            if (cardName && devCardCounts.hasOwnProperty(cardName)) {
-                devCardCounts[cardName]++;
-            }
-        });
-    }
-    
-    // Actualizar UI con animación
-    for (const cardName in devCardCounts) {
-        const cardElement = $(`#hand_P${playerIndex} .dev-cards-grid .${cardName} .${cardName}_quantity`);
-        if (cardElement.length) {
-            const oldValue = parseInt(cardElement.text()) || 0;
-            const newValue = devCardCounts[cardName];
-            
-            // Usar la nueva función de animación
-            animateNumberUpdate(cardElement, newValue, oldValue);
-        }
-    }
-}
-
-// Función helper para animar la actualización de números
-function animateNumberUpdate(element, newValue, oldValue = null) {
-    if (!element || !element.length) return;
-    
-    // Determinar el tipo de cambio
-    const currentValue = parseInt(element.text()) || 0;
-    const finalValue = parseInt(newValue) || 0;
-    
-    // Actualizar el valor
-    element.text(finalValue);
-    
-    // Determinar el tipo de animación según el cambio
-    let animationClass = 'quantity-updated';
-    if (oldValue !== null) {
-        if (finalValue > oldValue) {
-            animationClass = 'quantity-increase';
-        } else if (finalValue < oldValue) {
-            animationClass = 'quantity-decrease';
-        } else {
-            animationClass = 'quantity-neutral';
-        }
-    }
-    
-    // Añadir la clase de animación
-    element.addClass(animationClass);
-    
-    // Después de 750ms, quitar la clase y añadir la transición a normal
-    setTimeout(() => {
-        element.removeClass(animationClass);
-        element.addClass('fade-to-normal');
-        
-        // Quitar la clase fade-to-normal después de completar la transición
-        setTimeout(() => {
-            element.removeClass('fade-to-normal');
-        }, 750);
-    }, 750);
-    
-    console.log(`[DEBUG] Animando actualización: ${currentValue} → ${finalValue}`);
-}
-
-// Función para obtener emojis de recursos
-function getResourceEmoji(resourceName) {
-    const resourceEmojis = {
-        'cereal': '🌾',
-        'mineral': '⛰️', 
-        'clay': '🧱',
-        'wood': '🪵',
-        'wool': '🐑'
-    };
-    return resourceEmojis[resourceName] || '❓';
-}
-
-// Función para obtener emojis de cartas de desarrollo
-function getDevCardEmoji(cardName) {
-    const cardEmojis = {
-        'knight': '⚔️',
-        'victory_point': '🏆',
-        'road_building': '🛣️',
-        'year_of_plenty': '🎁',
-        'monopoly': '💰'
-    };
-    return cardEmojis[cardName] || '🃏';
-}
-
-// Función para obtener emojis de construcciones
-function getBuildingEmoji2(buildingType) {
-    const buildingEmojis = {
-        'S舎': '🏠',
-        'settlement': '🏠',
-        'town': '🏠',
-        'C都市': '🏛️',
-        'city': '🏛️',
-        'R道': '🛤️',
-        'road': '🛤️'
-    };
-    return buildingEmojis[buildingType] || '🏗️';
-}
-
-// Función para obtener emoji de dados según el valor
-function getDiceEmoji(diceValue) {
-    const diceEmojis = {
-        1: '⚀',
-        2: '⚁', 
-        3: '⚂',
-        4: '⚃',
-        5: '⚄',
-        6: '⚅',
-        7: '⚀⚀',  // Dos dados que suman 7
-        8: '⚁⚂',  // Dos dados que suman 8
-        9: '⚂⚂',  // Dos dados que suman 9
-        10: '⚃⚃', // Dos dados que suman 10
-        11: '⚄⚄', // Dos dados que suman 11
-        12: '⚅⚅'  // Dos dados que suman 12
-    };
-    return diceEmojis[diceValue] || '🎲';
-}
-
-// Función para manejar el inicio de turno
-function handleStartTurn(phase_obj, phaseKey) {
-    console.log('[DEBUG] handleStartTurn:', phase_obj);
-    
-    if (phase_obj && phase_obj.player !== undefined) {
-        $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
-        
-        if (phase_obj.dice !== undefined) {
-            updateDiceRoll(phase_obj.dice);
-            
-            let diceEmoji = getDiceEmoji(phase_obj.dice);
-            let html = `<div class="log-entry dice-roll mb-2">
-                <i class="fas fa-dice text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
-                <br><small class="ms-4">🎲 Tiró los dados: ${diceEmoji} <span class="badge bg-primary">${phase_obj.dice}</span></small>
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-            autoScrollLog('other_useful_info_text');
-        } else {
-            let html = `<div class="log-entry start-turn mb-2">
-                <i class="fas fa-play text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-            autoScrollLog('other_useful_info_text');
-        }
-    }
-    
-    // Actualizar manos y datos
-    updatePhaseData(phase_obj);
-}
-
-// Función para obtener el jugador actual
-function getCurrentPlayer() {
-    // Intentar obtener el jugador desde el contador de turnos
-    let currentTurnKey = $('#contador_turnos').val();
-    if (currentTurnKey) {
-        // Si el turno es como "P0", "P1", etc., extraer el número
-        let match = currentTurnKey.match(/P(\d+)/);
-        if (match) {
-            return parseInt(match[1]);
-        }
-        
-        // Si el turno es como "turn_P0", extraer el número
-        match = currentTurnKey.match(/turn_P(\d+)/);
-        if (match) {
-            return parseInt(match[1]);
-        }
-        
-        // Si es un número directo
-        if (!isNaN(parseInt(currentTurnKey))) {
-            return parseInt(currentTurnKey) - 1; // Convertir de 1-based a 0-based
-        }
-    }
-    
-    // Fallback: intentar obtener desde phase_obj global
-    if (phase_obj && phase_obj.player !== undefined) {
-        return phase_obj.player;
-    }
-    
-    return 0; // Fallback al jugador 0
-}
-
-// Función para manejar la fase de comercio
-function handleCommercePhase(phase_obj, phaseKey) {
-    console.log('[DEBUG] handleCommercePhase - Datos completos:', JSON.stringify(phase_obj, null, 2));
-    console.log('[DEBUG] handleCommercePhase - Claves disponibles:', Object.keys(phase_obj || {}));
-    
-    let hasLoggedActivity = false; // Para evitar logs duplicados
-    
-    if (phase_obj && typeof phase_obj === 'object') {
-        // Buscar actividades de comercio en el objeto
-        let commerceActivities = [];
-        let hasActivity = false;
-        
-        // Verificar si hay comercio con el banco
-        if (phase_obj.trade_bank || phase_obj.bank_trade || phase_obj.give || phase_obj.receive) {
-            hasActivity = true;
-            commerceActivities.push({
-                type: 'bank',
-                data: phase_obj
-            });
-        }
-        
-        // Verificar si hay comercio entre jugadores
-        if (phase_obj.trade_players || phase_obj.player_trade || phase_obj.player_id_send || phase_obj.offer) {
-            hasActivity = true;
-            commerceActivities.push({
-                type: 'players',
-                data: phase_obj
-            });
-        }
-        
-        // Verificar si hay compra de cartas de desarrollo
-        if (phase_obj.buy_card || phase_obj.development_card_purchased || 
-           (phase_obj.player !== undefined && Object.keys(phase_obj).some(key => key.includes('development_cards')))) {
-            hasActivity = true;
-            commerceActivities.push({
-                type: 'buy_card',
-                data: phase_obj
-            });
-        }
-        
-        // Verificar si hay construcciones (gastar recursos)
-        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
-            hasActivity = true;
-            commerceActivities.push({
-                type: 'construction',
-                data: phase_obj
-            });
-        }
-        
-        // Si no hay actividades específicas detectadas, buscar en cualquier subclave
-        if (!hasActivity) {
-            // Recorrer todas las claves del objeto para buscar actividades
-            for (let key in phase_obj) {
-                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
-                    if (key.includes('trade') || key.includes('bank')) {
-                        commerceActivities.push({
-                            type: 'bank',
-                            data: phase_obj[key]
-                        });
-                        hasActivity = true;
-                    } else if (key.includes('build') || key.includes('construction')) {
-                        commerceActivities.push({
-                            type: 'construction',
-                            data: phase_obj[key]
-                        });
-                        hasActivity = true;
-                    } else if (key.includes('buy') || key.includes('card')) {
-                        commerceActivities.push({
-                            type: 'buy_card',
-                            data: phase_obj[key]
-                        });
-                        hasActivity = true;
-                    }
-                }
-            }
-        }
-        
-        // Si hay actividades específicas, procesarlas
-        if (hasActivity && commerceActivities.length > 0) {
-            console.log('[DEBUG] Actividades de comercio encontradas:', commerceActivities);
-            commerceActivities.forEach(activity => {
-                switch(activity.type) {
-                    case 'bank':
-                        logBankTrade(activity.data);
-                        hasLoggedActivity = true;
-                        break;
-                    case 'players':
-                        logPlayerTrade(activity.data);
-                        hasLoggedActivity = true;
-                        break;
-                    case 'buy_card':
-                        logCardPurchase(activity.data);
-                        hasLoggedActivity = true;
-                        break;
-                    case 'construction':
-                        logConstruction(activity.data);
-                        hasLoggedActivity = true;
-                        break;
-                }
-            });
-        }
-    }
-    
-    // Solo mostrar log general si no hubo actividades específicas
-    if (!hasLoggedActivity) {
-        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general');
-        let currentPlayer = getCurrentPlayer();
-        let html = `<div class="log-entry commerce-general mb-2">
-            <i class="fas fa-store text-info me-2"></i>
-            <strong>🛍️ Jugador ${currentPlayer + 1}</strong> - Fase de Comercio
-            <br><small class="ms-4">💼 Oportunidad para intercambios, compras y construcciones</small>
-        </div>`;
-        jQuery('#commerce_log_text').append(html);
-        autoScrollLog('commerce_log_text');
-    }
-    
-    updatePhaseData(phase_obj);
-}
-
-// Función para manejar la fase de construcción
-function handleBuildPhase(phase_obj, phaseKey) {
-    console.log('[DEBUG] handleBuildPhase:', phase_obj);
-    
-    let hasLoggedActivity = false; // Para evitar logs duplicados
-    
-    if (phase_obj && typeof phase_obj === 'object') {
-        // Buscar construcciones en el objeto
-        let hasConstruction = false;
-        
-        // Verificar construcciones directas
-        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
-            hasConstruction = true;
-            logConstruction(phase_obj);
-            hasLoggedActivity = true;
-        }
-        
-        // Buscar construcciones en subclaves
-        if (!hasConstruction) {
-            for (let key in phase_obj) {
-                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
-                    if (key.includes('build') || key.includes('construction') || 
-                       (phase_obj[key].what_build || phase_obj[key].node_id)) {
-                        hasConstruction = true;
-                        logConstruction(phase_obj[key]);
-                        hasLoggedActivity = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
-    
-    // Solo mostrar mensaje general si no hay construcción específica
-    if (!hasLoggedActivity) {
-        let currentPlayer = getCurrentPlayer();
-        let html = `<div class="log-entry build-phase mb-2">
-            <i class="fas fa-tools text-warning me-2"></i>
-            <strong>🏗️ Jugador ${currentPlayer + 1}</strong> - Fase de Construcción
-            <br><small class="ms-4">🔨 Oportunidad para construir poblados, ciudades y carreteras</small>
-        </div>`;
-        jQuery('#other_useful_info_text').append(html);
-        autoScrollLog('other_useful_info_text');
-    }
-}
-
-// Función para manejar el fin de turno
-function handleEndTurn(phase_obj, phaseKey) {
-    console.log('[DEBUG] handleEndTurn:', phase_obj);
-    
-    let currentPlayer = getCurrentPlayer();
-    if (phase_obj && phase_obj.player !== undefined) {
-        currentPlayer = phase_obj.player;
-        $('#hand_P' + phase_obj.player).css('border', 'solid 0px black');
-    }
-    
-    let html = `<div class="log-entry end-turn mb-2">
-        <i class="fas fa-stop text-secondary me-2"></i>
-        <strong>🏁 Jugador ${currentPlayer + 1}</strong> terminó su turno
-    </div>`;
-    jQuery('#other_useful_info_text').append(html);
-    autoScrollLog('other_useful_info_text');
-    
-    updatePhaseData(phase_obj);
-}
-
-// Función para manejar fases genéricas
-function handleGenericPhase(phase_obj, phaseKey) {
-    console.log('[DEBUG] handleGenericPhase:', phaseKey, phase_obj);
-    
-    // Procesar según el tipo de fase usando la lógica original
-    if (phaseKey.includes('trade_bank') || (phase_obj && phase_obj.phase_type == "trade_bank")) {
-        logBankTrade(phase_obj);
-    } else if (phaseKey.includes('trade_players') || (phase_obj && phase_obj.phase_type == "trade_players")) {
-        logPlayerTrade(phase_obj);
-    } else if (phaseKey.includes('build') || (phase_obj && phase_obj.phase_type == "build")) {
-        logConstruction(phase_obj);
-    } else if (phaseKey.includes('buy_card') || (phase_obj && phase_obj.phase_type == "buy_card")) {
-        logCardPurchase(phase_obj);
-    } else if (phaseKey.includes('play_card') || (phase_obj && phase_obj.phase_type == "play_card")) {
-        on_development_card_played(phase_obj);
-    } else if (phaseKey.includes('give_cards') || (phase_obj && phase_obj.phase_type == "give_cards")) {
-        logResourceDistribution(phase_obj);
-    } else if (phaseKey.includes('discard') || (phase_obj && phase_obj.phase_type == "discard_cards")) {
-        logCardDiscard(phase_obj);
-    } else if (phaseKey.includes('rob') || phaseKey.includes('bandit') || (phase_obj && (phase_obj.phase_type == "rob_player" || phase_obj.phase_type == "move_bandit"))) {
-        logThiefMovement(phase_obj);
-    }
-    
-    updatePhaseData(phase_obj);
-}
-
-// Función para actualizar datos de fase común
-function updatePhaseData(phase_obj) {
-    if (!phase_obj) return;
-    
-    // Actualizar manos de jugadores
-    if (phase_obj.player !== undefined && phase_obj['hand_P' + phase_obj.player]) {
-        changeHandObject(phase_obj.player, phase_obj['hand_P' + phase_obj.player]);
-    }
-    
-    // Actualizar todas las manos si están disponibles
-    for (let i = 0; i < 4; i++) {
-        if (phase_obj['hand_P' + i]) {
-            changeHandObject(i, phase_obj['hand_P' + i]);
-        }
-    }
-    
-    // Actualizar puntos de victoria
-    if (phase_obj.victory_points) {
-        for (let i = 0; i < 4; i++) {
-            if (phase_obj.victory_points['J' + i] !== undefined) {
-                const vpElement = $('#puntos_victoria_J' + (i + 1));
-                const oldVP = parseInt(vpElement.text()) || 0;
-                const newVP = phase_obj.victory_points['J' + i];
-                animateNumberUpdate(vpElement, newVP, oldVP);
-            }
-        }
-    }
-    
-    // Actualizar cartas de desarrollo
-    if (phase_obj.player !== undefined && phase_obj['development_cards_P' + phase_obj.player]) {
-        updateDevCards(phase_obj.player, phase_obj['development_cards_P' + phase_obj.player]);
-    }
-    
-    // Después de un breve delay, actualizar con los datos completos del juego
-}
-
-// Aplicar movimiento del ladrón en el tablero
 function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
     let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
     let actual_player = parseInt($('#contador_turnos').val()) - 1;

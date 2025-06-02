@@ -7,6 +7,7 @@ from Classes.Hand import *
 from Managers.AgentManager import AgentManager
 from Managers.CommerceManager import CommerceManager
 from Managers.TurnManager import TurnManager
+import json
 
 
 class GameManager:
@@ -16,19 +17,76 @@ class GameManager:
     MAX_COMMERCE_DEPTH = 2
     MAX_COMMERCE_TRADES = 2
 
-    def __init__(self, for_test=False, agents = None):
+    def __init__(self, for_test=False, agents=None, game_file_path=None):
         self.already_played_development_card = False
         self.last_dice_roll = 0
         self.largest_army = 2
         self.largest_army_player = {}
         self.longest_road = {'longest_road': 4, 'player': -1}
 
-        self.board = Board()
-        self.development_cards_deck = DevelopmentDeck()
-        self.turn_manager = TurnManager()
-        self.commerce_manager = CommerceManager()
-        self.agent_manager = AgentManager(for_test, agents=agents)
+        if game_file_path:
+            # Si se proporciona un archivo de juego, cargarlo.
+            # Primero inicializamos los managers básicos que load_game_from_json podría necesitar indirectamente
+            # o para evitar errores si la carga falla parcialmente y luego se intenta acceder a ellos.
+            self.turn_manager = TurnManager()
+            self.commerce_manager = CommerceManager()
+            self.agent_manager = AgentManager(for_test, agents=agents)
+            self.development_cards_deck = DevelopmentDeck() # El mazo se podría restaurar también desde el JSON
+            self.load_game_from_json(game_file_path)
+            # Es importante que load_game_from_json actualice self.board y otros estados.
+        else:
+            # Si no se proporciona un archivo, inicializar un juego nuevo por defecto.
+            self.board = Board()
+            self.development_cards_deck = DevelopmentDeck()
+            self.turn_manager = TurnManager()
+            self.commerce_manager = CommerceManager()
+            self.agent_manager = AgentManager(for_test, agents=agents)
         return
+
+    def load_game_from_json(self, file_path):
+        """
+        Carga el estado del juego desde un archivo JSON.
+        Esto incluye el estado del tablero (nodos y terrenos),
+        las manos de los jugadores, cartas de desarrollo, etc.
+
+        :param file_path: Ruta al archivo JSON que contiene el estado del juego.
+        :return: None
+        """
+        try:
+            with open(file_path, 'r') as f:
+                game_data = json.load(f)
+        except FileNotFoundError:
+            print(f"Error: El archivo {file_path} no fue encontrado.")
+            # Considera lanzar una excepción o manejar el error de otra forma.
+            return
+        except json.JSONDecodeError:
+            print(f"Error: El archivo {file_path} no contiene un JSON válido.")
+            # Considera lanzar una excepción o manejar el error de otra forma.
+            return
+
+        # Cargar el estado del tablero
+        # Basado en la estructura de game_1.json: game_data -> setup -> board -> board_nodes/board_terrain
+        if 'setup' in game_data and 'board' in game_data['setup']:
+            board_data = game_data['setup']['board']
+            if 'board_nodes' in board_data and 'board_terrain' in board_data:
+                self.board = Board(nodes=board_data['board_nodes'], terrain=board_data['board_terrain'])
+                print("Tablero cargado desde JSON.")
+            else:
+                print("Advertencia: Faltan 'board_nodes' o 'board_terrain' en los datos del tablero del JSON. Se usará un tablero por defecto.")
+                self.board = Board() # Fallback a tablero por defecto si los datos no son completos
+        else:
+            print("Advertencia: No se encontró la estructura 'setup.board' en el JSON. Se usará un tablero por defecto.")
+            self.board = Board() # Fallback a tablero por defecto
+
+        # TODO: Cargar otros estados del juego desde game_data
+        # Por ejemplo:
+        # - Manos de los jugadores (self.agent_manager.players[X]['resources'])
+        # - Cartas de desarrollo (self.development_cards_deck, self.agent_manager.players[X]['development_cards'])
+        # - Turno actual (self.turn_manager)
+        # - Largest army, longest road, etc.
+        # Esta parte es crucial para una restauración completa del juego.
+
+        print(f"Partida cargada desde {file_path}")
 
     def reset_game_values(self):
         """
