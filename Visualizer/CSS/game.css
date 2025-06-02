@@ -980,7 +980,9 @@
 }
 
 /* Estilos para los contenedores de Log */
-.log-box {
+.log-box,
+.turno-a-turno-log-box, /* Añadido para log de turno a turno */
+.comercio-log-box { /* Añadido para log de comercio */
     height: 150px; /* Altura deseada, ajústala según tus necesidades */
     border: 1px solid #ccc;
     overflow-y: auto; /* Crucial para habilitar el scroll vertical */
@@ -995,7 +997,9 @@
 }
 
 /* Estilo para cada mensaje individual dentro del log */
-.log-box p {
+.log-box p,
+.turno-a-turno-log-box p, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p { /* Añadido para mensajes en log de comercio */
     margin: 0 0 8px 0; /* Espacio debajo de cada mensaje */
     padding: 5px;
     border-bottom: 1px dashed #e0e0e0; /* Separador ligero */
@@ -1003,7 +1007,9 @@
 }
 
 /* Elimina el borde del último mensaje para un look más limpio */
-.log-box p:last-child {
+.log-box p:last-child,
+.turno-a-turno-log-box p:last-child, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p:last-child { /* Añadido para mensajes en log de comercio */
     border-bottom: none;
 }
 
@@ -1021,4 +1027,28 @@
     background-color: rgba(255, 255, 255, 0.85); /* Fondo semitransparente si está sobre el juego */
     border-radius: 8px;
     margin-top: 20px; /* Espacio si está debajo del tablero */
+}
+
+/* Nuevas clases para estilizar mensajes de log con estructura título/detalle */
+.log-mensaje-titulo {
+    font-weight: bold; /* Destaca la línea principal del mensaje */
+    display: block; /* Asegura que ocupe su propia línea si es necesario */
+    margin-bottom: 2px; /* Pequeño espacio antes del detalle, si lo hay */
+}
+
+.log-mensaje-detalle {
+    display: block; /* Asegura que ocupe su propia línea */
+    font-size: 0.9em; /* Ligeramente más pequeño que el título */
+    color: #4A4A4A; /* Un color de texto ligeramente más suave para el detalle */
+    padding-left: 1.5em; /* Indentación para el detalle, simulando una sub-lista */
+    position: relative; /* Necesario para el pseudo-elemento de viñeta */
+}
+
+/* Opcional: Añadir un pequeño marcador visual al detalle, como un guion o punto */
+.log-mensaje-detalle::before {
+    content: "↳"; /* O puedes usar "-", "•", etc. */
+    position: absolute;
+    left: 0.5em;
+    top: 0;
+    color: #3498db; /* Color del marcador, coordinado con otros acentos */
 }

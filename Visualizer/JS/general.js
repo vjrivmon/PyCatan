@@ -2351,11 +2351,11 @@ function startAutoPlay() {
         if (hasWinner) {
             console.log(`[AUTOPLAY] Victoria detectada para Jugador ${winnerIndex + 1}`);
             showVictoryConfetti(winnerIndex); // Asegúrate que esta función exista y funcione
-            logEvent('turn_log_text', `¡JUGADOR ${winnerIndex + 1} HA GANADO con ${maxPoints} puntos!`, winnerIndex, '🎉');
+            logEvent('turn_log_text', `¡JUGADOR ${winnerIndex + 1} HA GANADO con ${maxPoints} puntos!`, winnerIndex, '🎉', 'fas fa-trophy');
             $(`#player-card-${winnerIndex}`).addClass('winner-glow');
         } else {
             console.log("[AUTOPLAY] Fin de partida sin ganador claro (o no se alcanzaron 10 PV) después de que se agotaron los movimientos.");
-            logEvent('turn_log_text', '¡La partida ha terminado (autoplay finalizado)! Nadie alcanzó 10 PV.', -1, '🏁');
+            logEvent('turn_log_text', '¡La partida ha terminado (autoplay finalizado)! Nadie alcanzó 10 PV.', -1, '🏁', 'fas fa-flag-checkered');
         }
 
     }, speed);
@@ -3105,13 +3105,13 @@ function handleStartTurn(phase_obj, phaseKey) {
         $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
         
         // Usar logEvent para el log principal de turnos
-        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁');
+        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁', 'fas fa-play');
         
         if (phase_obj.dice !== undefined) {
             // updateDiceRoll(phase_obj.dice); // <--- ELIMINADO / ASEGURADO QUE NO ESTÁ
             
             const diceEmoji = getDiceEmoji(phase_obj.dice); 
-            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲');
+            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲', 'fas fa-dice');
         } 
     }
     
@@ -3258,7 +3258,7 @@ function handleCommercePhase(phase_obj, phaseKey) {
         console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general para la fase de comercio.');
         let currentPlayer = getCurrentPlayer();
         const message = "Fase de Comercio. Oportunidad para intercambios, compras y construcciones.";
-        logEvent('commerce_log_text', message, currentPlayer, '🛍️');
+        logEvent('commerce_log_text', message, currentPlayer, '🛍️', 'fas fa-store');
     }
     
     updatePhaseData(phase_obj);
@@ -3781,13 +3781,13 @@ function handleStartTurn(phase_obj, phaseKey) {
         $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
         
         // Usar logEvent para el log principal de turnos
-        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁');
+        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁', 'fas fa-play');
         
         if (phase_obj.dice !== undefined) {
             // updateDiceRoll(phase_obj.dice); // <--- ELIMINADO / ASEGURADO QUE NO ESTÁ
             
             const diceEmoji = getDiceEmoji(phase_obj.dice); 
-            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲');
+            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲', 'fas fa-dice');
         } 
     }
     
@@ -3934,7 +3934,7 @@ function handleCommercePhase(phase_obj, phaseKey) {
         console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general para la fase de comercio.');
         let currentPlayer = getCurrentPlayer();
         const message = "Fase de Comercio. Oportunidad para intercambios, compras y construcciones.";
-        logEvent('commerce_log_text', message, currentPlayer, '🛍️');
+        logEvent('commerce_log_text', message, currentPlayer, '🛍️', 'fas fa-store');
     }
     
     updatePhaseData(phase_obj);
@@ -4215,12 +4215,13 @@ function logBankTrade(tradeData) {
                 let emoji = getResourceEmoji(resource);
                 receiveItems.push(`${emoji} ${tradeData.receive[resource]}`);
             }
+
         }
         receiveText = receiveItems.join(' ') || 'N/A';
     }
     
     const message = `Comerció con el banco. Dio: ${giveText}, Recibió: ${receiveText}`;
-    logEvent('commerce_log_text', message, player, '🏦');
+    logEvent('commerce_log_text', message, player, '🏦', 'fas fa-university');
 }
 
 // Función para logging de comercio entre jugadores
@@ -4261,7 +4262,7 @@ function logPlayerTrade(tradeData) {
         message = `Propuso un comercio. Ofreció: ${offerText}, Pidió: ${requestText}`;
     }
     
-    logEvent('commerce_log_text', message, fromPlayer, '🧑‍🤝‍🧑');
+    logEvent('commerce_log_text', message, fromPlayer, '🧑‍🤝‍🧑', 'fas fa-users');
 }
 
 // Función para logging de compra de cartas de desarrollo
@@ -4284,7 +4285,7 @@ function logCardPurchase(purchaseData) {
     }
 
     const message = `Compró ${cardName}. Gastó: ${costText}.`;
-    logEvent('turn_log_text', message, player, '🃏');
+    logEvent('turn_log_text', message, player, '🃏', 'fas fa-plus-circle');
 }
 
 // Función para logging de construcciones
@@ -4317,7 +4318,7 @@ function logConstruction(constructionData) {
     }
 
     message += '.';
-    logEvent('turn_log_text', message, player, '🏗️');
+    logEvent('turn_log_text', message, player, '🏗️', 'fas fa-hard-hat');
 }
 
 // Función para logging de distribución de recursos por dados
@@ -4360,11 +4361,11 @@ function logResourceDistribution(distributionData) {
             // Extraemos el playerIndex del mensaje para colorear correctamente
             const match = detailMsg.match(/J(\d+)/);
             const playerIdx = match ? parseInt(match[1]) - 1 : -1;
-            logEvent('turn_log_text', detailMsg, playerIdx, '💰');
+            logEvent('turn_log_text', detailMsg, playerIdx, '💰', 'fas fa-coins');
         });
     } else {
         // Mensaje genérico si no hay detalles específicos
-        logEvent('turn_log_text', message, -1, '💰'); // -1 para no asignar color/emoji de jugador específico
+        logEvent('turn_log_text', message, -1, '💰', 'fas fa-coins'); // -1 para no asignar color/emoji de jugador específico
     }
 }
 
@@ -4396,7 +4397,7 @@ function logCardDiscard(discardData) {
     let reason = discardData.reason || "por efecto del ladrón (más de 7 cartas)";
 
     const message = `Descartó ${discardedCardsText} (${reason}).`;
-    logEvent('turn_log_text', message, player, '🗑️');
+    logEvent('turn_log_text', message, player, '🗑️', 'fas fa-trash-alt');
 }
 
 // Función para logging de movimiento del ladrón
@@ -4428,7 +4429,7 @@ function logThiefMovement(thiefData) {
     }
     
     message += '.';
-    logEvent('turn_log_text', message, player, '🥷');
+    logEvent('turn_log_text', message, player, '🥷', 'fas fa-user-secret');
 }
 
 // Función para inicializar los controles de zoom y pantalla completa
@@ -4555,10 +4556,11 @@ const PLAYER_BASE_EMOJIS = ['J1', 'J2', 'J3', 'J4']; // Jugador 1, 2, 3, 4+
  * @param {string} message El mensaje a registrar.
  * @param {number} [playerIndex=-1] El índice del jugador (0-3 o más) para aplicar color y emoji. -1 para no aplicar.
  * @param {string} [eventEmoji=""] Un emoji específico para el evento.
+ * @param {string} [iconClass=""] Una clase de FontAwesome para el ícono del evento (ej. 'fas fa-dice').
  */
-function logEvent(containerId, message, playerIndex = -1, eventEmoji = "") {
+function logEvent(containerId, message, playerIndex = -1, eventEmoji = "", iconClass = "") {
     // Encolar el evento
-    logQueue.push({ containerId, message, playerIndex, eventEmoji });
+    logQueue.push({ containerId, message, playerIndex, eventEmoji, iconClass }); // Se añade iconClass
 
     // Si la cola no se está procesando, iniciarla
     if (!isProcessingLogQueue) {
@@ -4574,11 +4576,11 @@ function processLogQueue() {
     }
 
     isProcessingLogQueue = true;
-    const { containerId, message, playerIndex, eventEmoji } = logQueue.shift();
+    const { containerId, message, playerIndex, eventEmoji, iconClass } = logQueue.shift(); // Se añade iconClass
 
     const logContainer = document.getElementById(containerId);
     if (!logContainer) {
-        console.error(`[LOG_QUEUE] Contenedor de log con ID '${containerId}' no encontrado.`);
+        console.error(`[LOG_QUEUE] Contenedor de log con ID \'${containerId}\' no encontrado.`);
         // Continuar con el siguiente si este falla
         if (logQueue.length > 0) {
             setTimeout(processLogQueue, LOG_EVENT_DELAY);
@@ -4588,25 +4590,47 @@ function processLogQueue() {
         return;
     }
 
-    const logEntry = document.createElement('p');
-    logEntry.style.marginBottom = '5px';
+    const logEntry = document.createElement('div'); // Cambiado de 'p' a 'div'
+    logEntry.classList.add('log-entry', 'mb-2'); // Clases base de Bootstrap y personalizadas
+    // logEntry.style.marginBottom = '5px'; // Ya no es necesario, mb-2 lo maneja
     logEntry.style.wordBreak = 'break-word';
     logEntry.style.opacity = '0'; // Empezar invisible para fade-in
     logEntry.style.transition = 'opacity 0.3s ease-in-out';
 
-    let finalMessage = '';
+    // Definir el color del texto
     if (playerIndex >= 0 && playerIndex < PLAYER_COLORS.length) {
-        logEntry.style.color = PLAYER_COLORS[playerIndex];
+        logEntry.style.color = PLAYER_COLORS[playerIndex]; // Aplicar color del jugador
+    } else {
+        logEntry.style.color = 'black'; // Color negro por defecto para mensajes generales
+    }
+
+    let finalHtml = '';
+
+    // Añadir ícono si se proporciona iconClass
+    if (iconClass) {
+        finalHtml += `<i class="${iconClass} me-2"></i>`;
+    }
+
+    // Añadir emojis de jugador y evento (sin negrita)
+    if (playerIndex >= 0 && playerIndex < PLAYER_COLORS.length) {
         const playerEmoji = PLAYER_BASE_EMOJIS[playerIndex] || '❓';
-        finalMessage += `${playerEmoji} `;
+        finalHtml += `${playerEmoji} `;
     }
 
     if (eventEmoji) {
-        finalMessage += `${eventEmoji} `;
+        finalHtml += `${eventEmoji} `;
     }
 
-    finalMessage += message;
-    logEntry.innerHTML = finalMessage;
+    // Añadir el mensaje principal (sin negrita)
+    finalHtml += message;
+
+    // Ejemplo de cómo se podría añadir un sub-mensaje (como en Información Adicional)
+    // if (subMessage) {
+    //     finalHtml += `<br><small class="ms-4">${subMessage}</small>`;
+    // }
+    // Por ahora, no tenemos subMessage en logEvent, pero la estructura está lista.
+
+    logEntry.innerHTML = finalHtml;
 
     logContainer.appendChild(logEntry);
     
