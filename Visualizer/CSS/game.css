@@ -978,3 +978,47 @@
     background-color: rgba(0,0,0,0.2); /* Un color base para verlos si no tienen contenido */
     cursor: pointer;
 }
+
+/* Estilos para los contenedores de Log */
+.log-box {
+    height: 150px; /* Altura deseada, ajústala según tus necesidades */
+    border: 1px solid #ccc;
+    overflow-y: auto; /* Crucial para habilitar el scroll vertical */
+    padding: 10px;
+    background-color: #f0f0f0; /* Un fondo sutil */
+    margin-bottom: 15px; /* Espacio entre cajas de log */
+    border-radius: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente legible */
+    font-size: 0.9em;
+    line-height: 1.4; /* Espaciado de línea para mejor lectura */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Sombra interior sutil */
+}
+
+/* Estilo para cada mensaje individual dentro del log */
+.log-box p {
+    margin: 0 0 8px 0; /* Espacio debajo de cada mensaje */
+    padding: 5px;
+    border-bottom: 1px dashed #e0e0e0; /* Separador ligero */
+    word-wrap: break-word; /* Asegura que palabras largas no rompan el layout */
+}
+
+/* Elimina el borde del último mensaje para un look más limpio */
+.log-box p:last-child {
+    border-bottom: none;
+}
+
+/* Estilos opcionales para las secciones de log */
+.log-section h2 {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 5px;
+    border-bottom: 2px solid #3498db; /* Un acento de color */
+    padding-bottom: 3px;
+}
+
+.game-logs-container {
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo semitransparente si está sobre el juego */
+    border-radius: 8px;
+    margin-top: 20px; /* Espacio si está debajo del tablero */
+}

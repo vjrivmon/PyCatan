@@ -2,6 +2,12 @@ let game_obj = {};
 let round_obj = {};
 let turn_obj = {};
 let phase_obj = {};
+let mainPhaseChangeLogic = null;
+
+// Variables para la cola de logs
+let logQueue = [];
+let isProcessingLogQueue = false;
+const LOG_EVENT_DELAY = 350; // Milisegundos entre cada log
 
 let game_direction = 'forward'; // or "backward"
 let autoPlayInterval = null;
@@ -887,7 +893,7 @@ function setup() {
     jQuery('.terrain .terrain_number').empty(); // Limpiar números de terreno
     jQuery('.fa-user-ninja').remove(); // Remover ladrón si existe
 
-    // Renderizar el tablero base (terrenos, números, ladrón inicial y puertos)
+    // Renderizar el tablero base (terrenos, números de probabilidad y ladrón inicial y puertos)
     // Es importante que game_obj esté disponible aquí si se quiere cargar el estado del tablero desde el JSON
     if (game_obj && game_obj.setup && game_obj.setup.board) {
         terrainSetup(); // Dibuja terrenos, números de probabilidad y ladrón inicial
@@ -939,6 +945,52 @@ function init_events_with_game_obj() {
     contador_rondas.add(contador_turnos).add(contador_fases).on('change', function() {
         updateVisibleCounters();
     });
+
+    // Guardar la lógica principal del cambio de fase para que enhanceDiceRoll pueda llamarla.
+    mainPhaseChangeLogic = function (e) { // <--- ASIGNACIÓN A mainPhaseChangeLogic
+        updateVisibleCounters(); // Actualizar display
+        
+        // DEBUG: Verificar que los elementos de log existen
+        console.log('[DEBUG] Elementos de log encontrados:', {
+            commerce_log_text: jQuery('#commerce_log_text').length,
+            other_useful_info_text: jQuery('#other_useful_info_text').length
+        });
+        
+        deleteCaretStyling();
+
+        let _this = $(this); // 'this' se refiere a contador_fases aquí
+        turn_obj = round_obj[contador_turnos.val()];
+        
+        if (!turn_obj) { // Protección adicional
+            console.warn("[DEBUG] mainPhaseChangeLogic: turn_obj no definido. Ronda: " + contador_rondas.val() + ", Turno: " + contador_turnos.val());
+            return;
+        }
+
+        let currentPhaseKey = _this.val();
+        phase_obj = turn_obj[currentPhaseKey];
+        
+        if (!phase_obj) { // Protección adicional
+            console.warn("[DEBUG] mainPhaseChangeLogic: phase_obj no definido. Fase: " + currentPhaseKey);
+            // Aquí podríamos querer limpiar los logs o mostrar un mensaje de 'fase no válida'
+            // Por ahora, simplemente retornamos para evitar errores.
+            return;
+        }
+        
+        console.log('[DEBUG] Procesando fase:', currentPhaseKey, 'con datos:', phase_obj);
+
+        // Lógica para procesar cada fase basándose en la clave de la fase
+        if (currentPhaseKey == "start_turn") {
+            handleStartTurn(phase_obj, currentPhaseKey);
+        } else if (currentPhaseKey == "commerce_phase") {
+            handleCommercePhase(phase_obj, currentPhaseKey);
+        } else if (currentPhaseKey == "build_phase") {
+            handleBuildPhase(phase_obj, currentPhaseKey);
+        } else if (currentPhaseKey == "end_turn") {
+            handleEndTurn(phase_obj, currentPhaseKey);
+        } else {
+            handleGenericPhase(phase_obj, currentPhaseKey);
+        }
+    };
 
     // CONTENIDO PRINCIPAL DE LA FUNCIÓN DESCOMENTADO
     contador_rondas.off('change').on('change', function (e) {
@@ -1010,47 +1062,8 @@ function init_events_with_game_obj() {
         }
     });
 
-    contador_fases.off('change').on('change', function (e) {
-        updateVisibleCounters(); // Actualizar display
-        
-        // DEBUG: Verificar que los elementos de log existen
-        console.log('[DEBUG] Elementos de log encontrados:', {
-            commerce_log_text: jQuery('#commerce_log_text').length,
-            other_useful_info_text: jQuery('#other_useful_info_text').length
-        });
-        
-        // NO limpiar logs automáticamente - solo al cambiar de fase explícitamente
-        // jQuery('#commerce_log_text').html('');
-        // jQuery('#other_useful_info_text').html('');
-        deleteCaretStyling();
-
-        let _this = $(this);
-        turn_obj = round_obj[contador_turnos.val()];
-        
-        // Obtener la clave de la fase actual
-        let currentPhaseKey = contador_fases.val();
-        phase_obj = turn_obj[currentPhaseKey];
-        
-        console.log('[DEBUG] Procesando fase:', currentPhaseKey, 'con datos:', phase_obj);
-
-        // Lógica para procesar cada fase basándose en la clave de la fase
-        if (currentPhaseKey == "start_turn") {
-            // Procesar inicio de turno
-            handleStartTurn(phase_obj, currentPhaseKey);
-        } else if (currentPhaseKey == "commerce_phase") {
-            // Procesar fase de comercio
-            handleCommercePhase(phase_obj, currentPhaseKey);
-        } else if (currentPhaseKey == "build_phase") {
-            // Procesar fase de construcción
-            handleBuildPhase(phase_obj, currentPhaseKey);
-        } else if (currentPhaseKey == "end_turn") {
-            // Procesar fin de turno
-            handleEndTurn(phase_obj, currentPhaseKey);
-        } else {
-            // Procesar otras fases basándose en la estructura original
-            handleGenericPhase(phase_obj, currentPhaseKey);
-        }
-    });
+    // Asignar el manejador principal al evento change de contador_fases
+    contador_fases.off('change').on('change', mainPhaseChangeLogic); // <--- USAR mainPhaseChangeLogic AQUÍ
 
     ronda_previa_btn.off('click').on('click', function (e) {
         game_direction = 'backward';
@@ -1883,69 +1896,65 @@ function enhanceHarborNodes() {
 }
 
 // Interceptar las llamadas al método de cambio de fase para animar tiradas de dados
-let originalCounterFasesChange = null;
+// let originalCounterFasesChange = null; // Eliminar esta línea
 
 // Después de iniciar el juego
 function enhanceDiceRoll() {
-    // Capturar la función original si aún no se ha hecho
-    if (!originalCounterFasesChange) {
-        const contador_fases_jq = jQuery('#contador_fases');
-        const contadorFasesElement = contador_fases_jq.get(0);
+    const contador_fases_jq = jQuery('#contador_fases');
 
-        if (contadorFasesElement) {
-            // Guardar la función onchange original si existe y es una función
-            if (typeof contadorFasesElement.onchange === 'function') {
-                originalCounterFasesChange = contadorFasesElement.onchange;
-            }
-            
-            // Desvincular cualquier manejador 'change' previo y vincular el nuestro
-            contador_fases_jq.off('change').on('change', function(e) {
-                if (contador_fases_jq.val() === '') {
-                    console.log('[DEBUG] enhanceDiceRoll: contador_fases está vacío, retornando.');
-                    // Si había una función original y el valor es vacío, quizás queramos llamarla
-                    if (originalCounterFasesChange) {
-                        originalCounterFasesChange.call(this, e);
-                    }
-                    return;
-                }
-                
-                // let actual_player_json = parseInt(jQuery('#contador_turnos').val()) - 1; // No parece usarse
-                
-                // Si estamos en la fase 0 (representada por valor 1 en el input) y avanzando
-                if (parseInt(contador_fases_jq.val()) === 1 && game_direction === 'forward') {
-                    console.log('[DEBUG] enhanceDiceRoll: Fase 1 y forward detectado.');
-                    const phase_obj = turn_obj ? turn_obj['start_turn'] : undefined;
-                    
-                    if (phase_obj && phase_obj['dice']) {
-                        console.log('[DEBUG] enhanceDiceRoll: Animando dados con valor:', phase_obj['dice']);
-                        animateDiceRoll(phase_obj['dice']);
-                        
-                        setTimeout(function() {
-                            if (originalCounterFasesChange) {
-                                console.log('[DEBUG] enhanceDiceRoll: Llamando a originalCounterFasesChange después de animación.');
-                                originalCounterFasesChange.call(contadorFasesElement, e);
-                            } else {
-                                console.log('[DEBUG] enhanceDiceRoll: No hay originalCounterFasesChange para llamar después de animación.');
-                            }
-                        }, 3500); 
-                        return;
-                    } else {
-                        console.log('[DEBUG] enhanceDiceRoll: No hay phase_obj o phase_obj.dice para animar.');
-                    }
-                }
-                
-                // Para otros casos, llamar a la función original directamente si existe
-                if (originalCounterFasesChange) {
-                    console.log('[DEBUG] enhanceDiceRoll: Llamando a originalCounterFasesChange (caso general).');
-                    originalCounterFasesChange.call(this, e);
-                } else {
-                    console.log('[DEBUG] enhanceDiceRoll: No hay originalCounterFasesChange (caso general).');
-                }
-            });
-        } else {
-            console.warn("[DEBUG] El elemento #contador_fases no fue encontrado. enhanceDiceRoll no se activará.");
-        }
+    // Solo proceder si contador_fases existe y mainPhaseChangeLogic está definido.
+    if (!contador_fases_jq.length || typeof mainPhaseChangeLogic !== 'function') {
+        console.warn("[enhanceDiceRoll] Abortando: #contador_fases no encontrado o mainPhaseChangeLogic no es una función (¿se llamó enhanceDiceRoll antes de que init_events_with_game_obj completara?).");
+        return;
     }
+
+    console.log("[enhanceDiceRoll] Registrando manejador 'change' para #contador_fases que envuelve a mainPhaseChangeLogic para animar dados.");
+
+    contador_fases_jq.off('change').on('change', function(e) {
+        const K_START_TURN = "start_turn"; 
+        const currentPhaseKey = contador_fases_jq.val(); // La fase a la que se está cambiando
+        
+        const currentTurnValue = jQuery('#contador_turnos').val(); 
+        const currentRoundValue = jQuery('#contador_rondas').val(); 
+
+        let diceValueForAnimation = undefined;
+
+        // Verificar si la NUEVA fase es 'start_turn', si vamos hacia adelante, y si hay dados definidos para ella.
+        if (currentPhaseKey === K_START_TURN && game_direction === 'forward') {
+            if (game_obj && game_obj.game && 
+                game_obj.game[currentRoundValue] &&
+                game_obj.game[currentRoundValue][currentTurnValue] &&
+                game_obj.game[currentRoundValue][currentTurnValue][K_START_TURN] && 
+                game_obj.game[currentRoundValue][currentTurnValue][K_START_TURN]['dice'] !== undefined) {
+                
+                diceValueForAnimation = game_obj.game[currentRoundValue][currentTurnValue][K_START_TURN]['dice'];
+            }
+        }
+        
+        console.log(`[enhanceDiceRoll] Evento 'change' en #contador_fases. Dirección: ${game_direction}, Fase nueva: ${currentPhaseKey}, Dados para animación: ${diceValueForAnimation}`);
+        
+        if (diceValueForAnimation !== undefined) { 
+            console.log(`[enhanceDiceRoll] Animando dados con valor ${diceValueForAnimation}...`);
+            animateDiceRoll(diceValueForAnimation); 
+            
+            setTimeout(() => {
+                console.log("[enhanceDiceRoll] Llamando a mainPhaseChangeLogic DESPUÉS de la animación de dados para procesar la fase: " + currentPhaseKey);
+                if (typeof mainPhaseChangeLogic === 'function') {
+                    mainPhaseChangeLogic.call(this, e); 
+                } else {
+                    console.error("[enhanceDiceRoll] Error crítico: mainPhaseChangeLogic no es una función después del timeout. El juego no puede continuar.");
+                }
+            }, 2500); // Sincronizado con la duración de animateDiceRoll
+
+        } else {
+            console.log("[enhanceDiceRoll] No se requiere animación de dados o no es la fase/dirección correcta. Llamando a mainPhaseChangeLogic directamente para procesar la fase: " + currentPhaseKey);
+            if (typeof mainPhaseChangeLogic === 'function') {
+                mainPhaseChangeLogic.call(this, e);
+            } else {
+                console.error("[enhanceDiceRoll] Error crítico: mainPhaseChangeLogic no es una función en la rama else. El juego no puede continuar.");
+            }
+        }
+    });
 }
 
 // Función para generar texturas de olas dinámicamente
@@ -2261,14 +2270,18 @@ function initAutoPlayControls() {
     });
 }
 
-// Función para iniciar la reproducción automática
+// Función para iniciar la reproducción automática (CON LOGS DE DIAGNÓSTICO)
 function startAutoPlay() {
-    if (isPlaying) return;
-    
-    // Verificar que el juego está cargado
+    if (isPlaying) {
+        console.log("[AUTOPLAY] startAutoPlay llamado, pero ya está en reproducción.");
+        return;
+    }
+
+    console.log("[AUTOPLAY] Iniciando startAutoPlay...");
+
     if (Object.keys(game_obj).length === 0) {
         alert('Debes cargar una partida primero');
-        // Adicionalmente, asegurar que el botón de play no quede en estado "playing"
+        console.warn("[AUTOPLAY] Juego no cargado. Abortando inicio de autoplay.");
         const playBtn = $('#play_btn');
         const playText = $('#play-text');
         playBtn.removeClass('playing');
@@ -2276,117 +2289,78 @@ function startAutoPlay() {
         playBtn.find('i').removeClass('fa-stop').addClass('fa-play');
         return;
     }
-    
-    // Cambiar el estado y apariencia del botón
+
     isPlaying = true;
     const playBtn = $('#play_btn');
     const playText = $('#play-text');
-    
     playBtn.addClass('playing');
     playText.text('Stop');
     playBtn.find('i').removeClass('fa-play').addClass('fa-stop');
-    
-    // Velocidad fija para la reproducción automática (en milisegundos)
-    const speed = 800;
-    
-    // Iniciar el intervalo para avanzar automáticamente
+    console.log("[AUTOPLAY] Estado isPlaying: true. UI del botón Play actualizada a Stop.");
+
+    const speed = 1200; // Ajusta esta velocidad si es necesario (milisegundos)
+    console.log(`[AUTOPLAY] Velocidad del intervalo establecida a: ${speed}ms`);
+
     autoPlayInterval = setInterval(function() {
-        // Intentar avanzar a la siguiente fase
+        console.log("[AUTOPLAY] Intervalo tick.");
+
         const faseBtn = $('#fase_siguiente_btn');
-        if (!faseBtn.prop('disabled')) {
+        console.log(`[AUTOPLAY] Verificando #fase_siguiente_btn. Existe: ${faseBtn.length > 0}, Deshabilitado: ${faseBtn.prop('disabled')}`);
+        if (faseBtn.length > 0 && !faseBtn.prop('disabled')) {
             highlightActiveButton('#fase_siguiente_btn');
+            console.log("[AUTOPLAY] Intentando clic en #fase_siguiente_btn");
             faseBtn.click();
-        } else {
-            // Si no se puede avanzar de fase, intentar avanzar al siguiente turno
-            const turnoBtn = $('#turno_siguiente_btn');
-            if (!turnoBtn.prop('disabled')) {
-                highlightActiveButton('#turno_siguiente_btn');
-                turnoBtn.click();
-            } else {
-                // Si no se puede avanzar de turno, intentar avanzar a la siguiente ronda
-                const rondaBtn = $('#ronda_siguiente_btn');
-                if (!rondaBtn.prop('disabled')) {
-                    highlightActiveButton('#ronda_siguiente_btn');
-                    rondaBtn.click();
-                } else {
-                    // Si llegamos al final del juego, detener la reproducción
-                    stopAutoPlay();
-                    
-                    // Verificar si algún jugador ha ganado (10 puntos de victoria)
-                    let hasWinner = false;
-                    let winnerIndex = -1;
-                    let maxPoints = 0;
-                    
-                    for (let i = 1; i <= 4; i++) {
-                        const victoryPoints = parseInt($('#puntos_victoria_J' + i).text()) || 0;
-                        if (victoryPoints >= 10) {
-                            hasWinner = true;
-                            winnerIndex = i - 1;
-                            maxPoints = victoryPoints;
-                            break;
-                        } else if (victoryPoints > maxPoints) {
-                            maxPoints = victoryPoints;
-                            winnerIndex = i - 1;
-                        }
-                    }
-                    
-                    // Mostrar animación de victoria
-                    setTimeout(() => {
-                        if (hasWinner) {
-                            // Mostrar la animación de confeti para el jugador ganador
-                            showVictoryConfetti(winnerIndex);
-                            
-                            // Log de victoria
-                            let html = `<div class="log-entry victory mb-2">
-                                <i class="fas fa-crown text-warning me-2"></i>
-                                <strong class="text-warning">🎉 ¡JUGADOR ${winnerIndex + 1} HA GANADO! 🎉</strong>
-                                <br><small class="ms-4">Victoria con ${maxPoints} puntos</small>
-                            </div>`;
-                            jQuery('#other_useful_info_text').append(html);
-                            autoScrollLog('other_useful_info_text');
-                            
-                            // Resaltar el jugador ganador
-                            $(`#player-card-${winnerIndex}`).addClass('winner-glow');
-                        } else if (winnerIndex >= 0) {
-                            // Si no hay un ganador con 10 puntos, mostrar al jugador con más puntos
-                            // Añadir un mensaje al log indicando el fin de la partida
-                            let finPartidaHtml = `<div class="log-entry end-game mb-2" style="border-left-color: #6c757d; background-color: rgba(108, 117, 125, 0.1);">
-                                <i class="fas fa-flag-checkered text-secondary me-2"></i>
-                                <strong>🏁 ¡La partida ha terminado!</strong>
-                                <br><small class="ms-4">Jugador ${winnerIndex + 1} lidera con ${maxPoints} puntos</small>
-                            </div>`;
-                            jQuery('#other_useful_info_text').append(finPartidaHtml);
-                            autoScrollLog('other_useful_info_text');
-                            
-                            // Mostrar confeti para el jugador con más puntos aunque no haya ganado oficialmente
-                            showVictoryConfetti(winnerIndex);
-                            
-                            // Resaltar al jugador con mayor puntuación
-                            $(`#player-card-${winnerIndex}`).addClass('winner-glow');
-                        } else {
-                            // Si no hay un ganador claro
-                            let finPartidaHtml = `<div class="log-entry end-game mb-2" style="border-left-color: #6c757d; background-color: rgba(108, 117, 125, 0.1);">
-                                <i class="fas fa-flag-checkered text-secondary me-2"></i>
-                                <strong>🏁 ¡La partida ha terminado!</strong>
-                            </div>`;
-                            jQuery('#other_useful_info_text').append(finPartidaHtml);
-                            autoScrollLog('other_useful_info_text');
-                            
-                            // Fallback a alert si no hay ganador
-                            setTimeout(() => {
-                                alert('¡La partida ha terminado!');
-                            }, 500);
-                        }
-                    }, 500);
-                }
+            return;
+        }
+
+        const turnoBtn = $('#turno_siguiente_btn');
+        console.log(`[AUTOPLAY] Verificando #turno_siguiente_btn. Existe: ${turnoBtn.length > 0}, Deshabilitado: ${turnoBtn.prop('disabled')}`);
+        if (turnoBtn.length > 0 && !turnoBtn.prop('disabled')) {
+            highlightActiveButton('#turno_siguiente_btn');
+            console.log("[AUTOPLAY] Intentando clic en #turno_siguiente_btn");
+            turnoBtn.click();
+            return;
+        }
+
+        const rondaBtn = $('#ronda_siguiente_btn');
+        console.log(`[AUTOPLAY] Verificando #ronda_siguiente_btn. Existe: ${rondaBtn.length > 0}, Deshabilitado: ${rondaBtn.prop('disabled')}`);
+        if (rondaBtn.length > 0 && !rondaBtn.prop('disabled')) {
+            highlightActiveButton('#ronda_siguiente_btn');
+            console.log("[AUTOPLAY] Intentando clic en #ronda_siguiente_btn");
+            rondaBtn.click();
+            return;
+        }
+
+        console.log("[AUTOPLAY] No hay más acciones de avance disponibles (todos los botones siguientes están deshabilitados o no existen). Deteniendo autoplay.");
+        stopAutoPlay();
+        
+        // Lógica de victoria / fin de partida (existente)
+        let hasWinner = false;
+        let winnerIndex = -1;
+        let maxPoints = 0;
+
+        for (let i = 1; i <= 4; i++) {
+            const victoryPoints = parseInt($('#puntos_victoria_J' + i).text()) || 0;
+            if (victoryPoints >= 10) {
+                hasWinner = true;
+                winnerIndex = i - 1;
+                maxPoints = victoryPoints;
+                break;
             }
         }
+        if (hasWinner) {
+            console.log(`[AUTOPLAY] Victoria detectada para Jugador ${winnerIndex + 1}`);
+            showVictoryConfetti(winnerIndex); // Asegúrate que esta función exista y funcione
+            logEvent('turn_log_text', `¡JUGADOR ${winnerIndex + 1} HA GANADO con ${maxPoints} puntos!`, winnerIndex, '🎉');
+            $(`#player-card-${winnerIndex}`).addClass('winner-glow');
+        } else {
+            console.log("[AUTOPLAY] Fin de partida sin ganador claro (o no se alcanzaron 10 PV) después de que se agotaron los movimientos.");
+            logEvent('turn_log_text', '¡La partida ha terminado (autoplay finalizado)! Nadie alcanzó 10 PV.', -1, '🏁');
+        }
+
     }, speed);
-    
-    // Añadir animación de "jugando" al tablero
+
     $('#gamefield').addClass('playing-mode');
-    
-    // Añadir indicador de reproducción automática
     $('<div class="auto-play-indicator">Reproducción automática</div>')
         .appendTo('#gamefield_external')
         .css({
@@ -2403,41 +2377,40 @@ function startAutoPlay() {
         })
         .hide()
         .fadeIn(500);
-    
-    console.log('Reproducción automática iniciada');
+    console.log("[AUTOPLAY] Reproducción automática iniciada completamente. Indicador UI añadido.");
 }
 
-// Función para detener la reproducción automática
+// Función para detener la reproducción automática (CON LOGS DE DIAGNÓSTICO)
 function stopAutoPlay() {
-    if (!isPlaying) return;
-    
-    // Cambiar el estado y apariencia del botón
+    if (!isPlaying) {
+        console.log("[AUTOPLAY] stopAutoPlay llamado, pero isPlaying ya era false.");
+        return;
+    }
+    console.log("[AUTOPLAY] Deteniendo autoPlay...");
+
     isPlaying = false;
     const playBtn = $('#play_btn');
     const playText = $('#play-text');
-    
     playBtn.removeClass('playing');
     playText.text('Play');
     playBtn.find('i').removeClass('fa-stop').addClass('fa-play');
-    
-    // Quitar resaltado de botones
+    console.log("[AUTOPLAY] Estado isPlaying: false. UI del botón Play actualizada a Play.");
+
     $('#controles .btn').removeClass('active-button');
-    
-    // Detener el intervalo
+
     if (autoPlayInterval) {
         clearInterval(autoPlayInterval);
         autoPlayInterval = null;
+        console.log("[AUTOPLAY] Intervalo de autoplay limpiado (clearInterval).");
+    } else {
+        console.warn("[AUTOPLAY] stopAutoPlay llamado, pero no había un autoPlayInterval activo para limpiar.");
     }
-    
-    // Quitar animación del tablero
+
     $('#gamefield').removeClass('playing-mode');
-    
-    // Quitar indicador de reproducción automática
     $('.auto-play-indicator').fadeOut(500, function() {
         $(this).remove();
     });
-    
-    console.log('Reproducción automática detenida');
+    console.log("[AUTOPLAY] Reproducción automática detenida completamente. Indicador UI eliminado.");
 }
 
 // Añadir esta función al objeto window para poder probarla desde la consola
@@ -3128,30 +3101,21 @@ function handleStartTurn(phase_obj, phaseKey) {
     console.log('[DEBUG] handleStartTurn:', phase_obj);
     
     if (phase_obj && phase_obj.player !== undefined) {
+        // Mantener la lógica de UI existente si es necesaria, como el borde:
         $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
         
+        // Usar logEvent para el log principal de turnos
+        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁');
+        
         if (phase_obj.dice !== undefined) {
-            updateDiceRoll(phase_obj.dice);
+            // updateDiceRoll(phase_obj.dice); // <--- ELIMINADO / ASEGURADO QUE NO ESTÁ
             
-            let diceEmoji = getDiceEmoji(phase_obj.dice);
-            let html = `<div class="log-entry dice-roll mb-2">
-                <i class="fas fa-dice text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
-                <br><small class="ms-4">🎲 Tiró los dados: ${diceEmoji} <span class="badge bg-primary">${phase_obj.dice}</span></small>
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-            autoScrollLog('other_useful_info_text');
-        } else {
-            let html = `<div class="log-entry start-turn mb-2">
-                <i class="fas fa-play text-primary me-2"></i>
-                <strong>🎮 Jugador ${phase_obj.player + 1}</strong> inició su turno
-            </div>`;
-            jQuery('#other_useful_info_text').append(html);
-            autoScrollLog('other_useful_info_text');
-        }
+            const diceEmoji = getDiceEmoji(phase_obj.dice); 
+            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲');
+        } 
     }
     
-    // Actualizar manos y datos
+    // Actualizar manos y datos (esto es importante para reflejar cualquier cambio de estado inicial del turno)
     updatePhaseData(phase_obj);
 }
 
@@ -3291,15 +3255,686 @@ function handleCommercePhase(phase_obj, phaseKey) {
     
     // Solo mostrar log general si no hubo actividades específicas
     if (!hasLoggedActivity) {
-        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general');
+        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general para la fase de comercio.');
         let currentPlayer = getCurrentPlayer();
-        let html = `<div class="log-entry commerce-general mb-2">
-            <i class="fas fa-store text-info me-2"></i>
-            <strong>🛍️ Jugador ${currentPlayer + 1}</strong> - Fase de Comercio
-            <br><small class="ms-4">💼 Oportunidad para intercambios, compras y construcciones</small>
+        const message = "Fase de Comercio. Oportunidad para intercambios, compras y construcciones.";
+        logEvent('commerce_log_text', message, currentPlayer, '🛍️');
+    }
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para manejar la fase de construcción
+function handleBuildPhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleBuildPhase:', phase_obj);
+    
+    let hasLoggedActivity = false; // Para evitar logs duplicados
+    
+    if (phase_obj && typeof phase_obj === 'object') {
+        // Buscar construcciones en el objeto
+        let hasConstruction = false;
+        
+        // Verificar construcciones directas
+        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
+            hasConstruction = true;
+            logConstruction(phase_obj);
+            hasLoggedActivity = true;
+        }
+        
+        // Buscar construcciones en subclaves
+        if (!hasConstruction) {
+            for (let key in phase_obj) {
+                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
+                    if (key.includes('build') || key.includes('construction') || 
+                       (phase_obj[key].what_build || phase_obj[key].node_id)) {
+                        hasConstruction = true;
+                        logConstruction(phase_obj[key]);
+                        hasLoggedActivity = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    // Solo mostrar mensaje general si no hay construcción específica
+    if (!hasLoggedActivity) {
+        let currentPlayer = getCurrentPlayer();
+        let html = `<div class="log-entry build-phase mb-2">
+            <i class="fas fa-tools text-warning me-2"></i>
+            <strong>🏗️ Jugador ${currentPlayer + 1}</strong> - Fase de Construcción
+            <br><small class="ms-4">🔨 Oportunidad para construir poblados, ciudades y carreteras</small>
         </div>`;
-        jQuery('#commerce_log_text').append(html);
-        autoScrollLog('commerce_log_text');
+        jQuery('#other_useful_info_text').append(html);
+        autoScrollLog('other_useful_info_text');
+    }
+}
+
+// Función para manejar el fin de turno
+function handleEndTurn(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleEndTurn:', phase_obj);
+    
+    let currentPlayer = getCurrentPlayer();
+    if (phase_obj && phase_obj.player !== undefined) {
+        currentPlayer = phase_obj.player;
+        $('#hand_P' + phase_obj.player).css('border', 'solid 0px black');
+    }
+    
+    let html = `<div class="log-entry end-turn mb-2">
+        <i class="fas fa-stop text-secondary me-2"></i>
+        <strong>🏁 Jugador ${currentPlayer + 1}</strong> terminó su turno
+    </div>`;
+    jQuery('#other_useful_info_text').append(html);
+    autoScrollLog('other_useful_info_text');
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para manejar fases genéricas
+function handleGenericPhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleGenericPhase:', phaseKey, phase_obj);
+    
+    // Procesar según el tipo de fase usando la lógica original
+    if (phaseKey.includes('trade_bank') || (phase_obj && phase_obj.phase_type == "trade_bank")) {
+        logBankTrade(phase_obj);
+    } else if (phaseKey.includes('trade_players') || (phase_obj && phase_obj.phase_type == "trade_players")) {
+        logPlayerTrade(phase_obj);
+    } else if (phaseKey.includes('build') || (phase_obj && phase_obj.phase_type == "build")) {
+        logConstruction(phase_obj);
+    } else if (phaseKey.includes('buy_card') || (phase_obj && phase_obj.phase_type == "buy_card")) {
+        logCardPurchase(phase_obj);
+    } else if (phaseKey.includes('play_card') || (phase_obj && phase_obj.phase_type == "play_card")) {
+        on_development_card_played(phase_obj);
+    } else if (phaseKey.includes('give_cards') || (phase_obj && phase_obj.phase_type == "give_cards")) {
+        logResourceDistribution(phase_obj);
+    } else if (phaseKey.includes('discard') || (phase_obj && phase_obj.phase_type == "discard_cards")) {
+        logCardDiscard(phase_obj);
+    } else if (phaseKey.includes('rob') || phaseKey.includes('bandit') || (phase_obj && (phase_obj.phase_type == "rob_player" || phase_obj.phase_type == "move_bandit"))) {
+        logThiefMovement(phase_obj);
+    }
+    
+    updatePhaseData(phase_obj);
+}
+
+// Función para actualizar datos de fase común
+function updatePhaseData(phase_obj) {
+    if (!phase_obj) return;
+    
+    // Actualizar manos de jugadores
+    if (phase_obj.player !== undefined && phase_obj['hand_P' + phase_obj.player]) {
+        changeHandObject(phase_obj.player, phase_obj['hand_P' + phase_obj.player]);
+    }
+    
+    // Actualizar todas las manos si están disponibles
+    for (let i = 0; i < 4; i++) {
+        if (phase_obj['hand_P' + i]) {
+            changeHandObject(i, phase_obj['hand_P' + i]);
+        }
+    }
+    
+    // Actualizar puntos de victoria
+    if (phase_obj.victory_points) {
+        for (let i = 0; i < 4; i++) {
+            if (phase_obj.victory_points['J' + i] !== undefined) {
+                const vpElement = $('#puntos_victoria_J' + (i + 1));
+                const oldVP = parseInt(vpElement.text()) || 0;
+                const newVP = phase_obj.victory_points['J' + i];
+                animateNumberUpdate(vpElement, newVP, oldVP);
+            }
+        }
+    }
+    
+    // Actualizar cartas de desarrollo
+    if (phase_obj.player !== undefined && phase_obj['development_cards_P' + phase_obj.player]) {
+        updateDevCards(phase_obj.player, phase_obj['development_cards_P' + phase_obj.player]);
+    }
+    
+    // Después de un breve delay, actualizar con los datos completos del juego
+}
+
+// Aplicar movimiento del ladrón en el tablero
+function move_thief(past_terrain, new_terrain, robbed_player, stolen_material_id, comes_from_card) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let actual_player = parseInt($('#contador_turnos').val()) - 1;
+
+    // Mover el ladrón del terreno anterior
+    if (past_terrain !== undefined && game_obj && game_obj.setup && game_obj.setup.board && game_obj.setup.board.board_terrain[past_terrain]) {
+        if (game_obj.setup.board.board_terrain[past_terrain]['probability'] != 0) {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('<span>' + game_obj.setup.board.board_terrain[past_terrain]['probability'] + '</span>');
+        } else {
+            jQuery('#terrain_' + past_terrain + ' .terrain_number').html('')
+        }
+    }
+
+    // Colocar el ladrón en el nuevo terreno
+    if (new_terrain !== undefined) {
+        jQuery('#terrain_' + new_terrain + ' .terrain_number').html('<i class="fa-solid fa-user-ninja fa-2x" data-toggle="tooltip" data-placement="top" title="Ladrón"></i>');
+    }
+
+    // Manejar el robo de recursos si aplica
+    if (comes_from_card && stolen_material_id !== undefined && robbed_player !== undefined && robbed_player !== -1) {
+        let actual_player_material_quantity = $('#hand_P' + actual_player + ' .' + materials[stolen_material_id] + '_quantity');
+        let robbed_player_material_quantity = $('#hand_P' + robbed_player + ' .' + materials[stolen_material_id] + '_quantity');
+        
+        // Actualizar las cantidades si los elementos existen
+        if (actual_player_material_quantity.length && robbed_player_material_quantity.length) {
+            let actualValue = parseInt(actual_player_material_quantity.text()) || 0;
+            let robbedValue = parseInt(robbed_player_material_quantity.text()) || 0;
+            
+            actual_player_material_quantity.text(actualValue + 1);
+            robbed_player_material_quantity.text(Math.max(0, robbedValue - 1));
+        }
+    }
+}
+
+function changeHandObject(player, hand_obj) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+    let dev_cards = ['knight', 'victory_point', 'road_building', 'year_of_plenty', 'monopoly'];
+
+    // Actualizar recursos con animación
+    materials.forEach(function (material) {
+        if (hand_obj && hand_obj[material] !== undefined) {
+            const resourceElement = $('#hand_P' + player + ' .resources-grid .' + material + ' .' + material + '_quantity');
+            const oldValue = parseInt(resourceElement.text()) || 0;
+            animateNumberUpdate(resourceElement, hand_obj[material], oldValue);
+        }
+    });
+
+    // Actualizar cartas de desarrollo con animación
+    dev_cards.forEach(function (card) {
+        let cardElement = null;
+        let newValue = null;
+        
+        // Asumiendo que las cartas de desarrollo están dentro del mismo objeto `hand_obj`
+        if (hand_obj && hand_obj[card] !== undefined) {
+            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
+            newValue = hand_obj[card];
+        } else if (hand_obj && hand_obj['development_cards'] && hand_obj['development_cards'][card] !== undefined) {
+            // Alternativa: si las cartas están en un sub-objeto 'development_cards'
+            cardElement = $('#hand_P' + player + ' .dev-cards-grid .' + card + ' .' + card + '_quantity');
+            newValue = hand_obj['development_cards'][card];
+        }
+        
+        if (cardElement && cardElement.length && newValue !== null) {
+            const oldValue = parseInt(cardElement.text()) || 0;
+            animateNumberUpdate(cardElement, newValue, oldValue);
+        }
+    });
+}
+
+function on_development_card_played(card_played_info) {
+    let materials = ['cereal', 'mineral', 'clay', 'wood', 'wool'];
+
+    let contador_turnos = jQuery('#contador_turnos');
+    let other_useful_info_text = jQuery('#other_useful_info_text');
+    let actual_player = $('#contador_turnos').val() - 1;
+    
+    if (!card_played_info || !card_played_info.played_card) {
+        console.warn("[DEBUG] on_development_card_played: card_played_info no válido");
+        return;
+    }
+    
+    let quantity = jQuery('#hand_P' + actual_player + ' .dev-cards-grid .' + card_played_info.played_card + ' .' + card_played_info.played_card + '_quantity');
+
+    // Actualizar el contador de la carta jugada
+    if (quantity.length) {
+        let currentValue = parseInt(quantity.text()) || 0;
+        animateNumberUpdate(quantity, Math.max(0, currentValue - 1), currentValue);
+    }
+
+    let cardEmoji = getDevCardEmoji(card_played_info.played_card);
+    let html = '<div class="log-entry play-card mb-2">';
+    html += getCardIcon(card_played_info.played_card);
+    html += '<strong>🃏 Jugador ' + (actual_player + 1) + '</strong> jugó ';
+    html += '<span class="fw-bold">' + cardEmoji + ' ' + getCardName(card_played_info.played_card) + '</span>';
+    
+    switch (card_played_info.played_card) {
+        case 'knight':
+            if (card_played_info.past_thief_terrain !== undefined && card_played_info.thief_terrain !== undefined) {
+                move_thief(card_played_info.past_thief_terrain, card_played_info.thief_terrain, card_played_info.robbed_player, card_played_info.stolen_material_id, true);
+                html += '<br><small class="ms-4">🥷 Movió el ladrón del terreno ' + card_played_info.past_thief_terrain + ' al ' + card_played_info.thief_terrain;
+                if (card_played_info.robbed_player !== undefined && card_played_info.robbed_player !== -1) {
+                    html += '<br>💰 Robó una carta al Jugador ' + (card_played_info.robbed_player + 1);
+                }
+                html += '</small>';
+            }
+            break;
+        case 'victory_point':
+            html += '<br><small class="ms-4">🏆 Punto de Victoria revelado ✨</small>';
+            break;
+        case 'monopoly':
+            if (card_played_info.material_chosen !== undefined) {
+                let material_chosen = materials[card_played_info.material_chosen];
+                let materialEmoji = getResourceEmoji(material_chosen);
+                html += '<br><small class="ms-4">💰 Monopolio de: ' + materialEmoji + ' ' + material_chosen.toUpperCase() + '</small>';
+                
+                // Actualizar las manos de todos los jugadores si está disponible
+                for (let i = 0; i < 4; i++) {
+                    if (card_played_info['hand_P' + i]) {
+                        changeHandObject(i, card_played_info['hand_P' + i]);
+                    }
+                }
+            }
+            break;
+        case 'year_of_plenty':
+            if (card_played_info.materials_selected) {
+                let material1Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material]);
+                let material2Emoji = getResourceEmoji(materials[card_played_info.materials_selected.material_2]);
+                let materials_chosen = [
+                    material1Emoji + ' ' + materials[card_played_info.materials_selected.material].toUpperCase(), 
+                    material2Emoji + ' ' + materials[card_played_info.materials_selected.material_2].toUpperCase()
+                ];
+                html += '<br><small class="ms-4">🎁 Recursos elegidos: ' + materials_chosen.join(', ') + '</small>';
+                
+                if (card_played_info['hand_P' + actual_player]) {
+                    changeHandObject(actual_player, card_played_info['hand_P' + actual_player]);
+                }
+            }
+            break;
+        case 'road_building':
+            if (card_played_info.roads) {
+                html += '<br><small class="ms-4">🛤️ Construcción de carreteras:<br>';
+                if (card_played_info.valid_road_1) {
+                    html += '🚧 Carretera 1: nodo ' + card_played_info.roads.node_id + ' → ' + card_played_info.roads.road_to + '<br>';
+                    // Dibujar la carretera en el tablero
+                    let road_id_str = card_played_info.roads.node_id < card_played_info.roads.road_to ? 
+                        `road_${card_played_info.roads.node_id}_${card_played_info.roads.road_to}` : 
+                        `road_${card_played_info.roads.road_to}_${card_played_info.roads.node_id}`;
+                    animateRoadBuilding(road_id_str, actual_player);
+                }
+                if (card_played_info.valid_road_2) {
+                    html += '🚧 Carretera 2: nodo ' + card_played_info.roads.node_id_2 + ' → ' + card_played_info.roads.road_to_2;
+                    // Dibujar la segunda carretera en el tablero
+                    let road_id_str = card_played_info.roads.node_id_2 < card_played_info.roads.road_to_2 ? 
+                        `road_${card_played_info.roads.node_id_2}_${card_played_info.roads.road_to_2}` : 
+                        `road_${card_played_info.roads.road_to_2}_${card_played_info.roads.node_id_2}`;
+                    animateRoadBuilding(road_id_str, actual_player);
+                }
+                html += '</small>';
+            }
+            break;
+        default:
+            break;
+    }
+    
+    html += '</div>';
+    other_useful_info_text.append(html);
+    autoScrollLog('other_useful_info_text');
+    
+    // Animar la carta que se acaba de jugar
+    animateCardPlay(actual_player, card_played_info.played_card);
+}
+
+function animateDiceRoll(totalValue) {
+    // Dividir el valor total en dos dados (simulando dos dados de 6 caras)
+    let dice1Value, dice2Value;
+    
+    if (totalValue <= 6) {
+        dice1Value = Math.floor(Math.random() * Math.min(totalValue, 6)) + 1;
+        dice2Value = totalValue - dice1Value;
+        if (dice2Value < 1) {
+            dice2Value = 1;
+            dice1Value = totalValue - 1;
+        }
+    } else {
+        dice1Value = Math.floor(Math.random() * 6) + 1;
+        dice2Value = totalValue - dice1Value;
+        if (dice2Value > 6) {
+            dice1Value = totalValue - 6;
+            dice2Value = 6;
+        }
+    }
+
+    // Actualizar el valor total en la UI
+    $('#diceroll .dice-value').text(totalValue);
+    
+    // Mostrar el overlay de dados
+    const overlay = $('#dice-overlay');
+    overlay.fadeIn(300);
+    
+    // Animar los dados individualmente
+    const dice1 = $('.dice-1');
+    const dice2 = $('.dice-2');
+    
+    // Limpiar clases anteriores
+    dice1.removeClass('rolling').removeClass(function (index, className) {
+        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
+    });
+    dice2.removeClass('rolling').removeClass(function (index, className) {
+        return (className.match(/(^|\s)show-\S+/g) || []).join(' ');
+    });
+    
+    // Añadir animación de rotación
+    dice1.addClass('rolling');
+    dice2.addClass('rolling');
+    
+    // Actualizar valores mostrados en el resultado
+    $('#dice-value-1').text(dice1Value);
+    $('#dice-value-2').text(dice2Value);
+    $('#dice-total').text(totalValue);
+    
+    // Después de un tiempo, mostrar el resultado y quitar la animación
+    setTimeout(function() {
+        dice1.removeClass('rolling').addClass('show-' + dice1Value);
+        dice2.removeClass('rolling').addClass('show-' + dice2Value);
+        
+        // Ocultar el overlay después de mostrar el resultado
+        setTimeout(function() {
+            overlay.fadeOut(500);
+        }, 2000);
+    }, 2000);
+    
+    console.log(`[DEBUG] Dados animados: ${dice1Value} + ${dice2Value} = ${totalValue}`);
+}
+
+// Nueva función para actualizar cartas de desarrollo con animación
+function updateDevCards(playerIndex, devCardsArray) {
+    const devCardCounts = {
+        knight: 0,
+        victory_point: 0,
+        road_building: 0,
+        year_of_plenty: 0,
+        monopoly: 0
+    };
+    
+    const DEV_CARD_TYPE_MAP = {
+        0: 'knight',
+        1: 'victory_point',
+        2: 'road_building',
+        3: 'year_of_plenty',
+        4: 'monopoly'
+    };
+    
+    if (devCardsArray && Array.isArray(devCardsArray)) {
+        devCardsArray.forEach(card => {
+            let cardName = null;
+            if (card.type === 0) { // Knight
+                cardName = 'knight';
+            } else if (card.type === 1) { // Victory Point
+                cardName = 'victory_point';
+            } else if (card.type === 2) { // Progress Card
+                cardName = DEV_CARD_TYPE_MAP[card.effect];
+            }
+            
+            if (cardName && devCardCounts.hasOwnProperty(cardName)) {
+                devCardCounts[cardName]++;
+            }
+        });
+    }
+    
+    // Actualizar UI con animación
+    for (const cardName in devCardCounts) {
+        const cardElement = $(`#hand_P${playerIndex} .dev-cards-grid .${cardName} .${cardName}_quantity`);
+        if (cardElement.length) {
+            const oldValue = parseInt(cardElement.text()) || 0;
+            const newValue = devCardCounts[cardName];
+            
+            // Usar la nueva función de animación
+            animateNumberUpdate(cardElement, newValue, oldValue);
+        }
+    }
+}
+
+// Función helper para animar la actualización de números
+function animateNumberUpdate(element, newValue, oldValue = null) {
+    if (!element || !element.length) return;
+    
+    // Determinar el tipo de cambio
+    const currentValue = parseInt(element.text()) || 0;
+    const finalValue = parseInt(newValue) || 0;
+    
+    // Actualizar el valor
+    element.text(finalValue);
+    
+    // Determinar el tipo de animación según el cambio
+    let animationClass = 'quantity-updated';
+    if (oldValue !== null) {
+        if (finalValue > oldValue) {
+            animationClass = 'quantity-increase';
+        } else if (finalValue < oldValue) {
+            animationClass = 'quantity-decrease';
+        } else {
+            animationClass = 'quantity-neutral';
+        }
+    }
+    
+    // Añadir la clase de animación
+    element.addClass(animationClass);
+    
+    // Después de 750ms, quitar la clase y añadir la transición a normal
+    setTimeout(() => {
+        element.removeClass(animationClass);
+        element.addClass('fade-to-normal');
+        
+        // Quitar la clase fade-to-normal después de completar la transición
+        setTimeout(() => {
+            element.removeClass('fade-to-normal');
+        }, 750);
+    }, 750);
+    
+    console.log(`[DEBUG] Animando actualización: ${currentValue} → ${finalValue}`);
+}
+
+// Función para obtener emojis de recursos
+function getResourceEmoji(resourceName) {
+    const resourceEmojis = {
+        'cereal': '🌾',
+        'mineral': '⛰️', 
+        'clay': '🧱',
+        'wood': '🪵',
+        'wool': '🐑'
+    };
+    return resourceEmojis[resourceName] || '❓';
+}
+
+// Función para obtener emojis de cartas de desarrollo
+function getDevCardEmoji(cardName) {
+    const cardEmojis = {
+        'knight': '⚔️',
+        'victory_point': '🏆',
+        'road_building': '🛣️',
+        'year_of_plenty': '🎁',
+        'monopoly': '💰'
+    };
+    return cardEmojis[cardName] || '🃏';
+}
+
+// Función para obtener emojis de construcciones
+function getBuildingEmoji2(buildingType) {
+    const buildingEmojis = {
+        'S舎': '🏠',
+        'settlement': '🏠',
+        'town': '🏠',
+        'C都市': '🏛️',
+        'city': '🏛️',
+        'R道': '🛤️',
+        'road': '🛤️'
+    };
+    return buildingEmojis[buildingType] || '🏗️';
+}
+
+// Función para obtener emoji de dados según el valor
+function getDiceEmoji(diceValue) {
+    const diceEmojis = {
+        1: '⚀',
+        2: '⚁', 
+        3: '⚂',
+        4: '⚃',
+        5: '⚄',
+        6: '⚅',
+        7: '⚀⚀',  // Dos dados que suman 7
+        8: '⚁⚂',  // Dos dados que suman 8
+        9: '⚂⚂',  // Dos dados que suman 9
+        10: '⚃⚃', // Dos dados que suman 10
+        11: '⚄⚄', // Dos dados que suman 11
+        12: '⚅⚅'  // Dos dados que suman 12
+    };
+    return diceEmojis[diceValue] || '🎲';
+}
+
+// Función para manejar el inicio de turno
+function handleStartTurn(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleStartTurn:', phase_obj);
+    
+    if (phase_obj && phase_obj.player !== undefined) {
+        // Mantener la lógica de UI existente si es necesaria, como el borde:
+        $('#hand_P' + phase_obj.player).css('border', 'solid 3px black');
+        
+        // Usar logEvent para el log principal de turnos
+        logEvent('turn_log_text', `Inicia el turno.`, phase_obj.player, '🏁');
+        
+        if (phase_obj.dice !== undefined) {
+            // updateDiceRoll(phase_obj.dice); // <--- ELIMINADO / ASEGURADO QUE NO ESTÁ
+            
+            const diceEmoji = getDiceEmoji(phase_obj.dice); 
+            logEvent('turn_log_text', `Tiró los dados: ${diceEmoji} (Suma: ${phase_obj.dice})`, phase_obj.player, '🎲');
+        } 
+    }
+    
+    // Actualizar manos y datos (esto es importante para reflejar cualquier cambio de estado inicial del turno)
+    updatePhaseData(phase_obj);
+}
+
+// Función para obtener el jugador actual
+function getCurrentPlayer() {
+    // Intentar obtener el jugador desde el contador de turnos
+    let currentTurnKey = $('#contador_turnos').val();
+    if (currentTurnKey) {
+        // Si el turno es como "P0", "P1", etc., extraer el número
+        let match = currentTurnKey.match(/P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si el turno es como "turn_P0", extraer el número
+        match = currentTurnKey.match(/turn_P(\d+)/);
+        if (match) {
+            return parseInt(match[1]);
+        }
+        
+        // Si es un número directo
+        if (!isNaN(parseInt(currentTurnKey))) {
+            return parseInt(currentTurnKey) - 1; // Convertir de 1-based a 0-based
+        }
+    }
+    
+    // Fallback: intentar obtener desde phase_obj global
+    if (phase_obj && phase_obj.player !== undefined) {
+        return phase_obj.player;
+    }
+    
+    return 0; // Fallback al jugador 0
+}
+
+// Función para manejar la fase de comercio
+function handleCommercePhase(phase_obj, phaseKey) {
+    console.log('[DEBUG] handleCommercePhase - Datos completos:', JSON.stringify(phase_obj, null, 2));
+    console.log('[DEBUG] handleCommercePhase - Claves disponibles:', Object.keys(phase_obj || {}));
+    
+    let hasLoggedActivity = false; // Para evitar logs duplicados
+    
+    if (phase_obj && typeof phase_obj === 'object') {
+        // Buscar actividades de comercio en el objeto
+        let commerceActivities = [];
+        let hasActivity = false;
+        
+        // Verificar si hay comercio con el banco
+        if (phase_obj.trade_bank || phase_obj.bank_trade || phase_obj.give || phase_obj.receive) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'bank',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay comercio entre jugadores
+        if (phase_obj.trade_players || phase_obj.player_trade || phase_obj.player_id_send || phase_obj.offer) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'players',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay compra de cartas de desarrollo
+        if (phase_obj.buy_card || phase_obj.development_card_purchased || 
+           (phase_obj.player !== undefined && Object.keys(phase_obj).some(key => key.includes('development_cards')))) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'buy_card',
+                data: phase_obj
+            });
+        }
+        
+        // Verificar si hay construcciones (gastar recursos)
+        if (phase_obj.build || phase_obj.construction || phase_obj.what_build || phase_obj.node_id) {
+            hasActivity = true;
+            commerceActivities.push({
+                type: 'construction',
+                data: phase_obj
+            });
+        }
+        
+        // Si no hay actividades específicas detectadas, buscar en cualquier subclave
+        if (!hasActivity) {
+            // Recorrer todas las claves del objeto para buscar actividades
+            for (let key in phase_obj) {
+                if (typeof phase_obj[key] === 'object' && phase_obj[key] !== null) {
+                    if (key.includes('trade') || key.includes('bank')) {
+                        commerceActivities.push({
+                            type: 'bank',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    } else if (key.includes('build') || key.includes('construction')) {
+                        commerceActivities.push({
+                            type: 'construction',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    } else if (key.includes('buy') || key.includes('card')) {
+                        commerceActivities.push({
+                            type: 'buy_card',
+                            data: phase_obj[key]
+                        });
+                        hasActivity = true;
+                    }
+                }
+            }
+        }
+        
+        // Si hay actividades específicas, procesarlas
+        if (hasActivity && commerceActivities.length > 0) {
+            console.log('[DEBUG] Actividades de comercio encontradas:', commerceActivities);
+            commerceActivities.forEach(activity => {
+                switch(activity.type) {
+                    case 'bank':
+                        logBankTrade(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'players':
+                        logPlayerTrade(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'buy_card':
+                        logCardPurchase(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                    case 'construction':
+                        logConstruction(activity.data);
+                        hasLoggedActivity = true;
+                        break;
+                }
+            });
+        }
+    }
+    
+    // Solo mostrar log general si no hubo actividades específicas
+    if (!hasLoggedActivity) {
+        console.log('[DEBUG] No se encontraron actividades específicas, mostrando log general para la fase de comercio.');
+        let currentPlayer = getCurrentPlayer();
+        const message = "Fase de Comercio. Oportunidad para intercambios, compras y construcciones.";
+        logEvent('commerce_log_text', message, currentPlayer, '🛍️');
     }
     
     updatePhaseData(phase_obj);
@@ -3566,7 +4201,7 @@ function logBankTrade(tradeData) {
         let giveItems = [];
         for (let resource in tradeData.give) {
             if (tradeData.give[resource] > 0) {
-                let emoji = getResourceEmoji(resource);
+                let emoji = getResourceEmoji(resource); // Asume que esta función existe y devuelve un emoji para el recurso
                 giveItems.push(`${emoji} ${tradeData.give[resource]}`);
             }
         }
@@ -3584,17 +4219,8 @@ function logBankTrade(tradeData) {
         receiveText = receiveItems.join(' ') || 'N/A';
     }
     
-    let html = `<div class="log-entry trade-bank mb-2">
-        <i class="fas fa-university text-success me-2"></i>
-        <strong>🏛️ Jugador ${player + 1}</strong> comerció con el banco
-        <br><small class="ms-4">
-            📤 Dio: ${giveText}
-            <br>📥 Recibió: ${receiveText}
-        </small>
-    </div>`;
-    
-    jQuery('#commerce_log_text').append(html);
-    autoScrollLog('commerce_log_text');
+    const message = `Comerció con el banco. Dio: ${giveText}, Recibió: ${receiveText}`;
+    logEvent('commerce_log_text', message, player, '🏦');
 }
 
 // Función para logging de comercio entre jugadores
@@ -3604,22 +4230,38 @@ function logPlayerTrade(tradeData) {
     let fromPlayer = tradeData.player_id_send !== undefined ? tradeData.player_id_send : getCurrentPlayer();
     let toPlayer = tradeData.player_id_receive !== undefined ? tradeData.player_id_receive : -1;
     
-    let html = `<div class="log-entry trade-players mb-2">
-        <i class="fas fa-handshake text-info me-2"></i>
-        <strong>🤝 Comercio entre jugadores</strong>
-        <br><small class="ms-4">`;
-    
-    if (toPlayer !== -1) {
-        html += `👤 Jugador ${fromPlayer + 1} ↔️ Jugador ${toPlayer + 1}`;
-    } else {
-        html += `👤 Jugador ${fromPlayer + 1} ↔️ Otro jugador`;
+    // Intentar obtener detalles de la oferta y la petición
+    // Esto es una suposición de la estructura de tradeData, podría necesitar ajuste
+    let offerText = 'recursos no especificados';
+    if (tradeData.offer && typeof tradeData.offer === 'object') {
+        let offerItems = [];
+        for (let resource in tradeData.offer) {
+            if (tradeData.offer[resource] > 0) {
+                offerItems.push(`${getResourceEmoji(resource)} ${tradeData.offer[resource]}`);
+            }
+        }
+        if (offerItems.length > 0) offerText = offerItems.join(' ');
     }
     
-    html += `</small>
-    </div>`;
+    let requestText = 'recursos no especificados';
+    if (tradeData.request && typeof tradeData.request === 'object') {
+        let requestItems = [];
+        for (let resource in tradeData.request) {
+            if (tradeData.request[resource] > 0) {
+                requestItems.push(`${getResourceEmoji(resource)} ${tradeData.request[resource]}`);
+            }
+        }
+        if (requestItems.length > 0) requestText = requestItems.join(' ');
+    }
     
-    jQuery('#commerce_log_text').append(html);
-    autoScrollLog('commerce_log_text');
+    let message;
+    if (toPlayer !== -1) {
+        message = `Realizó un comercio con Jugador ${toPlayer + 1}. Ofreció: ${offerText}, Pidió: ${requestText}`;
+    } else {
+        message = `Propuso un comercio. Ofreció: ${offerText}, Pidió: ${requestText}`;
+    }
+    
+    logEvent('commerce_log_text', message, fromPlayer, '🧑‍🤝‍🧑');
 }
 
 // Función para logging de compra de cartas de desarrollo
@@ -3627,15 +4269,22 @@ function logCardPurchase(purchaseData) {
     console.log('[DEBUG] logCardPurchase:', purchaseData);
     
     let player = purchaseData.player !== undefined ? purchaseData.player : getCurrentPlayer();
+    let cardName = purchaseData.card_name || "una carta de desarrollo"; // Intentar obtener el nombre si está disponible
     
-    let html = `<div class="log-entry buy-card mb-2">
-        <i class="fas fa-shopping-cart text-warning me-2"></i>
-        <strong>🛒 Jugador ${player + 1}</strong> compró una carta de desarrollo
-        <br><small class="ms-4">💳 Gastó recursos para obtener una carta</small>
-    </div>`;
-    
-    jQuery('#commerce_log_text').append(html);
-    autoScrollLog('commerce_log_text');
+    // Asumimos que los recursos gastados pueden estar en purchaseData.cost o similar
+    let costText = "recursos"; // Texto genérico si no hay detalle
+    if (purchaseData.cost && typeof purchaseData.cost === 'object') {
+        let costItems = [];
+        for (let resource in purchaseData.cost) {
+            if (purchaseData.cost[resource] > 0) {
+                costItems.push(`${getResourceEmoji(resource)} ${purchaseData.cost[resource]}`);
+            }
+        }
+        if (costItems.length > 0) costText = costItems.join(' ');
+    }
+
+    const message = `Compró ${cardName}. Gastó: ${costText}.`;
+    logEvent('turn_log_text', message, player, '🃏');
 }
 
 // Función para logging de construcciones
@@ -3644,35 +4293,79 @@ function logConstruction(constructionData) {
     
     let player = constructionData.player !== undefined ? constructionData.player : getCurrentPlayer();
     let building = constructionData.what_build || constructionData.construction || 'construcción';
-    let buildingEmoji = getBuildingEmoji2(building);
-    let buildingName = getBuildingName(building);
+    let buildingEmoji = getBuildingEmoji2(building); // Asume que getBuildingEmoji2 existe y funciona
+    let buildingName = getBuildingName(building); // Asume que getBuildingName existe y funciona
     
-    let html = `<div class="log-entry construction mb-2">
-        <i class="fas fa-hammer text-warning me-2"></i>
-        <strong>🔨 Jugador ${player + 1}</strong> construyó ${buildingEmoji} ${buildingName}`;
+    let message = `Construyó ${buildingEmoji} ${buildingName}`;
     
     if (constructionData.node_id !== undefined) {
-        html += `<br><small class="ms-4">📍 Ubicación: nodo ${constructionData.node_id}</small>`;
+        message += ` en el nodo ${constructionData.node_id}`;
+    }
+    if (constructionData.road_id !== undefined) {
+        message += ` (carretera ${constructionData.road_id})`;
     }
     
-    html += '</div>';
-    
-    jQuery('#other_useful_info_text').append(html);
-    autoScrollLog('other_useful_info_text');
+    // Podríamos añadir aquí el costo si está disponible en constructionData.cost
+    if (constructionData.cost && typeof constructionData.cost === 'object') {
+        let costItems = [];
+        for (let resource in constructionData.cost) {
+            if (constructionData.cost[resource] > 0) {
+                costItems.push(`${getResourceEmoji(resource)} ${constructionData.cost[resource]}`);
+            }
+        }
+        if (costItems.length > 0) message += `. Costo: ${costItems.join(' ')}`;
+    }
+
+    message += '.';
+    logEvent('turn_log_text', message, player, '🏗️');
 }
 
 // Función para logging de distribución de recursos por dados
 function logResourceDistribution(distributionData) {
     console.log('[DEBUG] logResourceDistribution:', distributionData);
     
-    let html = `<div class="log-entry resource-distribution mb-2">
-        <i class="fas fa-coins text-success me-2"></i>
-        <strong>💰 Distribución de recursos</strong>
-        <br><small class="ms-4">🎲 Los jugadores recibieron recursos por la tirada de dados</small>
-    </div>`;
+    // distributionData podría contener qué jugadores recibieron qué. Ejemplo:
+    // distributionData = { 6: { 0: {WOOD: 1}, 2: {BRICK: 2} }, 8: { ... } }
+    // O podría ser un mensaje más general si la data no es tan detallada.
     
-    jQuery('#other_useful_info_text').append(html);
-    autoScrollLog('other_useful_info_text');
+    let message = "Distribución de recursos por tirada de dados.";
+    let specificDistribution = [];
+
+    if (distributionData && typeof distributionData === 'object') {
+        // Iterar sobre los resultados de los dados (ej. si distributionData es un objeto por número de dado)
+        Object.keys(distributionData).forEach(diceRoll => {
+            const rollOutcomes = distributionData[diceRoll];
+            if (rollOutcomes && typeof rollOutcomes === 'object') {
+                 Object.keys(rollOutcomes).forEach(playerIndex => {
+                    const resources = rollOutcomes[playerIndex];
+                    let playerResourcesText = [];
+                    Object.keys(resources).forEach(resource => {
+                        if (resources[resource] > 0) {
+                            playerResourcesText.push(`${getResourceEmoji(resource)} ${resources[resource]}`);
+                        }
+                    });
+                    if (playerResourcesText.length > 0) {
+                        // Usamos PLAYER_BASE_EMOJIS y PLAYER_COLORS directamente aquí para el jugador afectado
+                        const playerIdentifier = `${PLAYER_BASE_EMOJIS[playerIndex] || '❓'} J${parseInt(playerIndex)+1}`;
+                        specificDistribution.push(`${playerIdentifier} recibió: ${playerResourcesText.join(', ')} (por 🎲${diceRoll})`);
+                    }
+                });
+            }
+        });
+    }
+
+    if (specificDistribution.length > 0) {
+        // Si hay detalles, cada jugador afectado obtiene su propia línea de log
+        specificDistribution.forEach(detailMsg => {
+            // Extraemos el playerIndex del mensaje para colorear correctamente
+            const match = detailMsg.match(/J(\d+)/);
+            const playerIdx = match ? parseInt(match[1]) - 1 : -1;
+            logEvent('turn_log_text', detailMsg, playerIdx, '💰');
+        });
+    } else {
+        // Mensaje genérico si no hay detalles específicos
+        logEvent('turn_log_text', message, -1, '💰'); // -1 para no asignar color/emoji de jugador específico
+    }
 }
 
 // Función para logging de descarte de cartas
@@ -3681,38 +4374,61 @@ function logCardDiscard(discardData) {
     
     let player = discardData.player !== undefined ? discardData.player : getCurrentPlayer();
     
-    let html = `<div class="log-entry card-discard mb-2">
-        <i class="fas fa-trash text-danger me-2"></i>
-        <strong>🗑️ Jugador ${player + 1}</strong> descartó cartas
-        <br><small class="ms-4">😈 Por efecto del ladrón (más de 7 cartas)</small>
-    </div>`;
+    // Intentar obtener detalles de las cartas descartadas
+    let discardedCardsText = "cartas"; // Texto genérico
+    if (discardData.discarded && typeof discardData.discarded === 'object') {
+        let discardedItems = [];
+        // Asumimos que discardData.discarded es un objeto {resourceName: count}
+        for (let resource in discardData.discarded) {
+            if (discardData.discarded[resource] > 0) {
+                discardedItems.push(`${getResourceEmoji(resource)} ${discardData.discarded[resource]}`);
+            }
+        }
+        // O si es un array de nombres de cartas de desarrollo
+        if (Array.isArray(discardData.discarded)) {
+            discardData.discarded.forEach(cardName => {
+                discardedItems.push(getDevCardEmoji(cardName) || cardName);
+            });
+        }
+        if (discardedItems.length > 0) discardedCardsText = discardedItems.join(', ');
+    }
     
-    jQuery('#other_useful_info_text').append(html);
-    autoScrollLog('other_useful_info_text');
+    let reason = discardData.reason || "por efecto del ladrón (más de 7 cartas)";
+
+    const message = `Descartó ${discardedCardsText} (${reason}).`;
+    logEvent('turn_log_text', message, player, '🗑️');
 }
 
 // Función para logging de movimiento del ladrón
 function logThiefMovement(thiefData) {
     console.log('[DEBUG] logThiefMovement:', thiefData);
     
-    let player = thiefData.player !== undefined ? thiefData.player : getCurrentPlayer();
+    let player = thiefData.player !== undefined ? thiefData.player : getCurrentPlayer(); // Jugador que mueve al ladrón
     
-    let html = `<div class="log-entry thief-movement mb-2">
-        <i class="fas fa-user-ninja text-dark me-2"></i>
-        <strong>🥷 Jugador ${player + 1}</strong> movió el ladrón`;
+    let message = `Movió el ladrón`;
     
     if (thiefData.thief_terrain !== undefined) {
-        html += `<br><small class="ms-4">📍 Nuevo terreno: ${thiefData.thief_terrain}</small>`;
+        // Asumimos que thief_terrain es el ID o nombre del terreno
+        // Podríamos tener una función para obtener el emoji del terreno si existe getTerrainEmoji(terrainIdOrName)
+        message += ` al terreno ${thiefData.thief_terrain}`;
     }
     
     if (thiefData.robbed_player !== undefined && thiefData.robbed_player !== -1) {
-        html += `<br><small class="ms-4">💰 Robó una carta al Jugador ${thiefData.robbed_player + 1}</small>`;
+        // Usamos PLAYER_BASE_EMOJIS para el jugador robado
+        const robbedPlayerEmoji = PLAYER_BASE_EMOJIS[thiefData.robbed_player] || '❓';
+        message += `. Robó una carta al Jugador ${robbedPlayerEmoji}${thiefData.robbed_player + 1}`;
+        // Si se sabe qué carta se robó (ej. thiefData.stolen_resource):
+        if (thiefData.stolen_resource) {
+            message += ` (${getResourceEmoji(thiefData.stolen_resource)})`;
+        }
+    } else if (thiefData.robbed_player !== undefined && thiefData.robbed_player === -1){
+        message += ". No pudo robar a ningún jugador en esa casilla.";
+    } else {
+        message += ". No robó a ningún jugador.";
     }
     
-    html += '</div>';
-    
-    jQuery('#other_useful_info_text').append(html);
-    autoScrollLog('other_useful_info_text');
+    message += '.';
+    logEvent('turn_log_text', message, player, '🥷');
 }
 
 // Función para inicializar los controles de zoom y pantalla completa
@@ -3816,5 +4532,93 @@ function initZoomControls() {
                 document.exitFullscreen();
             }
         });
+    }
+}
+
+// Definición de colores para los jugadores (se pueden ajustar según el número de jugadores)
+const PLAYER_COLORS = [
+    '#dc3545', // Rojo (Bootstrap danger)
+    '#0d6efd', // Azul (Bootstrap primary)
+    '#198754', // Verde (Bootstrap success)
+    '#ffc107', // Amarillo (Bootstrap warning)
+    '#6f42c1', // Púrpura (Bootstrap purple)
+    '#fd7e14'  // Naranja (Bootstrap orange)
+];
+
+// Emojis base para jugadores (se pueden personalizar más si es necesario)
+const PLAYER_BASE_EMOJIS = ['J1', 'J2', 'J3', 'J4']; // Jugador 1, 2, 3, 4+
+
+/**
+ * Añade un mensaje a un contenedor de log especificado, con formato opcional por jugador.
+ * También realiza autoscroll en el contenedor.
+ * @param {string} containerId El ID del elemento div que actúa como log.
+ * @param {string} message El mensaje a registrar.
+ * @param {number} [playerIndex=-1] El índice del jugador (0-3 o más) para aplicar color y emoji. -1 para no aplicar.
+ * @param {string} [eventEmoji=""] Un emoji específico para el evento.
+ */
+function logEvent(containerId, message, playerIndex = -1, eventEmoji = "") {
+    // Encolar el evento
+    logQueue.push({ containerId, message, playerIndex, eventEmoji });
+
+    // Si la cola no se está procesando, iniciarla
+    if (!isProcessingLogQueue) {
+        processLogQueue();
+    }
+}
+
+// Nueva función para procesar la cola de logs
+function processLogQueue() {
+    if (logQueue.length === 0) {
+        isProcessingLogQueue = false;
+        return;
+    }
+
+    isProcessingLogQueue = true;
+    const { containerId, message, playerIndex, eventEmoji } = logQueue.shift();
+
+    const logContainer = document.getElementById(containerId);
+    if (!logContainer) {
+        console.error(`[LOG_QUEUE] Contenedor de log con ID '${containerId}' no encontrado.`);
+        // Continuar con el siguiente si este falla
+        if (logQueue.length > 0) {
+            setTimeout(processLogQueue, LOG_EVENT_DELAY);
+        } else {
+            isProcessingLogQueue = false;
+        }
+        return;
+    }
+
+    const logEntry = document.createElement('p');
+    logEntry.style.marginBottom = '5px';
+    logEntry.style.wordBreak = 'break-word';
+    logEntry.style.opacity = '0'; // Empezar invisible para fade-in
+    logEntry.style.transition = 'opacity 0.3s ease-in-out';
+
+    let finalMessage = '';
+    if (playerIndex >= 0 && playerIndex < PLAYER_COLORS.length) {
+        logEntry.style.color = PLAYER_COLORS[playerIndex];
+        const playerEmoji = PLAYER_BASE_EMOJIS[playerIndex] || '❓';
+        finalMessage += `${playerEmoji} `;
+    }
+
+    if (eventEmoji) {
+        finalMessage += `${eventEmoji} `;
+    }
+
+    finalMessage += message;
+    logEntry.innerHTML = finalMessage;
+
+    logContainer.appendChild(logEntry);
+    
+    // Forzar reflujo para la animación de opacidad
+    void logEntry.offsetWidth;
+    logEntry.style.opacity = '1';
+
+    autoScrollLog(containerId);
+
+    if (logQueue.length > 0) {
+        setTimeout(processLogQueue, LOG_EVENT_DELAY);
+    } else {
+        isProcessingLogQueue = false;
     }
 }
