@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
@@ -41,65 +41,7 @@
                         <div class="gamefield" id="gamefield">
                             <div class="nodes">
                                 <!-- Nodos actuales con puertos -->
-                                <div class="node" id="node_0" style="top: 97px; left: 184px;"></div>
-                                <div class="node" id="node_1" style="top: 75px; left: 232px;"></div>
-                                <div class="node" id="node_2" style="top: 97px; left: 282px;"></div>
-                                <div class="node" id="node_3" style="top: 75px; left: 330px;"></div>
-                                <div class="node" id="node_4" style="top: 97px; left: 379px;"></div>
-                                <div class="node" id="node_5" style="top: 75px; left: 428px;"></div>
-                                <div class="node" id="node_6" style="top: 97px; left: 477px;"></div>
-
-                                <div class="node" id="node_7" style="top: 184px; left: 138px;"></div>
-                                <div class="node" id="node_8" style="top: 157px; left: 184px;"></div>
-                                <div class="node" id="node_9" style="top: 184px; left: 234px;"></div>
-                                <div class="node" id="node_10" style="top: 157px; left: 282px;"></div>
-                                <div class="node" id="node_11" style="top: 184px; left: 334px;"></div>
-                                <div class="node" id="node_12" style="top: 157px; left: 379px;"></div>
-                                <div class="node" id="node_13" style="top: 184px; left: 432px;"></div>
-                                <div class="node" id="node_14" style="top: 157px; left: 477px;"></div>
-                                <div class="node" id="node_15" style="top: 184px; left: 530px;"></div>
-
-                                <div class="node" id="node_16" style="top: 270px; left: 86px;"></div>
-                                <div class="node" id="node_17" style="top: 247px; left: 138px;"></div>
-                                <div class="node" id="node_18" style="top: 270px; left: 184px;"></div>
-                                <div class="node" id="node_19" style="top: 247px; left: 232px;"></div>
-                                <div class="node" id="node_20" style="top: 270px; left: 282px;"></div>
-                                <div class="node" id="node_21" style="top: 247px; left: 330px;"></div>
-                                <div class="node" id="node_22" style="top: 270px; left: 379px;"></div>
-                                <div class="node" id="node_23" style="top: 247px; left: 428px;"></div>
-                                <div class="node" id="node_24" style="top: 270px; left: 477px;"></div>
-                                <div class="node" id="node_25" style="top: 247px; left: 530px;"></div>
-                                <div class="node" id="node_26" style="top: 270px; left: 578px;"></div>
-
-                                <div class="node" id="node_27" style="top: 330px; left: 86px;"></div>
-                                <div class="node" id="node_28" style="top: 355px; left: 138px;"></div>
-                                <div class="node" id="node_29" style="top: 330px; left: 184px;"></div>
-                                <div class="node" id="node_30" style="top: 355px; left: 234px;"></div>
-                                <div class="node" id="node_31" style="top: 330px; left: 282px;"></div>
-                                <div class="node" id="node_32" style="top: 355px; left: 334px;"></div>
-                                <div class="node" id="node_33" style="top: 330px; left: 379px;"></div>
-                                <div class="node" id="node_34" style="top: 355px; left: 432px;"></div>
-                                <div class="node" id="node_35" style="top: 330px; left: 477px;"></div>
-                                <div class="node" id="node_36" style="top: 355px; left: 530px;"></div>
-                                <div class="node" id="node_37" style="top: 330px; left: 578px;"></div>
-
-                                <div class="node" id="node_38" style="top: 419px; left: 138px;"></div>
-                                <div class="node" id="node_39" style="top: 442px; left: 184px;"></div>
-                                <div class="node" id="node_40" style="top: 419px; left: 232px;"></div>
-                                <div class="node" id="node_41" style="top: 442px; left: 282px;"></div>
-                                <div class="node" id="node_42" style="top: 419px; left: 330px;"></div>
-                                <div class="node" id="node_43" style="top: 442px; left: 379px;"></div>
-                                <div class="node" id="node_44" style="top: 419px; left: 428px;"></div>
-                                <div class="node" id="node_45" style="top: 442px; left: 477px;"></div>
-                                <div class="node" id="node_46" style="top: 419px; left: 530px;"></div>
-
-                                <div class="node" id="node_47" style="top: 502px; left: 184px;"></div>
-                                <div class="node" id="node_48" style="top: 529px; left: 234px;"></div>
-                                <div class="node" id="node_49" style="top: 502px; left: 282px;"></div>
-                                <div class="node" id="node_50" style="top: 529px; left: 334px;"></div>
-                                <div class="node" id="node_51" style="top: 502px; left: 379px;"></div>
-                                <div class="node" id="node_52" style="top: 529px; left: 432px;"></div>
-                                <div class="node" id="node_53" style="top: 502px; left: 477px;"></div>
+                                <!-- LOS DIVS DE NODOS SERÁN ELIMINADOS DE AQUÍ Y GENERADOS POR JS -->
                             </div>
 
                             <div class="roads">
@@ -295,43 +237,63 @@
                                 <div class="terrain bottom_terrain"></div>
                             </div>
                         </div>
+                        <!-- Controles de zoom y pantalla completa -->
+                        <div class="map-controls">
+                            <button id="zoom-in" title="Acercar"><i class="fas fa-search-plus"></i></button>
+                            <button id="zoom-out" title="Alejar"><i class="fas fa-search-minus"></i></button>
+                            <button id="fullscreen" title="Pantalla completa"><i class="fas fa-expand"></i></button>
+                        </div>
                     </div>
                     
                     <!-- Control panel debajo del tablero -->
                     <div class="col-12 mt-3">
-                        <div class="game-controls-panel d-flex justify-content-between align-items-center">
-                            <div class="game-info d-flex">
-                                <div id="diceroll" class="dice-display animate__animated me-3">
-                                    <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
+                        <div class="game-controls-panel d-flex flex-column">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="game-info d-flex">
+                                    <!--<div id="diceroll" class="dice-display animate__animated me-3">
+                                        <i class="fas fa-dice me-2"></i>Diceroll: <span class="dice-value">0</span>
+                                    </div>-->
+                                    <div class="rounds card-stats me-3">
+                                        <i class="fas fa-hourglass-half me-2"></i>Ronda: 
+                                        <span id="contador_rondas_display">1</span> / <span id="rondas_maximas"></span>
+                                        <input type="hidden" id="contador_rondas" value="1">
+                                    </div>
+                                    <div class="turns card-stats me-3">
+                                        <i class="fas fa-users me-2"></i>Turno: 
+                                        <span id="contador_turnos_display">1</span>
+                                        <input type="hidden" id="contador_turnos" value="1">
+                                    </div>
+                                    <div class="phases card-stats">
+                                        <i class="fas fa-tasks me-2"></i>Fase: 
+                                        <span id="contador_fases_display">1</span>
+                                        <input type="hidden" id="contador_fases" value="1">
+                                    </div>
                                 </div>
-                                <div class="rounds card-stats">
-                                    <i class="fas fa-hourglass-half me-2"></i>Ronda: 
-                                    <span id="actual_round"></span>
-                                    /
-                                    <span id="rondas_maximas"></span>
-                                </div>
-                            </div>
-                            
-                            <div id="controles" class="game-controls">
-                                <div class="btn-group">
-                                    <button id="ronda_previa_btn" class="btn btn-sm">
-                                        <i class="fas fa-step-backward"></i> Ronda
-                                    </button>
-                                    <button id="turno_previo_btn" class="btn btn-sm">
-                                        <i class="fas fa-backward"></i> Turno
-                                    </button>
-                                    <button id="fase_previa_btn" class="btn btn-sm">
-                                        <i class="fas fa-caret-left"></i> Fase
-                                    </button>
-                                    <button id="fase_siguiente_btn" class="btn btn-sm">
-                                        Fase <i class="fas fa-caret-right"></i>
-                                    </button>
-                                    <button id="turno_siguiente_btn" class="btn btn-sm">
-                                        Turno <i class="fas fa-forward"></i>
-                                    </button>
-                                    <button id="ronda_siguiente_btn" class="btn btn-sm">
-                                        Ronda <i class="fas fa-step-forward"></i>
-                                    </button>
+                                
+                                <div id="controles" class="game-controls">
+                                    <div class="btn-group">
+                                        <button id="ronda_previa_btn" class="btn btn-sm" title="Ronda Anterior">
+                                            <i class="fas fa-step-backward"></i>
+                                        </button>
+                                        <button id="turno_previo_btn" class="btn btn-sm" title="Turno Anterior">
+                                            <i class="fas fa-backward"></i>
+                                        </button>
+                                        <button id="fase_previa_btn" class="btn btn-sm" title="Fase Anterior">
+                                            <i class="fas fa-caret-left"></i>
+                                        </button>
+                                        <button id="fase_siguiente_btn" class="btn btn-sm" title="Fase Siguiente">
+                                            <i class="fas fa-caret-right"></i>
+                                        </button>
+                                        <button id="turno_siguiente_btn" class="btn btn-sm" title="Turno Siguiente">
+                                            <i class="fas fa-forward"></i>
+                                        </button>
+                                        <button id="ronda_siguiente_btn" class="btn btn-sm" title="Ronda Siguiente">
+                                            <i class="fas fa-step-forward"></i>
+                                        </button>
+                                        <button id="play_btn" class="btn btn-sm btn-success ms-2" title="Play/Pausa">
+                                            <i class="fas fa-play"></i> <span id="play-text" style="display: none;">Play</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -364,14 +326,24 @@
                             <div class="card-header bg-light">
                                 <h5 class="mb-0">Log del Juego</h5>
                             </div>
-                            <div class="card-body">
-                                <div id="commerce_log">
-                                    <span id="commerce_log_title">Comercio</span>
-                                    <div id="commerce_log_text"></div>
+                            <div class="card-body" id="game-log-body">
+                                <div id="turn_log" class="mb-3">
+                                    <h6 class="card-subtitle mb-2 text-muted">Turno a Turno</h6>
+                                    <div id="turn_log_text" style="height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 10px;">
+                                        <!-- Aquí irán los logs del turno del jugador -->
+                                    </div>
                                 </div>
-                                <div id="other_useful_info" class="mt-3">
-                                    <span id="other_useful_info_title">Información Adicional</span>
-                                    <div id="other_useful_info_text"></div>
+                                <div id="commerce_log" class="mb-3">
+                                    <h6 class="card-subtitle mb-2 text-muted" id="commerce_log_title">Comercio</h6>
+                                    <div id="commerce_log_text" style="height: 100px; overflow-y: auto; border: 1px solid #eee; padding: 10px;">
+                                        <!-- Aquí irán los logs de comercio -->
+                                    </div>
+                                </div>
+                                <div id="other_useful_info">
+                                    <h6 class="card-subtitle mb-2 text-muted" id="other_useful_info_title">Información Adicional</h6>
+                                    <div id="other_useful_info_text" style="height: 100px; overflow-y: auto; border: 1px solid #eee; padding: 10px;">
+                                        <!-- Aquí irá la información adicional -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -382,16 +354,33 @@
         
         <!-- Modals y elementos flotantes -->
         <div id="victory-modal" class="modal fade" tabindex="-1" role="dialog">
-            <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">¡Victoria!</h5>
+                        <h5 class="modal-title">¡VICTORIA!</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body text-center">
+                        <!-- Trofeo 3D -->
+                        <div class="trophy-container">
+                            <div class="trophy">
+                                <span class="trophy-emoji">🏆</span>
+                            </div>
+                        </div>
+                        
                         <h2 id="winner-name" class="mb-4 animate__animated animate__bounceIn"></h2>
+                        
+                        <!-- Botón para compartir -->
+                        <button class="share-victory-btn">
+                            <i class="fas fa-share-alt"></i> Compartir Victoria
+                        </button>
+                        
+                        <!-- Contenedor para el confeti -->
                         <div class="victory-animation-container">
                             <div id="confetti-canvas"></div>
+                            
+                            <!-- Elementos flotantes de Catán (se añadirán dinámicamente) -->
+                            <div class="catan-elements-container"></div>
                         </div>
                     </div>
                 </div>
@@ -435,10 +424,36 @@
         <!-- Carga de archivo -->
         <div class="position-fixed bottom-0 end-0 p-3">
             <div class="btn-group">
-                <button id="load_game" class="btn btn-primary">
+                <button id="load_game" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                     <i class="fas fa-file-upload me-2"></i>Cargar partida
                 </button>
-                <input type="file" id="get_file" style="display: none;" />
+            </div>
+        </div>
+        
+        <!-- Modal para carga de archivos -->
+        <div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="uploadModalLabel">Cargar Partida</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="drop-area" class="p-4 border border-2 border-dashed rounded text-center">
+                            <i class="fas fa-upload upload-icon"></i>
+                            <p>Arrastra y suelta un archivo JSON aquí</p>
+                            <p class="small text-muted">ó</p>
+                            <div class="d-flex justify-content-center">
+                                <label for="file-selector" class="btn btn-sm btn-outline-primary">Seleccionar archivo</label>
+                                <input type="file" id="file-selector" accept=".json" style="display: none">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" id="load-selected-file" disabled>Cargar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -449,7 +464,6 @@
         // Script para inicializar efectos visuales
         document.addEventListener('DOMContentLoaded', function() {
             init_events();
-            initAnimations();
             
             // Inicializar tooltips de Bootstrap
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

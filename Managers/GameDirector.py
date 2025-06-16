@@ -101,6 +101,11 @@ class GameDirector:
         vp = {}
         for i in range(4):
             vp['J' + str(i)] = str(self.game_manager.get_players()[i]['victory_points'])
+            # Añadir las cartas de desarrollo del jugador
+            player_dev_cards = []
+            for card in self.game_manager.get_players()[i]['development_cards'].hand:
+                player_dev_cards.append(card.__to_object__())
+            end_turn_object['development_cards_P' + str(i)] = player_dev_cards
 
         for player in self.game_manager.get_players():
             if player['victory_points'] >= 10:

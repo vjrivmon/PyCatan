@@ -1,10 +1,10 @@
 /* Añadimos fuentes modernas */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Montserrat:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@400;500;700&family=Cinzel:wght@400;700&display=swap');
 
 body {
-    font-family: 'Montserrat', sans-serif;
-    background-color: #f8f9fa;
-    color: #343a40;
+    font-family: 'Roboto', 'Montserrat', sans-serif;
+    background-color: #f1f3f4; /* Gris claro de Google */
+    color: #202124; /* Gris oscuro de Google para texto */
     margin: 0;
     padding: 0;
     cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28"><path d="M8 4L20 14L14 15L16 22L13 24L11 17L6 20Z" fill="%23d21404" stroke="%23ffffff" stroke-width="2" stroke-linejoin="round"/></svg>') 8 8, auto;
@@ -13,13 +13,13 @@ body {
 h1,
 h3 {
     display: inline-block;
-    font-family: 'Cinzel', serif;
-    color: #2c3e50;
+    font-family: 'Roboto', 'Montserrat', serif; /* Usar Roboto como fuente principal */
+    color: #1a73e8; /* Azul de Google */
 }
 
 h1 {
     font-size: 2rem;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    text-shadow: none; /* Google no usa mucho text-shadow */
 }
 
 h3 {
@@ -37,16 +37,16 @@ h3 {
 /* Estilo de tarjetas para componentes del juego */
 .card {
     background-color: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px; /* Bordes más al estilo Google */
+    box-shadow: 0 1px 3px rgba(60,64,67,0.15), 0 1px 2px rgba(60,64,67,0.3); /* Sombra sutil de Google */
     margin-bottom: 1rem;
     overflow: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease-in-out;
 }
 
 .card:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-    transform: translateY(-5px);
+    box-shadow: 0 4px 6px rgba(60,64,67,0.15), 0 2px 4px rgba(60,64,67,0.3); /* Sombra más pronunciada al pasar el ratón */
+    transform: translateY(-2px);
 }
 
 /*********************************/
@@ -57,35 +57,38 @@ h3 {
     height: 7vh;
     background: white;
     border: none;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(60,64,67,0.15), 0 1px 2px rgba(60,64,67,0.3);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
 }
 
 #controles button {
-    background-color: #3498db;
+    background-color: #1a73e8; /* Azul de Google */
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px; /* Bordes redondeados más pequeños */
     padding: 8px 15px;
     margin: 0 5px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s ease-in-out;
     font-weight: 500;
+    text-transform: uppercase; /* Estilo de botones de Google */
 }
 
 #controles button:hover {
-    background-color: #2980b9;
-    transform: scale(1.05);
+    background-color: #1765cc; /* Azul más oscuro al pasar el ratón */
+    box-shadow: 0 1px 2px 0 rgba(26,115,232,0.451), 0 1px 3px 1px rgba(26,115,232,0.302);
+    transform: scale(1.02);
 }
 
 #fase_previa_btn[disabled] {
-    background-color: #dddddd;
-    color: #888888;
-    cursor: not-allowed;
+  background-color: #f1f3f4; /* Gris claro para deshabilitado */
+  color: #9aa0a6; /* Gris medio para texto deshabilitado */
+  cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
 #controles div {
@@ -98,56 +101,59 @@ h3 {
 
 .log {
     padding: 0 1em 0 1em;
-    border-left: 3px solid #3498db;
+    border-left: 3px solid #1a73e8; /* Azul de Google */
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(60,64,67,0.15), 0 1px 2px rgba(60,64,67,0.3);
 }
 
 #other_useful_info {
-    border-top: #3498db solid 1px;
+    border-top: #dadce0 solid 1px; /* Gris de Google para separadores */
     margin-top: 10px;
     padding-top: 10px;
 }
 
 #commerce_log_text,
 #other_useful_info_text {
-    background: white;
-    font-family: 'Courier New', monospace;
-    overflow-y: scroll;
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #e0e0e0;
-    height: 200px;
+    max-height: 300px;
+    min-height: 150px;
+    overflow-y: auto;
+    padding: 15px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background-color: #ffffff;
+    font-size: 14px;
+    line-height: 1.4;
+    scrollbar-width: thin;
+    scrollbar-color: #6c757d #f8f9fa;
 }
 
 #commerce_log_title,
 #other_useful_info_title {
-    font-family: 'Cinzel', serif;
-    text-decoration: none;
     font-weight: bold;
-    color: #2c3e50;
-    margin-bottom: 8px;
+    font-size: 16px;
+    color: #495057;
+    margin-bottom: 10px;
     display: block;
-    border-bottom: 2px solid #3498db;
-    padding-bottom: 5px;
+    padding: 8px 0;
+    border-bottom: 2px solid #e9ecef;
 }
 
-/* Mejoramos los colores de los jugadores */
-.commerce_P1 {
-    color: #e74c3c;
+/* Mejoramos los colores de los jugadores - Usando paleta de Google */
+.commerce_P1 { /* Rojo de Google */
+    color: #ea4335;
     font-weight: bold;
 }
-.commerce_P2 {
-    color: #3498db;
+.commerce_P2 { /* Azul de Google */
+    color: #1a73e8; /* Unificado al azul principal */
     font-weight: bold;
 }
-.commerce_P3 {
-    color: #2ecc71;
+.commerce_P3 { /* Verde de Google */
+    color: #34a853;
     font-weight: bold;
 }
-.commerce_P4 {
-    color: #f39c12;
+.commerce_P4 { /* Amarillo de Google */
+    color: #fbbc05;
     font-weight: bold;
 }
 
@@ -176,30 +182,215 @@ h3 {
 /*         Player profiles       */
 /*********************************/
 
-.player {
-    border: none;
+/* Ajuste para la columna que contiene cada tarjeta de jugador */
+.player-profile-column {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.player-card {
+    background-color: #ffffff; /* Fondo blanco para la tarjeta */
     border-radius: 8px;
-    background-color: white;
-    margin: 10px 5px;
-    padding: 10px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); /* Sombra estilo Google */
+    margin-bottom: 1rem; /* Ya estaba, pero mantenemos por si acaso */
+    transition: all 0.2s ease-in-out;
+    overflow: hidden; /* Para que el border-top no descuadre */
+}
+
+.player-card:hover {
+    box-shadow: 0 2px 4px rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+    transform: translateY(-3px);
+}
+
+.player-header {
+    padding: 10px 15px;
+    border-bottom: 1px solid #dadce0; /* Separador gris de Google */
+    display: flex;
+    flex-direction: column;
+}
+
+.player-name-vp {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500; /* Peso medio para el nombre */
+}
+
+.player-title {
+    font-size: 1.1rem;
+}
+
+.player-vp {
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.player-awards {
+    display: flex;
+    gap: 10px; /* Espacio entre badges */
+    font-size: 0.9rem;
+}
+
+.largest-army-badge,
+.longest-road-badge {
+    padding: 3px 8px;
+    border-radius: 12px; /* Badges redondeados */
+    font-weight: 500;
+    background-color: rgba(0,0,0,0.05); /* Fondo sutil para el badge */
+    color: inherit; /* Hereda el color del texto del header */
+}
+
+.largest-army-badge i,
+.longest-road-badge i {
+    margin-right: 4px;
+}
+
+.player-body {
+    padding: 15px;
+}
+
+.player-resources h5,
+.player-dev-cards h5 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #5f6368; /* Gris oscuro de Google para subtítulos */
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.resources-grid,
+.dev-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); /* Columnas flexibles */
+    gap: 10px; /* Espacio entre items */
+    text-align: center;
+}
+
+.resource-item,
+.dev-card-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 5px;
+    background-color: #f1f3f4; /* Fondo gris claro de Google */
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.resource-item:hover,
+.dev-card-item:hover {
+    background-color: #e8eaed; /* Gris un poco más oscuro al pasar el ratón */
+}
+
+.resource-item i,
+.dev-card-item i {
+    font-size: 1.6rem; /* Iconos más grandes */
+    margin-bottom: 5px;
+    color: #1a73e8; /* Azul de Google para iconos, se puede personalizar por recurso */
+}
+
+/* Colores específicos para iconos de recursos (opcional) */
+.resource-item.cereal i { color: #fbbc05; } /* Amarillo */
+.resource-item.clay i { color: #ff8a65; } /* Naranja */
+.resource-item.wool i { color: #a5d6a7; } /* Verde claro */
+.resource-item.wood i { color: #34a853; } /* Verde */
+.resource-item.mineral i { color: #9aa0a6; } /* Gris */
+
+/* Colores específicos para iconos de cartas de desarrollo (opcional) */
+.dev-card-item.knight i { color: #5f6368; } /* Gris oscuro */
+.dev-card-item.victory_point i { color: #fbbc05; } /* Amarillo */
+.dev-card-item.road_building i { color: #66bb6a; } /* Verde medio */
+.dev-card-item.year_of_plenty i { color: #ab47bc; } /* Púrpura */
+.dev-card-item.monopoly i { color: #1a73e8; } /* Unificado al azul principal */
+
+
+.resource-quantity,
+.dev-card-quantity {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #202124; /* Texto oscuro de Google */
+}
+
+/* Animación para actualización de números en paneles de jugadores */
+.resource-quantity, .dev-card-quantity {
+    transition: color 0.75s ease;
+}
+
+.quantity-updated {
+    color: #e74c3c !important;
+    transition: color 0.75s ease;
+}
+
+.quantity-updated.fade-to-normal {
+    color: #2c3e50 !important;
+}
+
+/* Animación específica para incrementos y decrementos */
+.quantity-increase {
+    color: #27ae60 !important;
+    transform: scale(1.1);
+    transition: all 0.75s ease;
+}
+
+.quantity-decrease {
+    color: #e74c3c !important;
+    transform: scale(0.9);
+    transition: all 0.75s ease;
+}
+
+.quantity-neutral {
+    color: #2c3e50 !important;
+    transform: scale(1);
+    transition: all 0.75s ease;
+}
+
+/* Eliminar o ajustar estilos antiguos de .player y .hand si ya no aplican */
+.player {
+    /* Ya no se usa esta estructura principal, ahora es .player-card */
+    /* border: 1px solid #dadce0; */
+    /* border-radius: 8px; */
+    /* background-color: white; */
+    /* margin: 10px 5px; */
+    /* padding: 10px; */
+    /* box-shadow: 0 1px 3px rgba(60,64,67,0.15), 0 1px 2px rgba(60,64,67,0.3); */
+    /* transition: all 0.2s ease-in-out; */
 }
 
 .player:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    transform: translateY(-5px);
+    /* box-shadow: 0 4px 6px rgba(60,64,67,0.15), 0 2px 4px rgba(60,64,67,0.3); */
+    /* transform: translateY(-2px); */
 }
 
 .playerprofile {
-    display: flex;
-    align-items: center;
-    padding: 10px 0;
+    /* Estilos redefinidos en .player-header */
+    /* display: flex; */
+    /* align-items: center; */
+    /* padding: 10px 0; */
 }
 
 .playerprofile img {
-    border-radius: 50%;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    /* No se usa img directamente ahora, sino FontAwesome */
+    /* border-radius: 50%; */
+    /* box-shadow: 0 2px 5px rgba(0,0,0,0.2); */
+}
+
+.hand {
+    /* Estructura de mano ahora dividida en .player-resources y .player-dev-cards */
+    /* background: #f8f9fa; */
+    /* padding-top: 0.5em; */
+    /* padding-bottom: 0.5em; */
+    /* border-radius: 8px; */
+    /* box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); */
+}
+
+.top_hand_row,
+.bottom_hand_row {
+    /* Ya no se usa esta estructura de filas */
+    /* align-items: flex-start; */
+    /* height: 50%; */
+    /* padding: 5px 0; */
 }
 
 .largest_army,
@@ -213,26 +404,6 @@ h3 {
     margin: 5px 0;
 }
 
-.hand {
-    background: white;
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
-    border-radius: 8px;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
-}
-
-.top_hand_row {
-    align-items: flex-start;
-    height: 50%;
-    padding: 5px 0;
-}
-
-.bottom_hand_row {
-    align-items: flex-end;
-    height: 50%;
-    padding: 5px 0;
-}
-
 .increment {
     width: 1rem;
     display: inline-block;
@@ -241,12 +412,12 @@ h3 {
 }
 
 .increased {
-    color: #e74c3c;
+    color: #ea4335; /* Rojo de Google */
     animation: pulse 1s;
 }
 
 .decreased {
-    color: #3498db;
+    color: #1a73e8; /* Unificado al azul principal */
     animation: shake 0.5s;
 }
 
@@ -314,7 +485,7 @@ h3 {
     width: 100px;
     height: 100px;
     background: white;
-    border: 2px solid #3498db;
+    border: 2px solid #1a73e8; /* Unificado al azul principal */
     border-radius: 10px;
     display: flex;
     justify-content: center;
@@ -379,7 +550,7 @@ h3 {
 .trade-animation:before {
     content: "↔";
     font-size: 24px;
-    color: #3498db;
+    color: #1a73e8; /* Unificado al azul principal */
 }
 
 /* Estilos para modal de victoria */
@@ -418,13 +589,14 @@ h3 {
 
 /* Estilos para el botón de cargar partida */
 .btn-primary {
-    background-color: #3498db;
-    border-color: #2980b9;
+    background-color: #1a73e8; /* Azul principal de Google */
+    border-color: #1765cc; /* Azul más oscuro para borde */
     transition: all 0.3s ease;
 }
 
 .btn-primary:hover {
-    background-color: #2980b9;
+    background-color: #1765cc; /* Azul más oscuro para hover */
+    border-color: #145ab3; /* Un poco más oscuro para el borde en hover */
     transform: translateY(-3px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
@@ -533,7 +705,7 @@ h3 {
 /* Personalizar colores de los dados */
 .dice-1 .face {
     background: #f5f5f5;
-    border-color: #3498db;
+    border-color: #1a73e8; /* Unificado al azul principal */
 }
 
 .dice-2 .face {
@@ -648,7 +820,7 @@ button, .btn, a {
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
     }
     100% {
-        box-shadow: 0 8px 30px rgba(52, 152, 219, 0.8);
+        box-shadow: 0 8px 30px rgba(26, 115, 232, 0.7); /* Azul #1a73e8 con opacidad */
     }
 }
 
@@ -684,5 +856,576 @@ button, .btn, a {
     }
     100% {
         filter: brightness(1.5);
+    }
+}
+
+/* Estilos para el botón de Play/Stop */
+#play_btn {
+    background-color: #27ae60;
+    border-color: #27ae60;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+#play_btn:hover {
+    background-color: #219653;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+#play_btn.playing {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+}
+
+#play_btn.playing:hover {
+    background-color: #c0392b;
+}
+
+/* Estilos para el área de arrastrar y soltar */
+#drop-area {
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+    border-color: #dee2e6 !important;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#drop-area.highlight {
+    background-color: rgba(39, 174, 96, 0.1);
+    border-color: #27ae60 !important;
+}
+
+#drop-area.highlight p {
+    color: #27ae60;
+}
+
+#selected-file {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* Animación para la carga de archivos */
+@keyframes pulse-upload {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Título Principal "Catán Visualizador" */
+header h1 {
+    font-family: 'Cinzel', serif;
+    color: #c89B3C; /* Ocre dorado */
+    font-size: 2.8rem; /* Un poco más grande */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+    padding-bottom: 5px;
+    border-bottom: 2px solid #8B4513; /* Marrón silla de montar, como madera */
+}
+
+/* Títulos de secciones "Jugadores" y "Log del Juego" */
+.col-5 .card .card-header h5 { /* Selector para los h5 dentro de los card-header en la columna derecha */
+    font-family: 'Cinzel', serif;
+    color: #8B4513; /* Marrón oscuro, como tierra o madera */
+    font-size: 1.6rem;
+    text-align: center;
+    width: 100%;
+    text-shadow: 1px 1px 1px rgba(200,155,60,0.3);
+}
+
+#load_game {
+    padding: 10px 20px; /* Más grande */
+    font-size: 1rem;
+    border-radius: 25px; /* Más redondeado */
+    background-color: #1a73e8; /* Azul principal de Google */
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+}
+
+#load_game:hover {
+    background-color: #1765cc; /* Azul más oscuro */
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+#load_game:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+#load_game i {
+    margin-right: 8px;
+}
+
+
+/* Estilos para el Modal de Carga de Partida */
+#uploadModal .modal-content {
+    border-radius: 12px; /* Bordes redondeados para el modal */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    border: none;
+}
+
+#uploadModal .modal-header {
+    background-color: #f1f3f4; /* Gris claro de Google */
+    border-bottom: 1px solid #dadce0; /* Separador gris */
+    padding: 1rem 1.5rem;
+}
+
+#uploadModalLabel {
+    font-family: 'Cinzel', serif; /* Fuente Catán */
+    color: #8B4513; /* Marrón oscuro Catán */
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+#uploadModal .modal-body {
+    padding: 1.5rem;
+}
+
+#drop-area {
+    border: 2px dashed #adb5bd; /* Borde discontinuo más sutil */
+    border-radius: 8px;
+    padding: 2.5rem 1.5rem; /* Más padding interno */
+    background-color: #f8f9fa; /* Fondo ligeramente gris */
+    transition: all 0.2s ease-in-out;
+    text-align: center;
+    position: relative; /* Para iconos absolutos si se necesitan */
+}
+
+#drop-area.highlight {
+    border-color: #1a73e8; /* Azul de Google */
+    background-color: #e8f0fe; /* Azul muy claro de Google */
+    box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+}
+
+#drop-area p {
+    margin-bottom: 0.75rem;
+    color: #5f6368; /* Gris oscuro para texto */
+    font-size: 1rem;
+}
+#drop-area p.small {
+    font-size: 0.85rem;
+    color: #9aa0a6; /* Gris más claro */
+}
+
+/* Icono para el drop-area (necesitaría añadirse al HTML también) */
+/* Si no se añade al HTML, este estilo no hará nada por sí solo */
+#drop-area .upload-icon {
+    font-size: 3rem;
+    color: #1a73e8;
+    margin-bottom: 1rem;
+    display: block; /* Para que el margin-bottom funcione bien */
+}
+
+
+#file-selector-label { /* Asumiendo que el label tiene este ID o una clase similar */
+    background-color: #1a73e8;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 20px; /* Botón redondeado */
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: inline-block; /* Para que el padding y margin funcionen */
+    font-weight: 500;
+}
+
+#file-selector-label:hover {
+    background-color: #1765cc;
+}
+
+#selected-file {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #202124; /* Texto oscuro */
+    font-weight: 500;
+    background-color: #e8f0fe; /* Fondo azul claro para el archivo seleccionado */
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #d1e3ff; /* Borde azul más claro */
+    display: inline-block; /* Para que no ocupe todo el ancho si el nombre es corto */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#selected-file .fa-file-code { /* Icono del archivo seleccionado */
+    color: #1a73e8; /* Azul de Google */
+    margin-right: 8px;
+}
+
+#uploadModal .modal-footer {
+    border-top: 1px solid #dadce0; /* Separador gris */
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa; /* Fondo ligeramente gris para el footer */
+}
+
+#uploadModal .modal-footer .btn-secondary {
+    background-color: #f1f3f4; /* Gris claro de Google */
+    color: #5f6368; /* Texto gris oscuro */
+    border: 1px solid #dadce0; /* Borde gris */
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-weight: 500;
+}
+#uploadModal .modal-footer .btn-secondary:hover {
+    background-color: #e8eaed;
+    border-color: #ced4da;
+}
+
+#uploadModal .modal-footer .btn-primary {
+    background-color: #1a73e8; /* Azul de Google */
+    border-color: #1a73e8;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-weight: 500;
+}
+
+#uploadModal .modal-footer .btn-primary:hover {
+    background-color: #1765cc;
+    border-color: #1765cc;
+}
+
+#uploadModal .modal-footer .btn-primary:disabled {
+    background-color: #e8eaed; /* Gris más claro para deshabilitado */
+    border-color: #e8eaed;
+    color: #bdc1c6; /* Texto gris muy claro */
+}
+
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+/* Estilos para logs mejorados */
+.log-entry {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    border-left: 4px solid transparent;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.log-entry:hover {
+    background-color: #e9ecef;
+    transform: translateX(2px);
+}
+
+/* Tipos específicos de log */
+.log-entry.trade-bank {
+    border-left-color: #28a745;
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.log-entry.trade-players {
+    border-left-color: #17a2b8;
+    background-color: rgba(23, 162, 184, 0.1);
+}
+
+.log-entry.buy-card {
+    border-left-color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.1);
+}
+
+.log-entry.construction {
+    border-left-color: #fd7e14;
+    background-color: rgba(253, 126, 20, 0.1);
+}
+
+.log-entry.dice-roll {
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.log-entry.start-turn {
+    border-left-color: #6610f2;
+    background-color: rgba(102, 16, 242, 0.1);
+}
+
+.log-entry.end-turn {
+    border-left-color: #6c757d;
+    background-color: rgba(108, 117, 125, 0.1);
+}
+
+.log-entry.give-cards {
+    border-left-color: #20c997;
+    background-color: rgba(32, 201, 151, 0.1);
+}
+
+.log-entry.discard-cards {
+    border-left-color: #dc3545;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.log-entry.thief-move {
+    border-left-color: #6f42c1;
+    background-color: rgba(111, 66, 193, 0.1);
+}
+
+.log-entry.play-card {
+    border-left-color: #e83e8c;
+    background-color: rgba(232, 62, 140, 0.1);
+}
+
+.log-entry.victory {
+    border-left-color: #ffc107;
+    background-color: rgba(255, 193, 7, 0.2);
+    animation: victoryGlow 2s infinite alternate;
+}
+
+.log-entry.commerce-general {
+    border-left-color: #17a2b8;
+    background-color: rgba(23, 162, 184, 0.05);
+}
+
+.log-entry.build-phase {
+    border-left-color: #fd7e14;
+    background-color: rgba(253, 126, 20, 0.05);
+}
+
+/* Animación para logs de victoria */
+@keyframes victoryGlow {
+    0% { box-shadow: 0 0 5px rgba(255, 193, 7, 0.5); }
+    100% { box-shadow: 0 0 20px rgba(255, 193, 7, 0.8); }
+}
+
+/* Estilos para badges en logs */
+.log-entry .badge {
+    font-size: 12px;
+    font-weight: normal;
+}
+
+/* Animación suave para nuevos logs */
+.log-entry {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Estilos para el efecto de victoria */
+.winner-glow {
+    animation: winnerGlow 2s infinite alternate ease-in-out;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    transform: scale(1.05);
+    z-index: 100;
+    position: relative;
+}
+
+@keyframes winnerGlow {
+    0% {
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 40px rgba(255, 215, 0, 1);
+    }
+}
+
+/* Estilos para el modal de victoria */
+#victory-modal .modal-content {
+    background: linear-gradient(135deg, #f6f8f9 0%, #e5ebee 50%, #d7dee3 51%, #f5f7f9 100%);
+    border: none;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+#victory-modal .modal-header {
+    background-color: #ffd700;
+    color: #333;
+    text-align: center;
+    position: relative;
+    padding: 1.5rem;
+    justify-content: center;
+    border-bottom: 3px solid #e6c400;
+}
+
+#victory-modal .modal-title {
+    font-size: 2rem;
+    font-weight: 700;
+    width: 100%;
+    text-align: center;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    margin: 0;
+}
+
+#victory-modal .btn-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+}
+
+#victory-modal .modal-body {
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+}
+
+#winner-name {
+    color: #333;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 10;
+}
+
+.victory-animation-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+}
+
+#confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Elementos flotantes de Catán en la animación de victoria */
+.catan-element {
+    position: absolute;
+    opacity: 0;
+    animation: floatElement 4s infinite ease-in-out;
+    z-index: 2;
+}
+
+@keyframes floatElement {
+    0% {
+        transform: translateY(100%) scale(0.5);
+        opacity: 0;
+    }
+    20% {
+        opacity: 1;
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100%) scale(1.2) rotate(10deg);
+        opacity: 0;
+    }
+}
+
+/* Botón para compartir victoria */
+.share-victory-btn {
+    margin-top: 20px;
+    background: linear-gradient(to bottom, #4CAF50 0%, #388E3C 100%);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 10;
+}
+
+.share-victory-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    background: linear-gradient(to bottom, #43A047 0%, #2E7D32 100%);
+}
+
+.share-victory-btn i {
+    margin-right: 8px;
+}
+
+/* Estilos para trofeo 3D */
+.trophy-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 20px;
+    perspective: 1000px;
+    z-index: 10;
+}
+
+.trophy {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: rotateTrophy 10s infinite linear;
+}
+
+@keyframes rotateTrophy {
+    0% {
+        transform: rotateY(0);
+    }
+    100% {
+        transform: rotateY(360deg);
+    }
+}
+
+.trophy-emoji {
+    font-size: 6rem;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    animation: glowTrophy 2s infinite alternate ease-in-out;
+}
+
+@keyframes glowTrophy {
+    0% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        transform: scale(1);
+    }
+    100% {
+        text-shadow: 0 0 40px rgba(255, 215, 0, 1);
+        transform: scale(1.1);
+    }
+}
+
+/* Estilo para partículas flotantes */
+.floating-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9;
+    opacity: 0.8;
+    animation: floatParticle 6s infinite ease-in-out;
+}
+
+@keyframes floatParticle {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.8;
+    }
+    90% {
+        opacity: 0.8;
+    }
+    100% {
+        transform: translate(var(--end-x), var(--end-y)) rotate(var(--rotation));
+        opacity: 0;
     }
 }

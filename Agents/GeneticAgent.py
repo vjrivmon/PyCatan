@@ -14,6 +14,8 @@ class GeneticAgent(AgentInterface):
     mediante un algoritmo genético.
     """
 
+    chromosome_para_entrenamiento_actual = None
+
     def __init__(self, agent_id, chromosome=None):
         """
         Constructor del GeneticAgent.
@@ -21,132 +23,187 @@ class GeneticAgent(AgentInterface):
         :param agent_id: Identificador único del agente.
         :param chromosome: Una lista o diccionario representando los pesos genéticos
                            que guiarán las decisiones del agente. Si es None,
-                           se podrían inicializar pesos por defecto o aleatorios.
+                           se utilizará el cromosoma por defecto (los mejores pesos).
         """
         super().__init__(agent_id)
         self.id = agent_id # Aseguramos que el agent_id se almacena como self.id
-        if chromosome is None:
-            self.chromosome = self._initialize_default_chromosome()
-        else:
+        
+        if chromosome is not None:
             self.chromosome = chromosome
-        # self.agent_manager = agent_manager_ref # Eliminado: No podemos garantizar esta referencia
-        # Podríamos necesitar registrar el 'board_instance' más persistentemente
-        # self.board_instance = None
+            # print(f"GeneticAgent {self.id}: Usando cromosoma PROPORCIONADO explícitamente.")
+        elif hasattr(GeneticAgent, 'chromosome_para_entrenamiento_actual') and \
+             GeneticAgent.chromosome_para_entrenamiento_actual is not None:
+            self.chromosome = GeneticAgent.chromosome_para_entrenamiento_actual
+            # print(f"GeneticAgent {self.id}: Usando cromosoma DE ENTRENAMIENTO.")
+        else:
+            # print(f"GeneticAgent {self.id}: Usando cromosoma POR DEFECTO (mejores pesos integrados).")
+            self.chromosome = self._initialize_default_chromosome()
+        
+        self.had_suboptimal_start = False 
+        # self.board_instance = None # No es necesario inicializarlo aquí si se pasa en cada método
 
     def _initialize_default_chromosome(self):
         """
-        Inicializa un cromosoma con pesos por defecto o aleatorios.
-        Esta estructura de pesos será optimizada por el algoritmo genético.
+        Inicializa el cromosoma con los mejores pesos optimizados.
+        Estos pesos han sido definidos en 'best_chromosome.json'.
         """
         return {
             "build_actions": {
-                BuildConstants.TOWN: 1.0,
-                BuildConstants.CITY: 0.9,
-                BuildConstants.ROAD: 0.7,
-                BuildConstants.CARD: 0.5
+                "town": 0.7730984756915484,
+                "city": 0.3309144993831527,
+                "road": 0.20595669614283263,
+                "card": 0.13651220431020897,
+                "late_game_pv_bonus_city": 3.0555464255155464,
+                "late_game_pv_card_multiplier": 0.43045716867063977,
+                "late_game_vps_threshold": 10.957695971758353,
+                "min_overall_score_threshold": 0.05327415506968203,
+                "min_road_score_for_deterministic_build": 3.1470296803471376,
+                "suboptimal_start_card_buy_bonus": 1.0288644869987553,
+                "suboptimal_start_town_build_bonus": 0.5648133990332749,
+                "suboptimal_start_road_build_bonus": 0.555770122514022,
+                "suboptimal_start_bonus_decay_turn": 40.58057979217617
             },
             "settlement_heuristics": {
-                "resource_value_base": 1.0,
+                "resource_value_base": 0.5769006434770441,
                 "resource_priority": {
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 0.9, MaterialConstants.MINERAL: 1.0
+                    "3": 0.6822506168265137, # WOOD
+                    "2": 0.19886072238117802, # CLAY
+                    "4": 0.5121143264846796, # WOOL
+                    "0": 0.42099396375613907, # CEREAL
+                    "1": 0.20320637510462508  # MINERAL
                 },
-                "production_probability_exponent": 1.0,
-                "new_resource_type_bonus": 0.5,
-                "port_access_bonus": 0.3,
-                "specific_port_match_bonus": 0.4,
-                "number_diversity_bonus": 0.2
+                "production_probability_exponent": 0.4680019766780623,
+                "new_resource_type_bonus": 0.3914754876353038,
+                "port_access_bonus": 0.10834160369125057,
+                "specific_port_match_bonus": 0.4433835663278458,
+                "number_diversity_bonus": 0.47040572699963734
             },
             "road_heuristics": {
-                "to_potential_settlement_spot_bonus": 0.6,
-                "connects_to_own_settlement_bonus": 0.3, # Renombrado de 'expand_network' para claridad
-                "longest_road_contribution_bonus": 0.5,
-                "port_access_bonus": 0.4, # Renombrado de 'to_new_harbor_bonus'
-                "expansion_to_new_terrain_bonus": 0.3 # Renombrado de 'to_new_terrain_bonus'
+                "to_potential_settlement_spot_bonus": 0.6148618501689922,
+                "connects_to_own_settlement_bonus": 0.1288175497566187,
+                "longest_road_contribution_bonus": 0.4661889677368971,
+                "port_access_bonus": 0.41381500014875783,
+                "expansion_to_new_terrain_bonus": 0.6064398402119509,
+                "fallback_suboptimal_road_build_probability": 0.1257420612708004,
+                "fallback_suboptimal_road_action_score": 0.3580571327544674
             },
             "city_heuristics": {
-                "resource_value_base": 1.2,
+                "resource_value_base": 2.370424157838219,
                 "resource_priority": {
-                    MaterialConstants.WOOD: 0.5, MaterialConstants.CLAY: 0.5,
-                    MaterialConstants.WOOL: 0.6, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.2
+                    "3": 1.0,                 # WOOD
+                    "2": 0.19719837464546494, # CLAY
+                    "4": 0.6723655053655547,  # WOOL
+                    "0": 0.7075445348529454,  # CEREAL
+                    "1": 0.8821905845443709   # MINERAL
                 },
-                "production_probability_exponent": 1.1,
+                "production_probability_exponent": 0.24671849303157162,
+                "multiple_high_prob_numbers_bonus": 4.665022907116415
             },
             "dev_card_heuristics": {
-                "base_value": 5.0,
-                "knight_bonus": 3.0,
-                "victory_point_bonus": 7.0,
-                "monopoly_bonus": 4.0,
-                "road_building_bonus": 4.0,
-                "year_of_plenty_bonus": 4.0
+                "base_value": 2.3949106279195114,
+                "knight_bonus": 0.9885894311105975,
+                "victory_point_bonus": 4.198805946246691,
+                "monopoly_bonus": 3.7188994975172864,
+                "road_building_bonus": 1.215713904271329,
+                "year_of_plenty_bonus": 1.5183189959212788
             },
-            # Heurísticas para la colocación inicial
             "initial_placement_settlement": {
-                "resource_production_base": 1.0,
+                "resource_production_base": 0.3068447564573389,
                 "resource_priority": {
-                    MaterialConstants.WOOD: 1.0, MaterialConstants.CLAY: 1.0,
-                    MaterialConstants.WOOL: 0.8, MaterialConstants.CEREAL: 0.9, MaterialConstants.MINERAL: 0.7
+                    "3": 0.18516386110779742, # WOOD
+                    "2": 0.7523845447282291,  # CLAY
+                    "4": 0.6919748036826056,  # WOOL
+                    "0": 1.0,                 # CEREAL
+                    "1": 0.745225777618892    # MINERAL
                 },
-                "production_probability_exponent": 1.0,
-                "new_resource_type_bonus": 1.5, # Muy importante al inicio
-                "port_access_bonus": 0.2, # Menos prioritario para el primer asentamiento
-                "specific_port_match_bonus": 0.1,
-                "number_diversity_bonus": 0.5,
-                "avoid_single_resource_concentration_penalty": -2.0 # Penalización si todos los terrenos adyacentes son del mismo recurso escaso o demasiado común
+                "production_probability_exponent": 0.23519288149908685,
+                "new_resource_type_bonus": 1.1827752536750873,
+                "port_access_bonus": 0.3142729330593753,
+                "specific_port_match_bonus": 0.4491897237040623,
+                "number_diversity_bonus": 0.4578361794256982,
+                "avoid_single_resource_concentration_penalty": -1.0182530681121218,
+                "fallback_to_random_if_best_score_below": 2.3721787087097335,
+                "use_heuristic_for_fallback_road": 0.004399956195562729,
+                "non_initial_player_multipliers": {
+                    "resource_diversity_bonus": 3.272693610200753,
+                    "number_diversity_bonus": 0.9513472232316531,
+                    "port_access_bonus": 1.572610229500408,
+                    "resource_production_base": 0.614422715060202
+                }
             },
             "initial_placement_road":{
-                "to_second_potential_settlement_spot_bonus": 0.8, # Hacia dónde podría ir el segundo poblado
-                "resource_variety_expansion_bonus": 0.5, # Si la carretera da acceso a nuevos tipos de recursos/números
-                "general_expansion_bonus": 0.2, # Bonus general por una carretera inicial segura
-                "connect_to_high_prob_numbers_bonus": 0.4 # Bonus si la carretera se dirige a números de alta probabilidad no cubiertos por el primer asentamiento
+                "to_second_potential_settlement_spot_bonus": 0.4741237697124245,
+                "resource_variety_expansion_bonus": 0.13167321593021225,
+                "general_expansion_bonus": 0.18389768376789933,
+                "connect_to_high_prob_numbers_bonus": 0.3681084132821504
             },
-            # Pesos para mover el ladrón
-            "robber_placement_heuristics": { # Renombrado de thief_placement...
-                "target_high_production_node_multiplier": 1.0, # Multiplicador para el valor de producción del nodo
-                "block_specific_resource_priority": { # Prioridad de recurso a bloquear
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 0.7, MaterialConstants.CEREAL: 1.0, MaterialConstants.MINERAL: 1.0
+            "robber_placement_heuristics": {
+                "target_high_production_node_multiplier": 0.3362773525642698,
+                "block_specific_resource_priority": {
+                    "3": 0.4235789952882476,  # MADERA
+                    "2": 0.267806375625387,   # ARCILLA
+                    "4": 0.39599532534641513, # LANA
+                    "0": 0.41059712185460007, # CEREAL
+                    "1": 0.488033520567543    # MINERAL
                 },
-                "target_opponent_with_most_vps_bias": 0.5, # Un pequeño extra si se puede identificar al líder
-                "avoid_own_nodes_penalty": -5.0, # Fuerte penalización por bloquearse a sí mismo
-                "randomness_factor": 0.1 # Para evitar predictibilidad total
+                "target_opponent_with_most_vps_bias": 0.6363925911511359,
+                "avoid_own_nodes_penalty": -4.171765240023148,
+                "randomness_factor": 0.025079101935022968,
+                "target_leader_high_production_resource_bonus": 1.7268790463022237,
+                "target_needed_resource_on_opponent_bonus": 1.0,
+                "leader_vps_advantage_threshold_for_targeting": 3.5766035683933834
             },
-            # Pesos para descartar cartas
             "discard_heuristics": {
-                "resource_value_priority": { # Cuanto más bajo, más probable descartar
-                    MaterialConstants.WOOD: 0.8, MaterialConstants.CLAY: 0.8,
-                    MaterialConstants.WOOL: 1.0, # La lana a menudo es más fácil de descartar
-                    MaterialConstants.CEREAL: 0.7, MaterialConstants.MINERAL: 0.6
+                "resource_value_priority": {
+                    "3": 0.4209789390700097,  # MADERA
+                    "2": 0.8483311721204296,  # ARCILLA
+                    "4": 0.4270841736142612,  # LANA
+                    "0": 0.30953395890890933, # CEREAL
+                    "1": 1.0                   # MINERAL
                 },
-                "keep_for_settlement_bonus": -0.5, # Bonus negativo (hace menos probable descartar) si se acerca a un poblado
-                "keep_for_city_bonus": -0.6,
-                "keep_for_card_bonus": -0.3
+                "keep_for_settlement_bonus": -0.7064970139000485,
+                "keep_for_city_bonus": -0.5227607757677318,
+                "keep_for_card_bonus": -0.40044088616598084
             },
-            # Heurísticas para decisiones de comercio
             "trade_heuristics": {
-                "willingness_to_trade_general": 0.5, # Factor base
-                "resource_surplus_importance": { # Qué tan importante es tener excedente para comerciar (más alto = más dispuesto)
-                    MaterialConstants.WOOD: 0.6, MaterialConstants.CLAY: 0.6,
-                    MaterialConstants.WOOL: 0.8, MaterialConstants.CEREAL: 0.5, MaterialConstants.MINERAL: 0.5
+                "willingness_to_trade_general": 0.2703541067979195,
+                "resource_surplus_importance": {
+                    "3": 0.32288162288580113, # MADERA
+                    "2": 0.2608196633886547,  # ARCILLA
+                    "4": 0.39622204447865006, # LANA
+                    "0": 0.616331512525276,   # CEREAL
+                    "1": 0.1318730420521943   # MINERAL
                 },
-                "resource_needed_importance": { # Qué tan importante es obtener un recurso necesitado
-                     MaterialConstants.WOOD: 1.2, MaterialConstants.CLAY: 1.2,
-                    MaterialConstants.WOOL: 1.0, MaterialConstants.CEREAL: 1.3, MaterialConstants.MINERAL: 1.3
+                "resource_needed_importance": {
+                    "3": 0.6904129983382203,  # MADERA
+                    "2": 0.5056612321024686,  # ARCILLA
+                    "4": 0.16938007889039497, # LANA
+                    "0": 0.47815215420120916, # CEREAL
+                    "1": 0.29025779242242167  # MINERAL
                 },
-                "bank_trade_ratio_modifier": -0.2, # Penalización por comerciar 4:1 con el banco
-                "port_trade_ratio_modifier": -0.1, # Penalización menor por comerciar 3:1 o 2:1 con puerto
-                "accept_offer_resource_gain_factor": 1.0,
-                "accept_offer_fairness_threshold": 0.8, # Si la oferta es al menos 80% "justa" en valor
-                "min_score_for_self_initiated_trade": 0.5
+                "bank_trade_ratio_modifier": -0.09843227555702758,
+                "port_trade_ratio_modifier": -0.1763372700974885,
+                "accept_offer_resource_gain_factor": 1.4062096032168099,
+                "accept_offer_fairness_threshold": 0.4103828225648573,
+                "min_score_for_self_initiated_trade": 1.0,
+                "vps_threshold_consider_leader_trade": 3.6737792142849965,
+                "penalty_trade_with_leader": 0.28374975210685893,
+                "resource_surplus_threshold_for_proactive_trade": 5.010573513810559,
+                "proactive_trade_score_bonus": 0.667341259052725
             },
-            # Heurísticas para jugar cartas de desarrollo
             "play_dev_card_heuristics":{
-                "knight_immediate_threat_bonus": 1.0, # Si hay un ladrón bloqueando algo importante
-                "knight_take_largest_army_bonus": 1.5,
-                "monopoly_potential_gain_threshold": 4, # Jugar si se espera ganar al menos 4 del recurso
-                "year_of_plenty_immediate_build_bonus": 1.2, # Si permite construir algo importante inmediatamente
-                "road_building_strategic_spot_bonus": 1.0, # Si permite alcanzar un punto estratégico
-                "min_score_to_play_knight_on_start": 0.75 # Ejemplo de umbral del cromosoma
+                "knight_immediate_threat_bonus": 0.15803944757173097,
+                "knight_take_largest_army_bonus": 1.4005505050673122,
+                "knight_maintain_largest_army_bonus": 0.45557329616315023,
+                "knight_contest_largest_army_bonus": 1.0,
+                "knight_for_win_bonus": 7.182086991508513,
+                "monopoly_potential_gain_threshold": 2.953307915255669,
+                "year_of_plenty_immediate_build_bonus": 0.2810892737567539,
+                "road_building_strategic_spot_bonus": 0.5236615681105226,
+                "min_score_to_play_knight_on_start": 0.5323532713223691,
+                "early_game_turn_threshold": 12.468408318355344,
+                "early_game_knight_suboptimal_start_boost": 0.5070248617081883,
+                "early_game_knight_robber_on_key_tile_boost": 2.041986450016127
             }
         }
 
@@ -197,8 +254,29 @@ class GeneticAgent(AgentInterface):
             return -float('inf') # Nodo inválido
 
         node_data = self.board.nodes[node_id]
-        chrom_heur = self.chromosome["initial_placement_settlement"]
+        base_chrom_heur = self.chromosome["initial_placement_settlement"]
         dice_roll_to_dots = self._get_dice_roll_to_dots_map()
+
+        # INICIO DE MODIFICACIÓN: Aplicar multiplicadores si no es el jugador inicial colocando
+        # Determinar si es "jugador inicial" contando asentamientos existentes.
+        # Esto es una heurística para saber si estamos en la primera ronda de colocación, primer turno.
+        is_initial_player_phase = True # Asumir que sí, a menos que se encuentren otros asentamientos
+        for n_info in self.board.nodes:
+            if n_info['player'] != -1 and n_info['player'] != self.id:
+                is_initial_player_phase = False
+                break
+        
+        # Copiar los pesos para no modificar el cromosoma original directamente
+        applied_chrom_heur = {**base_chrom_heur} 
+        if not is_initial_player_phase and "non_initial_player_multipliers" in base_chrom_heur:
+            multipliers = base_chrom_heur["non_initial_player_multipliers"]
+            
+            # Aplicar multiplicadores a los pesos relevantes. Usamos .get para seguridad.
+            applied_chrom_heur["new_resource_type_bonus"] = base_chrom_heur.get("new_resource_type_bonus", 1.5) * multipliers.get("resource_diversity_bonus", 1.0)
+            applied_chrom_heur["number_diversity_bonus"] = base_chrom_heur.get("number_diversity_bonus", 0.5) * multipliers.get("number_diversity_bonus", 1.0) # Corregido nombre de key
+            applied_chrom_heur["port_access_bonus"] = base_chrom_heur.get("port_access_bonus", 0.2) * multipliers.get("port_access_bonus", 1.0)
+            applied_chrom_heur["resource_production_base"] = base_chrom_heur.get("resource_production_base", 1.0) * multipliers.get("resource_production_base", 1.0)
+        # FIN DE MODIFICACIÓN
 
         # 1. Valor de Producción de Recursos
         node_resource_production_value = 0.0
@@ -208,44 +286,41 @@ class GeneticAgent(AgentInterface):
 
         for terrain_idx in node_data['contacting_terrain']:
             terrain = self.board.terrain[terrain_idx]
-            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
             if not self._is_terrain_desert(terrain):
                 resource_type = terrain.get('terrain_type')
-                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                if resource_type is not None: 
                     resource_types_at_node.add(resource_type)
 
-                terrain_number = terrain.get('probability') # Usar .get para seguridad
-                if terrain_number is not None and terrain_number != 7: # Excluir 7 explícitamente
+                terrain_number = terrain.get('probability') 
+                if terrain_number is not None and terrain_number != 7: 
                     numbers_at_node.add(terrain_number)
                     prob_dots = dice_roll_to_dots.get(terrain_number, 0)
                     prob_real = prob_dots / 36.0
-                    resource_weight = chrom_heur["resource_priority"].get(resource_type, 0.1)
-                    exponent = chrom_heur["production_probability_exponent"]
+                    # Usar los pesos de applied_chrom_heur
+                    resource_weight = applied_chrom_heur["resource_priority"].get(resource_type, 0.1)
+                    exponent = applied_chrom_heur["production_probability_exponent"]
                     node_resource_production_value += (prob_real ** exponent) * resource_weight
         
-        heuristic_score += node_resource_production_value * chrom_heur["resource_production_base"]
+        heuristic_score += node_resource_production_value * applied_chrom_heur["resource_production_base"]
 
         # 2. Bonus por Nuevos Tipos de Recurso (en el contexto inicial, todos son "nuevos")
-        heuristic_score += len(resource_types_at_node) * chrom_heur["new_resource_type_bonus"]
+        heuristic_score += len(resource_types_at_node) * applied_chrom_heur["new_resource_type_bonus"]
 
         # 3. Bonus por Acceso a Puerto
         harbor_type = node_data['harbor']
         if harbor_type != HarborConstants.NONE:
-            heuristic_score += chrom_heur["port_access_bonus"]
+            heuristic_score += applied_chrom_heur["port_access_bonus"]
             if harbor_type != HarborConstants.ALL and harbor_type in resource_types_at_node:
-                heuristic_score += chrom_heur["specific_port_match_bonus"]
+                heuristic_score += applied_chrom_heur["specific_port_match_bonus"]
 
         # 4. Bonus por Diversidad de Números
-        heuristic_score += len(numbers_at_node) * chrom_heur["number_diversity_bonus"]
+        heuristic_score += len(numbers_at_node) * applied_chrom_heur["number_diversity_bonus"]
 
         # 5. Penalización por Concentración de un Solo Tipo de Recurso
-        # Si todos los terrenos productivos son del mismo tipo.
         if len(resource_types_at_node) == 1 and len(node_data['contacting_terrain']) > 1:
-             # Se podría refinar más esta penalización (ej. si es un recurso raro vs común)
-            heuristic_score += chrom_heur["avoid_single_resource_concentration_penalty"]
+            heuristic_score += applied_chrom_heur["avoid_single_resource_concentration_penalty"]
         elif len(terrain_types_count) > 0 and max(terrain_types_count.values()) == len(node_data['contacting_terrain']) and len(resource_types_at_node) > 0 :
-             # Si todos los terrenos son productivos y del mismo tipo
-             heuristic_score += chrom_heur["avoid_single_resource_concentration_penalty"]
+             heuristic_score += applied_chrom_heur["avoid_single_resource_concentration_penalty"]
 
 
         return heuristic_score
@@ -305,80 +380,118 @@ class GeneticAgent(AgentInterface):
 
     def on_game_start(self, board_instance):
         self.board = board_instance
-        valid_nodes = [n['id'] for n in self.board.nodes if self.board.can_place_settlement(self.id, n['id'], is_initial_settlement=True)]
+        # MODIFICADO: Usar valid_starting_nodes() para obtener los nodos válidos para la colocación inicial.
+        valid_nodes_ids = self.board.valid_starting_nodes()
 
-        if not valid_nodes:
-            # Fallback si no hay nodos válidos (extremadamente improbable)
-            # Esto podría indicar un error en la lógica de can_place_settlement o en el estado del tablero.
-            # Devolvemos una opción aleatoria o fija para evitar un crash.
+        if not valid_nodes_ids:
             all_nodes_ids = [n['id'] for n in self.board.nodes]
             fallback_node_id = random.choice(all_nodes_ids) if all_nodes_ids else 0
-            # Intentar encontrar una carretera válida desde el fallback_node_id
             adj_nodes = self.board.nodes[fallback_node_id]['adjacent']
-            fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes) # Absurdo pero evita error
+            fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes)
             return fallback_node_id, fallback_road_to
 
-
-        best_settlement_node_id = -1
-        max_settlement_score = -float('inf')
-
         scored_settlements = []
-        for node_id in valid_nodes:
+        for node_id in valid_nodes_ids:
             score = self._heuristic_initial_settlement_location(node_id)
             scored_settlements.append({"id": node_id, "score": score})
         
-        if not scored_settlements: # Si por alguna razón no se puntuó ninguno
-             fallback_node_id = random.choice(valid_nodes)
+        if not scored_settlements: 
+             # Fallback si no hay nodos evaluados (ya existía, pero lo mantenemos robusto)
+             all_nodes_ids_for_fallback = [n['id'] for n in self.board.nodes] # Renombrado para evitar conflicto
+             fallback_node_id = random.choice(valid_nodes_ids) if valid_nodes_ids else (all_nodes_ids_for_fallback[0] if all_nodes_ids_for_fallback else 0)
              adj_nodes = self.board.nodes[fallback_node_id]['adjacent']
              fallback_road_to = random.choice(adj_nodes) if adj_nodes else (fallback_node_id + 1) % len(self.board.nodes)
              return fallback_node_id, fallback_road_to
 
-        # Ordenar por puntuación y tomar el mejor
         best_settlement_options = sorted(scored_settlements, key=lambda x: x["score"], reverse=True)
-        # Podríamos añadir una pizca de aleatoriedad aquí si hay varios "mejores" o para exploración.
-        # Por ejemplo, elegir entre los N mejores. Para esta V1, tomamos el mejor absoluto.
-        best_settlement_node_id = best_settlement_options[0]["id"]
+        best_settlement_node_id = -1 # Inicializar
+
+        # INICIO DE MODIFICACIÓN: Estrategia de fallback para selección de asentamiento inicial
+        chrom_init_sett_config = self.chromosome.get("initial_placement_settlement", {})
+        fallback_threshold = chrom_init_sett_config.get("fallback_to_random_if_best_score_below", -float('inf'))
+        use_heuristic_for_road_on_fallback = chrom_init_sett_config.get("use_heuristic_for_fallback_road", False)
+
+        perform_random_settlement_choice = False
+        if best_settlement_options[0]["score"] < fallback_threshold and valid_nodes_ids:
+            perform_random_settlement_choice = True
+            best_settlement_node_id = random.choice(valid_nodes_ids)
+            self.had_suboptimal_start = True # Establecer si se usa fallback aleatorio
+            
+            if not use_heuristic_for_road_on_fallback:
+                # Carretera también aleatoria
+                adj_nodes_for_random_road = self.board.nodes[best_settlement_node_id]['adjacent']
+                if not adj_nodes_for_random_road:
+                    # Nodo aislado, muy improbable pero se maneja
+                    road_to_node_id = (best_settlement_node_id + 1) % len(self.board.nodes)
+                    if road_to_node_id == best_settlement_node_id and len(self.board.nodes) > 1:
+                        road_to_node_id = (best_settlement_node_id + 2) % len(self.board.nodes)
+                    elif len(self.board.nodes) == 1:
+                        road_to_node_id = best_settlement_node_id # O manejar como error
+                else:
+                    road_to_node_id = random.choice(adj_nodes_for_random_road)
+                return best_settlement_node_id, road_to_node_id
+            # Si use_heuristic_for_road_on_fallback es True, la lógica de carretera heurística de abajo se aplicará
+        else:
+            # Elección heurística normal para el asentamiento
+            best_settlement_node_id = best_settlement_options[0]["id"]
+            # También considerar subóptimo si el score es bajo, incluso sin fallback aleatorio
+            if best_settlement_options[0]["score"] < fallback_threshold:
+                 self.had_suboptimal_start = True
+        # FIN DE MODIFICACIÓN
         
-        # Extraer información del mejor nodo de asentamiento para la heurística de carretera
+        # Asegurar que best_settlement_node_id se haya establecido
+        if best_settlement_node_id == -1:
+            # Esto solo debería ocurrir si best_settlement_options estaba vacío y el fallback inicial falló, lo cual es muy improbable.
+            # O si la lógica anterior no asignó un valor por alguna razón.
+            all_nodes_ids_final_fallback = [n['id'] for n in self.board.nodes]
+            best_settlement_node_id = random.choice(valid_nodes_ids) if valid_nodes_ids else (all_nodes_ids_final_fallback[0] if all_nodes_ids_final_fallback else 0)
+
         first_settlement_resources = set()
         first_settlement_numbers = set()
         for terrain_idx in self.board.nodes[best_settlement_node_id]['contacting_terrain']:
             terrain = self.board.terrain[terrain_idx]
-            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
             if not self._is_terrain_desert(terrain):
                 resource_type = terrain.get('terrain_type')
-                if resource_type is not None: # Asegurar que el tipo de terreno existe
+                if resource_type is not None: 
                     first_settlement_resources.add(resource_type)
-                
-                # Aunque _is_terrain_desert maneja la probabilidad 7 para desiertos,
-                # aquí queremos específicamente los números de producción si NO es desierto.
                 terrain_number = terrain.get('probability')
                 if terrain_number is not None and terrain_number != 7:
                     first_settlement_numbers.add(terrain_number)
 
         # Ahora, encontrar la mejor carretera desde este asentamiento
         possible_roads = []
+        # INICIO DE LA SECCIÓN MODIFICADA PARA VALIDAR CARRETERA INICIAL
         for neighbor_node_id in self.board.nodes[best_settlement_node_id]['adjacent']:
-            if self.board.can_place_road(self.id, best_settlement_node_id, neighbor_node_id, is_initial_road=True):
+            is_road_path_free = True
+            # Verificar si ya existe una carretera entre best_settlement_node_id y neighbor_node_id
+            # en la lista de carreteras del nodo de origen.
+            for road_segment in self.board.nodes[best_settlement_node_id]['roads']:
+                if road_segment['node_id'] == neighbor_node_id:
+                    is_road_path_free = False
+                    break
+            
+            if is_road_path_free:
+                # Adicionalmente, verificar en la lista de carreteras del nodo destino
+                # para asegurar consistencia y que no haya una carretera en la dirección opuesta.
+                for road_segment in self.board.nodes[neighbor_node_id]['roads']:
+                    if road_segment['node_id'] == best_settlement_node_id:
+                        is_road_path_free = False
+                        break
+            
+            if is_road_path_free:
+                # Si el camino está libre, se considera una carretera válida para la heurística.
+                # La lógica de la carretera inicial (is_initial_road=True) se maneja aquí
+                # al no verificar costos de recursos y al partir del asentamiento inicial.
                 score = self._heuristic_initial_road_location(best_settlement_node_id, neighbor_node_id, first_settlement_resources, first_settlement_numbers)
                 possible_roads.append({"to_node": neighbor_node_id, "score": score})
-        
+        # FIN DE LA SECCIÓN MODIFICADA
+
         if not possible_roads:
-            # Fallback si no hay carreteras válidas (improbable si el asentamiento fue válido)
-            # Tomar cualquier adyacente, o el primero si solo hay uno.
             adj_nodes = self.board.nodes[best_settlement_node_id]['adjacent']
-            # Es vital que can_place_road con is_initial_road=True no falle si el nodo de asentamiento es válido.
-            # Si adj_nodes está vacío, es un error de tablero.
-            # Si no hay carreteras construibles, esto es un problema.
-            # Para un fallback robusto, deberíamos re-evaluar asentamientos si no hay carreteras.
-            # Por ahora, un random si falla todo.
             if adj_nodes:
-                # Para el fallback, no podemos usar la heurística si falló, solo tomar uno.
-                # En un caso real, esto indicaría un problema con `can_place_road` o el estado del tablero.
-                # Se elige un vecino aleatorio como carretera si la heurística no produjo opciones válidas.
                 road_to_node_id = random.choice(adj_nodes)
-            else: # Nodo aislado, imposible en Catan estándar.
-                road_to_node_id = (best_settlement_node_id + 1) % len(self.board.nodes) # Absurdo, pero evita crash
+            else: 
+                road_to_node_id = (best_settlement_node_id + 1) % len(self.board.nodes)
             return best_settlement_node_id, road_to_node_id
 
         best_road_options = sorted(possible_roads, key=lambda x: x["score"], reverse=True)
@@ -408,6 +521,8 @@ class GeneticAgent(AgentInterface):
 
             play_knight_score = 0
             knight_heuristics = self.chromosome.get("play_dev_card_heuristics", {})
+            current_turn = self.board.turn_number if hasattr(self.board, 'turn_number') else 0 # Asumir turno 0 si no disponible
+            early_game_thresh = knight_heuristics.get("early_game_turn_threshold", 10)
 
             # Heurística 1: Ladrón es una amenaza inmediata
             thief_terrain_id = -1
@@ -428,20 +543,67 @@ class GeneticAgent(AgentInterface):
                     play_knight_score += knight_heuristics.get("knight_immediate_threat_bonus", 1.0)
 
             # Heurística 2: Potencial para tomar/mantener Ejército Más Grande
-            # Esto es difícil de evaluar perfectamente sin el estado global del juego (GameManager).
-            # Haremos una estimación simple: si jugar un caballero me acerca a 3 (o más que el actual poseedor),
-            # y el cromosoma le da importancia.
-            # Asumimos que `self.hand.development_cards.played_knights` existe o lo podemos inferir.
-            # Esta información normalmente reside en AgentManager/GameManager, así que es una simplificación.
-            # Por ahora, solo usaremos el peso del cromosoma como un indicador general de la voluntad de usarlo para esto.
-            play_knight_score += knight_heuristics.get("knight_take_largest_army_bonus", 0.5) # Valor base por esta intención
+            # Asumimos que self.hand.development_cards puede dar el conteo de caballeros jugados por el agente,
+            # y que self.board puede dar información sobre el estado actual del Mayor Ejército.
+            my_played_knights = 0
+            if hasattr(self.hand, 'development_cards') and \
+               hasattr(self.hand.development_cards, 'get_played_knights_count'): # Método hipotético
+                my_played_knights = self.hand.development_cards.get_played_knights_count()
 
-            # TODO: Añadir un umbral o una comparación más directa si tuviéramos datos del GameManager.
-            # Por ejemplo, si `play_knight_score > self.chromosome["play_dev_card_heuristics"].get("min_score_to_play_knight_on_start", 1.0)`
-            # Por ahora, si hay algún bonus positivo, y tenemos un caballero, lo consideramos.
-            # La decisión final de *cuál* carta jugar si hay varias opciones se simplifica a la primera que cumpla.
+            knights_after_playing_one = my_played_knights + 1
+            
+            largest_army_info = {'owner_id': None, 'count': 0}
+            if hasattr(self.board, 'get_largest_army_info'): # Método hipotético en Board
+                largest_army_info = self.board.get_largest_army_info()
+                if largest_army_info is None: # Asegurar que largest_army_info sea un dict
+                    largest_army_info = {'owner_id': None, 'count': 0}
+            
+            current_largest_army_owner = largest_army_info.get('owner_id')
+            current_largest_army_count = largest_army_info.get('count', 0)
 
-            min_score_to_play_knight = knight_heuristics.get("min_score_to_play_knight_on_start", 0.75) # Ejemplo de umbral del cromosoma
+            # Condición 1: Tomar el ejército más grande
+            if knights_after_playing_one >= 3 and \
+               knights_after_playing_one > current_largest_army_count:
+                play_knight_score += knight_heuristics.get("knight_take_largest_army_bonus", 1.5)
+            
+            # Condición 2: Mantener/Aumentar el ejército si ya lo tengo y alguien se acerca
+            elif current_largest_army_owner == self.id and \
+                 knights_after_playing_one > current_largest_army_count: \
+                play_knight_score += knight_heuristics.get("knight_maintain_largest_army_bonus", 1.0)
+            
+            # Condición 3: Acercarse significativamente o igualar al líder del ejército (que no soy yo)
+            elif knights_after_playing_one >= 2 and \
+                 current_largest_army_count >=3 and \
+                 (current_largest_army_count - knights_after_playing_one) <= 1 and \
+                 current_largest_army_owner != self.id :
+                play_knight_score += knight_heuristics.get("knight_contest_largest_army_bonus", 0.8)
+            
+            # (Opcional) Heurística avanzada: Jugar caballero para ganar la partida.
+            # Esto requeriría una estimación precisa de los PV totales del agente (estructurales, cartas, ejército, ruta).
+            # player_total_vps = self.get_victory_points() # Necesitaría un método robusto
+            # if player_total_vps_before_knight_potentially_gives_army_vps == 8 and \
+            #    (condición 1 o 2 se cumple y otorga 2 PVs por Mayor Ejército):
+            #    play_knight_score += knight_heuristics.get("knight_for_win_bonus", 5.0)
+
+            # INICIO DE MODIFICACIÓN: Bonus para juego temprano de Caballeros
+            if current_turn < early_game_thresh:
+                if self.had_suboptimal_start:
+                    play_knight_score += knight_heuristics.get("early_game_knight_suboptimal_start_boost", 1.0)
+                
+                # Comprobar si el ladrón está en una casilla clave del agente
+                if thief_terrain_id != -1:
+                    # Definir "casilla clave": alta producción para el agente.
+                    # Estimación simple: Si el agente tiene un asentamiento/ciudad en el terreno del ladrón
+                    # y ese terreno no es el desierto y tiene un número de producción > 0 (no 7).
+                    terrain_of_thief = self.board.terrain[thief_terrain_id]
+                    if not self._is_terrain_desert(terrain_of_thief) and terrain_of_thief.get('probability', 0) != 7:
+                        for node_id_on_thief_terrain in self.board.terrain_node_config[thief_terrain_id]:
+                            if self.board.nodes[node_id_on_thief_terrain]['player'] == self.id:
+                                play_knight_score += knight_heuristics.get("early_game_knight_robber_on_key_tile_boost", 1.5)
+                                break # Bonus aplicado, no necesita seguir verificando nodos en este terreno
+            # FIN DE MODIFICACIÓN
+
+            min_score_to_play_knight = knight_heuristics.get("min_score_to_play_knight_on_start", 0.75)
 
             if play_knight_score >= min_score_to_play_knight:
                 # Antes de devolver, asegurarnos de que la carta es jugable este turno
@@ -582,6 +744,48 @@ class GeneticAgent(AgentInterface):
         if max_trade_score > min_score_for_trade and best_trade_offer is not None:
             return best_trade_offer
         
+        # INICIO DE MODIFICACIÓN: Lógica para comercio proactivo por exceso de recursos
+        surplus_threshold = trade_heuristics.get("resource_surplus_threshold_for_proactive_trade", 5)
+        proactive_bonus = trade_heuristics.get("proactive_trade_score_bonus", 0.3)
+        current_max_score_for_proactive = -float('inf') # Reiniciar para esta lógica específica
+        best_proactive_offer = None
+
+        for i, count_we_have in enumerate(self.hand.resources):
+            if count_we_have >= surplus_threshold:
+                material_to_give_id = ordered_material_constants[i]
+                if material_to_give_id is None: continue
+
+                qty_to_give, qty_to_receive, port_type = self._get_best_trade_ratio(material_to_give_id)
+
+                if count_we_have >= qty_to_give:
+                    # Intentar obtener cualquier otro recurso que NO sea el que tenemos en exceso
+                    for material_to_receive_id_idx, other_material_const in enumerate(ordered_material_constants):
+                        if other_material_const == material_to_give_id: continue # No intercambiar por sí mismo
+                        
+                        # Calcular un score base para este comercio proactivo
+                        proactive_trade_score = proactive_bonus
+                        # Añadir un pequeño incentivo si el recurso a recibir es generalmente valioso
+                        proactive_trade_score += trade_heuristics.get("resource_needed_importance", {}).get(other_material_const, 1.0) * 0.1 # Pequeño factor de "necesidad general"
+
+                        if qty_to_give == 4: # Banco
+                            proactive_trade_score += trade_heuristics.get("bank_trade_ratio_modifier", -0.2)
+                        elif qty_to_give == 3 or qty_to_give == 2: # Puerto
+                            proactive_trade_score += trade_heuristics.get("port_trade_ratio_modifier", -0.1)
+
+                        if proactive_trade_score > current_max_score_for_proactive:
+                            current_max_score_for_proactive = proactive_trade_score
+                            best_proactive_offer = {
+                                'gives': material_to_give_id,
+                                'receives': other_material_const,
+                                'quantity_gives': qty_to_give,
+                                'quantity_receives': qty_to_receive
+                            }
+        
+        # Solo realizar el comercio proactivo si su score supera un umbral mínimo (puede ser el mismo min_score_for_trade o uno diferente)
+        if best_proactive_offer and current_max_score_for_proactive > min_score_for_trade: # Reutilizar el umbral existente por ahora
+            return best_proactive_offer
+        # FIN DE MODIFICACIÓN
+
         return None
 
     def on_trade_offer(self, board_instance, incoming_trade_offer=None, player_making_offer=None):
@@ -675,6 +879,29 @@ class GeneticAgent(AgentInterface):
         
         trade_score *= trade_heuristics.get("accept_offer_resource_gain_factor", 1.0)
 
+        # INICIO DE MODIFICACIÓN: Ajustes estratégicos a la puntuación del trato
+        if player_making_offer is not None and player_making_offer != self.id:
+            # Estimación de PVs estructurales del ofertante para identificar líderes potenciales.
+            offerer_structural_vps = 0
+            # Asumimos que self.board.get_player_structural_victory_points(player_id) podría existir.
+            # Por ahora, hacemos un conteo manual si el método no está disponible.
+            if hasattr(self.board, 'get_player_structural_victory_points'): 
+                offerer_structural_vps = self.board.get_player_structural_victory_points(player_making_offer)
+            else:
+                for n_data in self.board.nodes:
+                    if n_data['player'] == player_making_offer:
+                        offerer_structural_vps += 1
+                        if n_data['has_city']: offerer_structural_vps +=1
+            
+            vps_threshold_leader = trade_heuristics.get("vps_threshold_consider_leader_trade", 7)
+            penalty_trade_with_leader = trade_heuristics.get("penalty_trade_with_leader", 0.5)
+
+            if offerer_structural_vps >= vps_threshold_leader:
+                # Si el ofertante parece ser un líder, se aplica una penalización al score del trato,
+                # haciendo al agente más reacio a comerciar con él.
+                trade_score -= penalty_trade_with_leader
+        # FIN DE MODIFICACIÓN
+
         min_acceptance_score = trade_heuristics.get("accept_offer_fairness_threshold", 0.1)
         
         if trade_score >= min_acceptance_score:
@@ -747,45 +974,80 @@ class GeneticAgent(AgentInterface):
         cost_card = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.CARD])
         if self.hand.resources.has_more(cost_card):
             heuristic_val = self._heuristic_dev_card(self.board)
-            score = heuristic_val * self.chromosome["build_actions"][BuildConstants.CARD]
+            score = heuristic_val * self.chromosome["build_actions"].get(BuildConstants.CARD, 0.5) 
             possible_actions.append({"type": BuildConstants.CARD, "score": score, "details": None, "cost": cost_card})
 
         # 2. Evaluar Construir Carretera
         cost_road = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.ROAD])
+        best_road_option_details = None
+        max_road_score = -float('inf')
+
         if self.hand.resources.has_more(cost_road):
-            valid_roads = self.board.valid_road_nodes(self.id) # Usamos el método confirmado
+            valid_roads = self.board.valid_road_nodes(self.id) 
+            scored_road_options = []
             for road_option in valid_roads:
                 from_node = road_option['starting_node']
                 to_node = road_option['finishing_node']
-                # Adicionalmente, verificar que no exista ya una carretera aquí por si valid_road_nodes no lo hace
-                # (aunque build_road sí lo comprueba, es bueno ser defensivo si la heurística es costosa)
                 road_already_exists = False
                 for existing_road in self.board.nodes[from_node]['roads']:
                     if existing_road['node_id'] == to_node:
                         road_already_exists = True
                         break
                 if road_already_exists:
-                    continue # Saltar esta opción si la carretera ya existe
-
+                    continue
                 heuristic_val = self._heuristic_road_location(from_node, to_node)
-                score = heuristic_val * self.chromosome["build_actions"][BuildConstants.ROAD]
-                possible_actions.append({
+                scored_road_options.append({"from_node": from_node, "to_node": to_node, "score": heuristic_val})
+            
+            if scored_road_options:
+                best_scored_road_option = max(scored_road_options, key=lambda x: x["score"])
+                max_road_score = best_scored_road_option["score"] * self.chromosome["build_actions"].get(BuildConstants.ROAD, 0.7)
+                best_road_option_details = {"from_node": best_scored_road_option["from_node"], "to_node": best_scored_road_option["to_node"]}
+
+            # INICIO DE MODIFICACIÓN: Lógica de fallback para carreteras subóptimas
+            min_road_score_thresh = self.chromosome["build_actions"].get("min_road_score_for_deterministic_build", 1.5)
+            actual_heuristic_road_score = max_road_score / self.chromosome["build_actions"].get(BuildConstants.ROAD, 0.7) if best_road_option_details else -float('inf')
+
+            if best_road_option_details and actual_heuristic_road_score < min_road_score_thresh:
+                # La mejor carretera determinista es subóptima
+                fallback_prob = self.chromosome["road_heuristics"].get("fallback_suboptimal_road_build_probability", 0.4)
+                if random.random() < fallback_prob:
+                    # Decidimos construir una carretera aleatoria válida en lugar de la subóptima o ninguna
+                    if valid_roads: # Asegurarnos de que hay opciones para elegir aleatoriamente
+                        chosen_random_road = random.choice(valid_roads)
+                        fallback_road_score = self.chromosome["road_heuristics"].get("fallback_suboptimal_road_action_score", 0.5)
+                        possible_actions.append({
+                            "type": BuildConstants.ROAD,
+                            "score": fallback_road_score, # Usar el score de fallback configurado
+                            "details": {"from_node": chosen_random_road['starting_node'], "to_node": chosen_random_road['finishing_node']},
+                            "cost": cost_road
+                        })
+                    # Si no hay valid_roads, no se añade nada (ya se manejó que scored_road_options estaría vacío)
+                else:
+                    # No se activa el fallback aleatorio, pero aún podríamos añadir la carretera subóptima si su score es competitivo
+                    # La añadimos con su score original para que compita.
+                     possible_actions.append({
+                        "type": BuildConstants.ROAD,
+                        "score": max_road_score, 
+                        "details": best_road_option_details,
+                        "cost": cost_road
+                    })
+            elif best_road_option_details: # Carretera determinista es buena o no hay fallback
+                 possible_actions.append({
                     "type": BuildConstants.ROAD,
-                    "score": score,
-                    "details": {"from_node": from_node, "to_node": to_node},
+                    "score": max_road_score, 
+                    "details": best_road_option_details,
                     "cost": cost_road
                 })
+            # FIN DE MODIFICACIÓN
         
         # 3. Evaluar Construir Poblado
         cost_town = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.TOWN])
-        # Corrección: Iterar directamente sobre los nodos si self.board.nodes es una lista de diccionarios.
-        # La variable 'n' en la comprensión de lista ya es el diccionario del nodo.
         num_settlements = len([n for n in self.board.nodes if n['player'] == self.id and not n['has_city']])
         if self.hand.resources.has_more(cost_town) and num_settlements < 5:
-            valid_nodes_for_town = self.board.valid_town_nodes(self.id) # Usamos el método confirmado
+            valid_nodes_for_town = self.board.valid_town_nodes(self.id) 
             for node_id in valid_nodes_for_town:
                 heuristic_val = self._heuristic_settlement_location(node_id)
-                score = heuristic_val * self.chromosome["build_actions"][BuildConstants.TOWN]
+                score = heuristic_val * self.chromosome["build_actions"].get(BuildConstants.TOWN, 1.0) # Usar .get con default
                 possible_actions.append({
                     "type": BuildConstants.TOWN,
                     "score": score,
@@ -795,13 +1057,12 @@ class GeneticAgent(AgentInterface):
 
         # 4. Evaluar Construir Ciudad
         cost_city = Materials.from_iterable(BuildMaterialsConstants[BuildConstants.CITY])
-        # Corrección: Similar a num_settlements, 'n' ya es el diccionario del nodo.
         num_cities = len([n for n in self.board.nodes if n['player'] == self.id and n['has_city']])
         if self.hand.resources.has_more(cost_city) and num_cities < 4:
-            valid_nodes_for_city_upgrade = self.board.valid_city_nodes(self.id) # Usamos el método confirmado
+            valid_nodes_for_city_upgrade = self.board.valid_city_nodes(self.id) 
             for node_id in valid_nodes_for_city_upgrade: 
                 heuristic_val = self._heuristic_city_location(node_id)
-                score = heuristic_val * self.chromosome["build_actions"][BuildConstants.CITY]
+                score = heuristic_val * self.chromosome["build_actions"].get(BuildConstants.CITY, 0.9) # Usar .get con default
                 possible_actions.append({
                     "type": BuildConstants.CITY,
                     "score": score,
@@ -812,16 +1073,75 @@ class GeneticAgent(AgentInterface):
         if not possible_actions:
             return None
 
-        # Seleccionar la mejor acción. Podríamos añadir una lógica para desempatar o un umbral mínimo de score.
-        # Por ahora, simplemente la de mayor puntuación.
-        best_action = max(possible_actions, key=lambda x: x["score"])
+        # INICIO DE MODIFICACIÓN: Ajuste de scores basado en PVs y selección final.
+        player_structural_vps = 0
+        # Intentamos obtener los PV estructurales del agente. Esta es una estimación.
+        # Idealmente, el agente tendría un método robusto self.get_victory_points().
+        for n_data in self.board.nodes:
+            if n_data['player'] == self.id:
+                player_structural_vps += 1 # 1 VP por poblado
+                if n_data['has_city']:
+                    player_structural_vps +=1 # 1 VP adicional por ciudad
         
-        # Opcional: Verificar si la mejor acción tiene un score mínimo para ser considerada
-        # min_score_threshold = 0.1 # Ejemplo de umbral, podría ser parte del cromosoma
-        # if best_action["score"] < min_score_threshold:
-        #     return None
+        vps_threshold = self.chromosome["build_actions"].get("late_game_vps_threshold", 7)
+        late_game_pv_bonus_city = self.chromosome["build_actions"].get("late_game_pv_bonus_city", 2.0)
+        late_game_pv_card_multiplier = self.chromosome["build_actions"].get("late_game_pv_card_multiplier", 1.2)
+
+        adjusted_actions = []
+        for action in possible_actions:
+            adjusted_score = action["score"] 
+
+            if player_structural_vps >= vps_threshold:
+                if action["type"] == BuildConstants.CITY:
+                    adjusted_score += late_game_pv_bonus_city
+                elif action["type"] == BuildConstants.CARD:
+                    adjusted_score *= late_game_pv_card_multiplier
             
-        return best_action
+            # INICIO DE MODIFICACIÓN: Aplicar bonus si el inicio fue subóptimo
+            if self.had_suboptimal_start and \
+               hasattr(self.board, 'turn_number') and \
+               self.board.turn_number < self.chromosome["build_actions"].get("suboptimal_start_bonus_decay_turn", 15):
+                
+                if action["type"] == BuildConstants.CARD:
+                    adjusted_score += self.chromosome["build_actions"].get("suboptimal_start_card_buy_bonus", 0.3)
+                elif action["type"] == BuildConstants.TOWN:
+                    adjusted_score += self.chromosome["build_actions"].get("suboptimal_start_town_build_bonus", 0.2)
+            # FIN DE MODIFICACIÓN
+
+            adjusted_actions.append({**action, "adjusted_score": adjusted_score})
+
+        if not adjusted_actions:
+            return None
+
+        # INICIO DE MODIFICACIÓN: Lógica de priorización en "Recuperación Temprana"
+        if self.had_suboptimal_start and \
+           hasattr(self.board, 'turn_number') and \
+           self.board.turn_number < self.chromosome["build_actions"].get("suboptimal_start_bonus_decay_turn", 15):
+            
+            # Aplicar los bonus de recuperación directamente a las acciones correspondientes
+            # Estos bonus son significativos para alterar las prioridades.
+            for action_data in adjusted_actions:
+                if action_data["type"] == BuildConstants.TOWN:
+                    action_data["adjusted_score"] += self.chromosome["build_actions"].get("suboptimal_start_town_build_bonus", 2.0)
+                elif action_data["type"] == BuildConstants.CARD:
+                    action_data["adjusted_score"] += self.chromosome["build_actions"].get("suboptimal_start_card_buy_bonus", 1.5)
+                elif action_data["type"] == BuildConstants.ROAD:
+                    action_data["adjusted_score"] += self.chromosome["build_actions"].get("suboptimal_start_road_build_bonus", 0.5)
+            # Nota: La lógica anterior que aplicaba bonus más pequeños en esta sección ha sido reemplazada / subsumida por esta. 
+            # Los bonus por late_game_pv_bonus_city etc., seguirán aplicándose antes de este bloque si procede.
+        # FIN DE MODIFICACIÓN
+
+        best_action_data = max(adjusted_actions, key=lambda x: x["adjusted_score"])
+        
+        min_score_threshold = self.chromosome["build_actions"].get("min_overall_score_threshold", 0.1)
+        if best_action_data["adjusted_score"] < min_score_threshold:
+             return None
+            
+        # Devolvemos un diccionario con la información de la acción original, no la que tiene "adjusted_score".
+        # Creamos una copia de la acción para no modificar la lista original y eliminamos "adjusted_score" si no es necesario fuera.
+        final_action_to_return = {k: v for k, v in best_action_data.items() if k != 'adjusted_score'}
+        return final_action_to_return
+        # FIN DE MODIFICACIÓN
 
     def _heuristic_dev_card(self, board_instance):
         """
@@ -1106,26 +1426,34 @@ class GeneticAgent(AgentInterface):
         city_chrom_heuristics = self.chromosome["city_heuristics"]
         node_resource_production_value = 0.0
         contacting_terrain_indices = node_data['contacting_terrain']
+        high_probability_numbers_count = 0 # Contador para terrenos con números de alta probabilidad
+        high_prob_numbers = {5, 6, 8, 9} # Definir números de alta probabilidad
 
         for terrain_idx in contacting_terrain_indices:
             terrain = self.board.terrain[terrain_idx]
-            # MODIFICADO: Usar el método auxiliar _is_terrain_desert
-            if not self._is_terrain_desert(terrain): # El desierto no produce
+            if not self._is_terrain_desert(terrain): 
                 resource_type = terrain.get('terrain_type')
-                terrain_number = terrain.get('probability') # Número que debe salir en los dados
+                terrain_number = terrain.get('probability') 
 
-                if terrain_number is not None and terrain_number != 7: # Solo consideramos números que producen
+                if terrain_number is not None and terrain_number != 7: 
                     prob_dots = dice_roll_to_dots.get(terrain_number, 0)
                     prob_real = prob_dots / 36.0
                     
                     resource_weight = city_chrom_heuristics["resource_priority"].get(resource_type, 0.1)
                     exponent = city_chrom_heuristics["production_probability_exponent"]
                     
-                    # Una ciudad duplica la producción, por eso el * 2
                     production_from_terrain = 2 * (prob_real ** exponent) * resource_weight
                     node_resource_production_value += production_from_terrain
+
+                    if terrain_number in high_prob_numbers:
+                        high_probability_numbers_count += 1
         
         heuristic_score = node_resource_production_value * city_chrom_heuristics["resource_value_base"]
+
+        # INICIO DE MODIFICACIÓN: Bonus por múltiples números de alta probabilidad
+        if high_probability_numbers_count >= 2: # Si hay al menos dos terrenos adyacentes con números altos
+            heuristic_score += city_chrom_heuristics.get("multiple_high_prob_numbers_bonus", 2.0)
+        # FIN DE MODIFICACIÓN
         
         return heuristic_score
 
@@ -1139,7 +1467,7 @@ class GeneticAgent(AgentInterface):
         heuristic_score = 0.0
         terrain_data = self.board.terrain[terrain_id]
         robber_heuristics = self.chromosome.get("robber_placement_heuristics", {})
-        dice_roll_to_dots = self._get_dice_roll_to_dots_map()
+        dice_roll_to_dots_map = self._get_dice_roll_to_dots_map()
 
         # MODIFICADO: Usar el método auxiliar _is_terrain_desert
         if self._is_terrain_desert(terrain_data):
@@ -1154,7 +1482,7 @@ class GeneticAgent(AgentInterface):
         for node_id in terrain_data["contacting_nodes"]:
             node_data = self.board.nodes[node_id]
             terrain_number_on_node = terrain_data['probability'] # El número del terreno en sí
-            terrain_production_potential += dice_roll_to_dots.get(terrain_number_on_node, 0)
+            terrain_production_potential += dice_roll_to_dots_map.get(terrain_number_on_node, 0)
             
             if node_data['player'] == self.id:
                 has_my_node = True
@@ -1168,20 +1496,56 @@ class GeneticAgent(AgentInterface):
         normalized_production_value = terrain_production_potential / 10.0 
         heuristic_score += normalized_production_value * robber_heuristics.get("target_high_production_node_multiplier", 1.0)
 
-        # 2. Prioridad de bloquear recurso específico que produce el terreno
         resource_produced = terrain_data['terrain_type']
-        block_priority = robber_heuristics.get("block_specific_resource_priority", {})
-        heuristic_score += block_priority.get(resource_produced, 0.0)
+        block_priority_map = robber_heuristics.get("block_specific_resource_priority", {})
+        heuristic_score += block_priority_map.get(resource_produced, 0.0)
 
-        # 3. Penalización por tener nodos propios en el terreno
         if has_my_node:
             heuristic_score += robber_heuristics.get("avoid_own_nodes_penalty", -5.0)
         
-        # 4. Si no hay oponentes en el terreno, es menos útil (a menos que sea para desbloquearse)
-        if opponent_nodes_count == 0 and not has_my_node: # No me afecta, no afecta a nadie
-            heuristic_score -= 2.0 # Penalización leve
-        elif opponent_nodes_count == 0 and has_my_node: # Me afecta solo a mí, y quiero moverlo de aquí
-             heuristic_score += robber_heuristics.get("knight_immediate_threat_bonus", 1.0) # Reusamos este bonus como "desbloquearme"
+        # INICIO DE MODIFICACIÓN: Lógica avanzada para targetear oponentes líderes y recursos clave
+        player_vps = {} # Almacena PVs estimados de jugadores
+        if hasattr(self.board, 'get_player_structural_victory_points'): # Ideal
+            for n_data_vp_check in self.board.nodes:
+                p_id = n_data_vp_check['player']
+                if p_id != -1 and p_id != self.id and p_id not in player_vps:
+                    player_vps[p_id] = self.board.get_player_structural_victory_points(p_id)
+        else: # Fallback a conteo manual
+            for n_data_vp_check in self.board.nodes:
+                p_id = n_data_vp_check['player']
+                if p_id != -1 and p_id != self.id:
+                    player_vps[p_id] = player_vps.get(p_id, 0) + (2 if n_data_vp_check['has_city'] else 1)
+
+        my_estimated_vps = player_vps.get(self.id, 0) # Obtener mis propios PVs si se calcularon
+        if not hasattr(self.board, 'get_player_structural_victory_points'): # Si hicimos conteo manual, calcular los míos también
+            my_own_vps_temp = 0
+            for n_data_vp_check in self.board.nodes:
+                 if n_data_vp_check['player'] == self.id:
+                    my_own_vps_temp += (2 if n_data_vp_check['has_city'] else 1)
+            my_estimated_vps = my_own_vps_temp
+        
+        leader_vps_adv_thresh = robber_heuristics.get("leader_vps_advantage_threshold_for_targeting", 2)
+        target_leader_bonus = robber_heuristics.get("target_leader_high_production_resource_bonus", 1.5)
+        target_needed_bonus = robber_heuristics.get("target_needed_resource_on_opponent_bonus", 1.0)
+
+        for node_id in terrain_data["contacting_nodes"]:
+            node_player_id = self.board.nodes[node_id]['player']
+            if node_player_id != -1 and node_player_id != self.id:
+                opponent_vps = player_vps.get(node_player_id, 0)
+                # Es un líder digno de targetear?
+                if opponent_vps >= my_estimated_vps + leader_vps_adv_thresh:
+                    heuristic_score += target_leader_bonus
+                
+                # Este terreno produce un recurso que necesito y este oponente lo tiene?
+                # (Simplificación: asumimos que si el oponente está en el nodo, se beneficia del recurso)
+                # Necesitaríamos una lista de `self.get_needed_resources()` para ser más precisos.
+                # Por ahora, si el recurso producido es CEREAL o MINERAL (generalmente valiosos y necesitados):
+                if resource_produced == MaterialConstants.CEREAL or resource_produced == MaterialConstants.MINERAL:
+                    heuristic_score += target_needed_bonus * 0.5 # Ponderar un poco menos sin saber necesidad exacta
+        # FIN DE MODIFICACIÓN
+
+        if opponent_nodes_count == 0 and not has_my_node: 
+            heuristic_score -= 2.0 
 
         # 5. Factor de aleatoriedad (pequeño)
         heuristic_score += random.uniform(0, robber_heuristics.get("randomness_factor", 0.1))
@@ -1237,14 +1601,42 @@ class GeneticAgent(AgentInterface):
         
         player_to_rob_id = -1
         if players_on_chosen_terrain:
-            # Estrategia de selección de jugador:
-            # Podríamos intentar priorizar al jugador con más PVs si tuviéramos esa info.
-            # Por ahora, si hay varios, elegimos uno al azar para no ser predecibles.
-            # El cromosoma tiene `target_opponent_with_most_vps_bias` pero no lo usamos activamente sin datos de PV.
-            # Es un placeholder para mejora futura.
-            unique_players = list(set(players_on_chosen_terrain))
-            if unique_players:
-                player_to_rob_id = random.choice(unique_players)
+            # INICIO DE MODIFICACIÓN: Selección estratégica del jugador a robar.
+            robbable_players_details = []
+            unique_opponent_ids_on_terrain = list(set(players_on_chosen_terrain))
+
+            for p_id in unique_opponent_ids_on_terrain:
+                p_vps = 0
+                # Estimación de PVs estructurales. Un método self.board.get_player_structural_victory_points(p_id) sería ideal.
+                if hasattr(self.board, 'get_player_structural_victory_points'):
+                    p_vps = self.board.get_player_structural_victory_points(p_id)
+                else: # Fallback a conteo manual
+                    for n_data in self.board.nodes:
+                        if n_data['player'] == p_id:
+                            p_vps += 1
+                            if n_data['has_city']: p_vps +=1
+                robbable_players_details.append({'id': p_id, 'vps': p_vps})
+
+            if robbable_players_details:
+                # Ordenar jugadores por PVs (descendente) para priorizar al líder.
+                robbable_players_details.sort(key=lambda x: x['vps'], reverse=True)
+                
+                # El cromosoma ya tiene `target_opponent_with_most_vps_bias`.
+                # Usaremos este bias para decidir si siempre robar al de más PVs o introducir aleatoriedad.
+                # Una implementación simple: si el bias es alto (e.g., > 0.5), robar al líder. Sino, más aleatorio.
+                # Por ahora, si hay algún bias positivo, se prioriza al líder. Si no, aleatorio.
+                # Esto podría refinarse con una lógica probabilística basada en el valor del bias.
+                bias_value = self.chromosome.get("robber_placement_heuristics", {}).get("target_opponent_with_most_vps_bias", 0.0)
+
+                if bias_value > 0.25 and robbable_players_details: # Umbral pequeño para activar el sesgo
+                    player_to_rob_id = robbable_players_details[0]['id'] # Robar al de más PVs
+                else:
+                    # Si no hay sesgo o es bajo, o no hay detalles de PV, elección aleatoria entre los presentes.
+                    player_to_rob_id = random.choice([p['id'] for p in robbable_players_details])
+            
+            elif unique_opponent_ids_on_terrain: # Fallback si no se pudieron obtener PVs pero hay jugadores
+                 player_to_rob_id = random.choice(unique_opponent_ids_on_terrain)
+            # FIN DE MODIFICACIÓN
         
         # print(f"Agente {self.id} mueve ladrón a terreno {chosen_terrain_id} y roba a jugador {player_to_rob_id}")
         return {'terrain': chosen_terrain_id, 'player': player_to_rob_id}

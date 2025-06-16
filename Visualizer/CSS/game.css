@@ -13,18 +13,21 @@
 
 #gamefield_external {
     height: 70vh;
-    background: #0077A0;
-    background-image: url('../Images/textures/water.jpg');
-    background-size: cover;
+    background-image: url('../Images/textures/background.gif'); /* Nuevo fondo GIF */
+    background-repeat: repeat; /* Asegurar que la imagen se repita */
+    background-size: auto; /* Permitir que la imagen use su tamaño original para el tileado */
+    /* Comentar el color de fondo sólido anterior y la imagen de agua */
+    /* background: #89b3f8; */
+    /* background-image: url('../Images/textures/water.jpg'); */
+    /* background-size: cover; */ 
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: -1.5em;
-    /* Animación del fondo del mar */
-    animation: oceanDeepWaves 20s linear infinite;
-    /* Agregamos sombra para dar profundidad */
-    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
+    margin-top: 0;
+    /* Comentar la animación de olas anterior */
+    /* animation: oceanDeepWaves 15s linear infinite; */
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1); /* Sombra interior más sutil si se desea */
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
     margin-bottom: 20px;
@@ -47,10 +50,10 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('../Images/textures/wave-overlay.png');
-    background-size: 400px 400px;
-    opacity: 0.3;
-    animation: waveOverlay 15s linear infinite;
+    background: url('../Images/textures/wave-overlay.png'); /* Reactivar superposición de olas */
+    background-size: 400px 400px; /* Ajustar si es necesario */
+    opacity: 0.25; /* Aumentar un poco la opacidad para que sea más visible */
+    animation: waveOverlay 10s linear infinite; /* Ajustar velocidad de la animación */
     pointer-events: none;
 }
 
@@ -67,8 +70,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
-    animation: waterGlow 8s ease-in-out infinite alternate;
+    background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 0%, transparent 70%); /* Brillo sutil */
+    animation: waterGlow 8s ease-in-out infinite alternate; /* Ajustar animación del brillo */
     pointer-events: none;
 }
 
@@ -102,27 +105,24 @@
     font-size: initial;
     clip-path: polygon(0% 25%, 0% 75%, 50% 100%, 100% 75%, 100% 25%, 50% 0%);
     margin-bottom: calc(var(--m) - var(--s) * 0.2886);
-    /* Agregamos efectos de elevación */
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    /* Agregamos transiciones para efectos suaves */
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* Cambiamos z-index para que sea más alto */
+    /* Sombra 2D simple */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Transición más simple */
     z-index: 5;
-    background: none;
-    /* Efecto de elevación 3D */
-    transform: translateZ(10px);
+    background: none; /* Se definirá por tipo de terreno */
     position: relative;
+    border-radius: 4px; 
 }
 
 .terrain:hover {
-    /* Efecto al pasar el mouse */
-    transform: translateZ(20px) scale(1.05);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    /* Efecto hover más simple, sin transformaciones 3D */
+    transform: scale(1.03);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
     z-index: 20;
 }
 
 .terrain_number {
-    --t: 50px;
+    --t: 40px; /* Tamaño reducido para un look más limpio */
     width: var(--t);
     height: var(--t);
 
@@ -132,19 +132,18 @@
 
     flex: 0 0 var(--t) !important;
 
-    border-radius: calc(var(--t) / 2);
-    background: #f2e5c0;
-    color: black;
+    border-radius: 50%; /* Círculo perfecto */
+    background: #ffffff; /* Fondo blanco */
+    color: #202124; /* Texto oscuro de Google */
     z-index: 10;
 
     display: flex;
     justify-content: center;
     align-items: center;
-    /* Agregamos sombra y borde */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    border: 2px solid #e6d5a5;
-    font-weight: bold;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 1px 2px rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15); /* Sombra de Google */
+    border: none; /* Quitar borde, la sombra es suficiente */
+    font-weight: 500; /* Peso medio */
+    font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .terrain_number > * {
@@ -172,41 +171,40 @@
 
 /* Mejoramos las texturas con gradientes y efectos */
 .terrain_cereal {
-    background: linear-gradient(135deg, #ffe066 0%, #ffd700 100%)!important;
-    background-image: url('../Images/textures/cereal.jpg')!important;
+    background: #fbbc05; /* Amarillo de Google */
+    background-image: url('../Images/textures/cereal.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_mineral {
-    background: linear-gradient(135deg, #8d8d8d 0%, #636363 100%)!important;
-    background-image: url('../Images/textures/mountain.jpg')!important;
+    background: #9aa0a6; /* Gris de Google */
+    background-image: url('../Images/textures/mountain.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_clay {
-    background: linear-gradient(135deg, #a5673f 0%, #8d5524 100%)!important;
-    background-image: url('../Images/textures/quarry.jpg')!important;
+    background: #ff8a65; /* Naranja/Rojo claro de Google (similar a arcilla) */
+    background-image: url('../Images/textures/quarry.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_wood {
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)!important;
-    background-image: url('../Images/textures/forest.jpg')!important;
+    background: #34a853; /* Verde de Google */
+    background-image: url('../Images/textures/forest.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_wool {
-    background: linear-gradient(135deg, #c3e59a 0%, #a7d676 100%)!important;
-    background-image: url('../Images/textures/wool.jpg')!important;
+    background: #a5d6a7; /* Verde claro de Google (similar a lana) */
+    background-image: url('../Images/textures/wool.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_desert {
-    background: linear-gradient(135deg, #f2e5c0 0%, #d6cca4 100%)!important;
-    background-image: url('../Images/textures/desert.jpg')!important;
+    background: #fffde7; /* Amarillo muy pálido (arena) */
+    background-image: url('../Images/textures/desert.jpg') !important; /* Reactivar texturas */
     background-size: cover;
 }
 .terrain_water {
-    background: linear-gradient(135deg, #00aacc 0%, #0077A0 100%)!important;
-    background-image: url('../Images/textures/water.jpg')!important;
+    background: #89b3f8; /* Azul claro de Google */
+    background-image: url('../Images/textures/water.jpg') !important; /* Reactivar texturas */
     background-size: cover;
-    /* Animación mejorada para las casillas de agua */
-    animation: waterWave 10s infinite linear;
+    animation: waterWaveTerrain 5s infinite linear; /* Reactivar animación para las casillas de agua individuales */
     position: relative;
 }
 
@@ -217,18 +215,19 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: url('../Images/textures/wave-overlay.png');
+    background: url('../Images/textures/wave-overlay.png'); /* Reactivar overlay para casillas de agua */
     background-size: 200px 200px;
-    opacity: 0.4;
-    animation: waveTerrainOverlay 8s linear infinite;
+    opacity: 0.3; /* Opacidad del overlay */
+    animation: waveTerrainOverlay 8s linear infinite; /* Animación del overlay */
     pointer-events: none;
 }
 
-@keyframes waterWave {
+/* Crear un keyframe que no existía para waterWaveTerrain o reutilizar uno existente si es apropiado */
+@keyframes waterWaveTerrain {
     0% { background-position: 0% 0%; }
-    25% { background-position: 10% 5%; }
-    50% { background-position: 20% 10%; }
-    75% { background-position: 10% 5%; }
+    25% { background-position: 5% 2%; }
+    50% { background-position: 10% 5%; }
+    75% { background-position: 5% 2%; }
     100% { background-position: 0% 0%; }
 }
 
@@ -278,6 +277,19 @@
 .node i {
     /* Mejoramos iconos */
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+}
+
+/*
+  Regla específica para los nodos de jugador (ej. 'player-red').
+  Asegura que estos nodos tengan una escala mayor (1.2) para destacarlos,
+  anulando cualquier transformación de escala en línea que pudiera reducirlos (como scale(0.8, 0.8)).
+  Utiliza !important para garantizar la precedencia sobre estilos en línea y asegurar la visibilidad deseada.
+  Si existen otros colores de jugador (ej. player-blue, player-green) que requieran
+  este mismo comportamiento, esta regla puede extenderse o duplicarse según sea necesario.
+  Por ejemplo: .node.player-red, .node.player-blue { ... }
+*/
+.node {
+    transform: scale(1.2, 1.2) !important;
 }
 
 .filler_node {
@@ -714,22 +726,329 @@
 @keyframes oceanDeepWaves {
     0% {
         background-position: 0% 0%;
-        filter: brightness(100%);
+        filter: brightness(0.9) contrast(1.1);
     }
     25% {
         background-position: 2% 2%; 
-        filter: brightness(105%);
+        filter: brightness(1.0) contrast(1.0);
     }
     50% {
         background-position: 0% 4%;
-        filter: brightness(110%);
+        filter: brightness(1.1) contrast(0.9);
     }
     75% {
         background-position: -2% 2%;
-        filter: brightness(105%);
+        filter: brightness(1.0) contrast(1.0);
     }
     100% {
         background-position: 0% 0%;
-        filter: brightness(100%);
+        filter: brightness(0.9) contrast(1.1);
     }
+}
+
+/* Estilos para el modo de reproducción automática */
+#gamefield.playing-mode {
+    animation: gamefieldPulse 4s infinite alternate ease-in-out;
+}
+
+@keyframes gamefieldPulse {
+    0% {
+        box-shadow: 0 0 20px rgba(39, 174, 96, 0.2);
+    }
+    100% {
+        box-shadow: 0 0 50px rgba(39, 174, 96, 0.5);
+    }
+}
+
+#gamefield.playing-mode .terrain {
+    transition: transform 0.5s ease-in-out;
+}
+
+#gamefield.playing-mode .water-ripple {
+    animation-duration: 3s; /* Más lento durante la reproducción automática */
+}
+
+/* Efecto para el botón activo durante la reproducción */
+.btn-group .btn:active, 
+.btn-group .btn.active-button {
+    background-color: #2980b9 !important;
+    color: white !important;
+    transform: translateY(0) !important;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Estilos para emoticonos de jugadores y construcciones */
+.player-emoji {
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    font-size: 12px;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.building-emoji {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 12px;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos específicos para carreteras */
+.road .player-emoji,
+.vertical_road .player-emoji {
+    top: 50%;
+    left: 10%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    width: 14px;
+    height: 14px;
+}
+
+.road .building-emoji,
+.vertical_road .building-emoji {
+    top: 50%;
+    right: 10%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    width: 14px;
+    height: 14px;
+}
+
+/* Animación para cuando aparecen los emoticonos */
+.player-emoji, .building-emoji {
+    animation: emojiPop 0.3s ease-out;
+}
+
+@keyframes emojiPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Estilos para los controles de zoom y pantalla completa */
+.map-controls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 100;
+}
+
+.map-controls button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.map-controls button:hover {
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.map-controls button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Mejorar visibilidad de los controles en modo pantalla completa */
+#gamefield_external.fullscreen .map-controls {
+    bottom: 20px;
+    right: 20px;
+}
+
+#gamefield_external.fullscreen .map-controls button {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para el mapa con zoom */
+#gamefield.zoomed-in {
+    transform: scale(1.5);
+    transform-origin: center center;
+}
+
+#gamefield.zoomed-out {
+    transform: scale(0.8);
+    transform-origin: center center;
+}
+
+/* Estilos para pantalla completa */
+#gamefield_external.fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+}
+
+#gamefield_external.fullscreen #gamefield {
+    transform: scale(1.2);
+}
+
+/* Transición suave para los efectos de zoom */
+#gamefield {
+    transition: transform 0.3s ease;
+}
+
+/* Añadir nuevas clases CSS al final del archivo o en una sección apropiada */
+
+.harbor-content-dynamic {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 12; /* Encima del nodo base, pero debajo de construcciones */
+    font-size: 0.8em; /* Ajusta según sea necesario */
+    text-align: center;
+    pointer-events: none; /* Para que no interfiera con clics en el nodo */
+}
+
+.harbor-content-dynamic i {
+    display: block;
+    margin-bottom: 2px; /* Espacio entre icono y texto */
+}
+
+.building-on-node { /* Clase para el span que contiene los emojis de poblado/ciudad */
+    position: relative; 
+    z-index: 25 !important; 
+    display: inline-block; 
+    /* Puedes añadir un background ligero o padding si los emojis se solapan mal con el nodo */
+}
+
+.node.is-harbor-active {
+    /* Estilos especiales para nodos de puerto activos */
+    /* background-color: rgba(200, 200, 255, 0.3); */ /* Ejemplo: un ligero tinte azul */
+    /* border: 1px dashed #007bff; */ /* Ejemplo: un borde punteado */
+}
+
+/* Asegúrate de que los estilos de .node no sobreescriban el z-index de forma inesperada */
+.node {
+    /* ... tus estilos existentes para .node ... */
+    /* Si .node tiene un z-index, asegúrate de que sea menor que .building-on-node */
+    /* y que .harbor-content-dynamic (12) esté por encima del z-index base del nodo si lo tiene */
+    width: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    height: 20px; /* Ejemplo de tamaño, ajusta al tuyo */
+    border-radius: 50%;
+    background-color: rgba(0,0,0,0.2); /* Un color base para verlos si no tienen contenido */
+    cursor: pointer;
+}
+
+/* Estilos para los contenedores de Log */
+.log-box,
+.turno-a-turno-log-box, /* Añadido para log de turno a turno */
+.comercio-log-box { /* Añadido para log de comercio */
+    height: 150px; /* Altura deseada, ajústala según tus necesidades */
+    border: 1px solid #ccc;
+    overflow-y: auto; /* Crucial para habilitar el scroll vertical */
+    padding: 10px;
+    background-color: #f0f0f0; /* Un fondo sutil */
+    margin-bottom: 15px; /* Espacio entre cajas de log */
+    border-radius: 5px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente legible */
+    font-size: 0.9em;
+    line-height: 1.4; /* Espaciado de línea para mejor lectura */
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); /* Sombra interior sutil */
+}
+
+/* Estilo para cada mensaje individual dentro del log */
+.log-box p,
+.turno-a-turno-log-box p, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p { /* Añadido para mensajes en log de comercio */
+    margin: 0 0 8px 0; /* Espacio debajo de cada mensaje */
+    padding: 5px;
+    border-bottom: 1px dashed #e0e0e0; /* Separador ligero */
+    word-wrap: break-word; /* Asegura que palabras largas no rompan el layout */
+}
+
+/* Elimina el borde del último mensaje para un look más limpio */
+.log-box p:last-child,
+.turno-a-turno-log-box p:last-child, /* Añadido para mensajes en log de turno a turno */
+.comercio-log-box p:last-child { /* Añadido para mensajes en log de comercio */
+    border-bottom: none;
+}
+
+/* Estilos opcionales para las secciones de log */
+.log-section h2 {
+    font-size: 1.2em;
+    color: #333;
+    margin-bottom: 5px;
+    border-bottom: 2px solid #3498db; /* Un acento de color */
+    padding-bottom: 3px;
+}
+
+.game-logs-container {
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.85); /* Fondo semitransparente si está sobre el juego */
+    border-radius: 8px;
+    margin-top: 20px; /* Espacio si está debajo del tablero */
+}
+
+/* Nuevas clases para estilizar mensajes de log con estructura título/detalle */
+.log-mensaje-titulo {
+    font-weight: bold; /* Destaca la línea principal del mensaje */
+    display: block; /* Asegura que ocupe su propia línea si es necesario */
+    margin-bottom: 2px; /* Pequeño espacio antes del detalle, si lo hay */
+}
+
+.log-mensaje-detalle {
+    display: block; /* Asegura que ocupe su propia línea */
+    font-size: 0.9em; /* Ligeramente más pequeño que el título */
+    color: #4A4A4A; /* Un color de texto ligeramente más suave para el detalle */
+    padding-left: 1.5em; /* Indentación para el detalle, simulando una sub-lista */
+    position: relative; /* Necesario para el pseudo-elemento de viñeta */
+}
+
+/* Opcional: Añadir un pequeño marcador visual al detalle, como un guion o punto */
+.log-mensaje-detalle::before {
+    content: "↳"; /* O puedes usar "-", "•", etc. */
+    position: absolute;
+    left: 0.5em;
+    top: 0;
+    color: #3498db; /* Color del marcador, coordinado con otros acentos */
 }
