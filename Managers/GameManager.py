@@ -59,11 +59,15 @@ class GameManager:
 
     def give_resources(self):
         """
-        Función que entrega materiales a cada uno de los jugadores en función de la tirada de dados
+        Función que entrega materiales a cada uno de los jugadores en función de la tirada de dados.
+        No entrega recursos de terrenos bloqueados por el ladrón.
         :return: None
         """
         # Por cada pieza de terreno en el tablero
         for terrain in self.board.terrain:
+            # Si el ladrón bloquea este terreno, no produce recursos
+            if terrain.get('has_thief', False):
+                continue
             # Si la probabilidad coincide
             if terrain['probability'] == self.last_dice_roll:
                 # Se miran los nodos adyacentes
@@ -72,13 +76,9 @@ class GameManager:
                     if self.board.nodes[node]['player'] != -1:
                         player = self.agent_manager.players[self.board.nodes[node]['player']]
                         # Si tiene ciudad se dan 2 en lugar de 1 material
-
-                        if self.board.nodes[node]['has_city']:
-                            player['player'].hand.add_material(terrain['terrain_type'], 2)
-                            player['resources'].add_material(terrain['terrain_type'], 2)
-                        else:
-                            player['player'].hand.add_material(terrain['terrain_type'], 1)
-                            player['resources'].add_material(terrain['terrain_type'], 1)
+                        amount = 2 if self.board.nodes[node]['has_city'] else 1
+                        player['player'].hand.add_material(terrain['terrain_type'], amount)
+                        player['resources'].add_material(terrain['terrain_type'], amount)
         return
 
     def _give_all_resources(self):
@@ -98,7 +98,8 @@ class GameManager:
 
     def send_trade_to_everyone(self, trade_offer=TradeOffer()):
         """
-        Permite enviar una oferta a todos los jugadores en la mesa. Si alguno acepta se hará el intercambio
+        Permite enviar una oferta a todos los jugadores en la mesa. Si alguno acepta se hará el intercambio.
+        Valida que las contraofertas sean viables antes de aceptarlas.
         :param trade_offer: Oferta de comercio con el jugador, debe incluir qué se entrega y qué se recibe
         :return: array [...dict {}]
         """
@@ -127,10 +128,26 @@ class GameManager:
                     response_obj = self._on_tradeoffer_response(receiver, giver, count, trade_offer)
 
                 if isinstance(response_obj["response"], TradeOffer):
-                    trade_offer = response_obj['response']
-                    response_obj['response'] = True
-                    on_tradeoffer_response.append(response_obj)
-                    count += 1
+                    counter_offer = response_obj['response']
+
+                    # Validar que quien hace la contraoferta tiene los recursos que ofrece
+                    if count % 2 == 0:
+                        # Giver está respondiendo: validar que giver tiene counter_offer.gives
+                        offerer = giver
+                    else:
+                        # Receiver está respondiendo: validar que receiver tiene counter_offer.gives
+                        offerer = receiver
+
+                    if offerer['resources'].resources.has_more(counter_offer.gives):
+                        trade_offer = counter_offer
+                        response_obj['response'] = True
+                        on_tradeoffer_response.append(response_obj)
+                        count += 1
+                    else:
+                        # Contraoferta inviable: se trata como rechazo
+                        response_obj['response'] = False
+                        on_tradeoffer_response.append(response_obj)
+                        offer = False
                 else:
                     on_tradeoffer_response.append(response_obj)
                     offer = False
@@ -276,34 +293,37 @@ class GameManager:
     def build_development_card(self, player_id):
         """
         Permite construir una carta de desarrollo.
+        Primero verifica recursos, luego saca la carta del mazo (evita perder cartas si no hay recursos).
         :param player_id: (int) Número que representa al jugador.
         :return: {bool, string, string, string}. Devuelve si se ha podido o no construir la carta de desarrollo,
                                                  el ID de la carta, el tipo de carta que es, el efecto de la carta
                                                  y si no se ha podido hacer, la razón.
         """
+        # Primero verificar que tiene recursos suficientes
+        if not self.agent_manager.players[player_id]['resources'].resources.has_more('card'):
+            return {'response': False, 'error_msg': 'Falta de materiales'}
+
+        # Luego intentar sacar una carta del mazo
         card_drawn = self.development_cards_deck.draw_card()
-        if card_drawn is not None:
-
-            if self.agent_manager.players[player_id]['resources'].resources.has_more('card'):
-                self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
-                                                                                    MaterialConstants.MINERAL,
-                                                                                    MaterialConstants.WOOL
-                                                                                    ], 1)
-                self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
-
-                if card_drawn.type == DevelopmentCardConstants.VICTORY_POINT:
-                    self.agent_manager.players[player_id]['hidden_victory_points'] += 1
-
-                self.agent_manager.players[player_id]['development_cards'].add_card(card_drawn)
-                self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
-                    self.agent_manager.players[player_id]['development_cards'].hand
-
-                return {'response': True, 'card_type': card_drawn.type,
-                        'card_effect': card_drawn.effect}
-            else:
-                return {'response': False, 'error_msg': 'Falta de materiales'}
-        else:
+        if card_drawn is None:
             return {'response': False, 'error_msg': 'No hay más cartas que crear'}
+
+        # Cobrar recursos
+        self.agent_manager.players[player_id]['resources'].remove_material([MaterialConstants.CEREAL,
+                                                                            MaterialConstants.MINERAL,
+                                                                            MaterialConstants.WOOL
+                                                                            ], 1)
+        self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
+
+        if card_drawn.type == DevelopmentCardConstants.VICTORY_POINT:
+            self.agent_manager.players[player_id]['hidden_victory_points'] += 1
+
+        self.agent_manager.players[player_id]['development_cards'].add_card(card_drawn)
+        self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
+            self.agent_manager.players[player_id]['development_cards'].hand
+
+        return {'response': True, 'card_type': card_drawn.type,
+                'card_effect': card_drawn.effect}
 
     def move_thief(self, terrain, adjacent_player):
         """
@@ -330,21 +350,25 @@ class GameManager:
     def _steal_from_player(self, player):
         """
         Función que permite robar de manera aleatoria un material de la mano de un jugador.
+        Solo roba materiales que la víctima realmente posee.
         :param player: Número que representa al jugador a robar
-        :return: int
+        :return: int (-1 si no se pudo robar)
         """
         player_obj = self.agent_manager.players[player]
         actual_player_obj = self.agent_manager.players[self.agent_manager.actual_player]
 
-        material_id = -1
-        total = player_obj["resources"].get_total()
-        new_total = player_obj["resources"].get_total()
+        # Construir lista de materiales que la víctima realmente tiene
+        available_materials = []
+        for mat_id in range(5):
+            if player_obj['resources'].get_from_id(mat_id) > 0:
+                available_materials.append(mat_id)
 
-        while new_total == total and total != 0:
-            material_id = random.randint(0, 4)
-            player_obj['resources'].remove_material(material_id, 1)
-            new_total = player_obj['resources'].get_total()
+        if not available_materials:
+            return -1  # No se puede robar: víctima sin recursos
 
+        # Elegir aleatoriamente entre los materiales disponibles
+        material_id = random.choice(available_materials)
+        player_obj['resources'].remove_material(material_id, 1)
         actual_player_obj['resources'].add_material(material_id, 1)
 
         player_obj['player'].hand = player_obj['resources']
@@ -606,11 +630,13 @@ class GameManager:
 
                 # Eligen 2 materiales (puede ser el mismo 2 veces)
                 materials_selected = self.agent_manager.players[player_id]['player'].on_year_of_plenty_card_use()
-                card_obj['materials_selected'] = materials_selected
 
                 if materials_selected is None:
                     material, material2 = random.randint(0, 4), random.randint(0, 4)
                     materials_selected = {'material': material, 'material_2': material2}
+
+                # Guardar en el objeto DESPUÉS de la posible generación aleatoria
+                card_obj['materials_selected'] = materials_selected
 
                 # Obtienen una carta de ese material elegido
                 self.agent_manager.players[player_id]['resources'].add_material(materials_selected['material'], 1)
@@ -800,7 +826,12 @@ class GameManager:
                     max_hand = math.floor(total / 2)
 
                     while total > max_hand:
-                        obj['resources'].remove_material(random.randint(0, 4), 1)
+                        # Solo intentar descartar materiales que el jugador realmente tiene
+                        available = [m for m in range(5) if obj['resources'].get_from_id(m) > 0]
+                        if not available:
+                            break
+                        material_id = random.choice(available)
+                        obj['resources'].remove_material(material_id, 1)
                         total = obj['resources'].get_total()
 
             on_moving_thief = self.agent_manager.players[player_id]['player'].on_moving_thief()
