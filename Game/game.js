@@ -795,15 +795,20 @@ function renderPlayerDevCards(playerIdx) {
     if (cards.length === 0) return;
 
     cards.forEach(cardType => {
+        if (cardType === null || cardType === undefined) return; // Skip invalid cards
         const img = document.createElement('img');
         img.className = 'dev-card-thumb';
         const asset = DEV_CARD_ASSETS[cardType];
         if (asset) {
             img.src = ASSET_BASE + asset;
+        } else {
+            // Fallback: try to find by string name
+            img.src = ASSET_BASE + 'desarrollo/caballero.png';
         }
-        img.alt = CARD_TYPES[cardType] || '?';
-        img.title = CARD_TYPES[cardType] || 'Carta';
+        img.alt = CARD_TYPES[cardType] || DEV_CARD_NAMES[cardType] || '?';
+        img.title = CARD_TYPES[cardType] || DEV_CARD_NAMES[cardType] || 'Carta';
         img.draggable = false;
+        img.onerror = function() { this.style.display = 'none'; }; // Hide if image fails
         container.appendChild(img);
     });
 }
@@ -918,12 +923,21 @@ function applyCommerce(data) {
     commerceContainer.innerHTML = '';
 
     data.forEach((trade, idx) => {
-        if (trade.trade_offer === 'None') {
+        // Skip null/None/empty/played_card trade offers
+        if (!trade.trade_offer || trade.trade_offer === 'None' || trade.trade_offer === null) {
             addLog(`🤝 Sin comercio en esta fase`, 'log-trade');
             return;
         }
+        if (trade.trade_offer === 'played_card') {
+            // Development card played during commerce phase — handled elsewhere
+            return;
+        }
+        if (typeof trade.trade_offer !== 'object') {
+            // Unknown format, skip
+            return;
+        }
 
-        if (trade.harbor_trade) {
+        if (trade.harbor_trade || typeof trade.trade_offer.gives === 'number') {
             // Harbor/bank trade
             addLog(
                 `🏪 Comercio con banco/puerto — Da: ${formatTradeOffer(trade.trade_offer.gives)} → Recibe: ${formatTradeOffer(trade.trade_offer.receives)}`,
@@ -1009,13 +1023,17 @@ function applyBuild(data) {
                 break;
             }
             case 'card': {
+                if (!build.finished) {
+                    addLog(`🃏 <span class="pname-${currentTurn}">${PLAYER_NAMES[currentTurn]}</span> intenta comprar carta pero no puede`, 'log-card');
+                    break;
+                }
                 const cardType = CARD_TYPES[build.card_type] || 'Desconocida';
                 addLog(
                     `🃏 <span class="pname-${currentTurn}">${PLAYER_NAMES[currentTurn]}</span> compra carta de desarrollo: <strong>${cardType}</strong>`,
                     'log-card'
                 );
-                // Track dev card for player
-                if (boardState.playerDevCards) {
+                // Track dev card for player (only if valid card_type)
+                if (boardState.playerDevCards && build.card_type !== null && build.card_type !== undefined) {
                     boardState.playerDevCards[currentTurn].push(build.card_type);
                     renderPlayerDevCards(currentTurn);
                 }
@@ -1401,7 +1419,7 @@ function rebuildState() {
                         }
                     } else if (build.building === 'road') {
                         boardState.roads.push({ from: build.node_id, to: build.road_to, player: t });
-                    } else if (build.building === 'card') {
+                    } else if (build.building === 'card' && build.finished && build.card_type !== null && build.card_type !== undefined) {
                         boardState.playerDevCards[t].push(build.card_type);
                     } else if (build.building === 'played_card') {
                         // Handle road_building dev card
@@ -1533,8 +1551,14 @@ function formatTradeResources(offer) {
     return parts.length > 0 ? parts.join(' ') : 'nada';
 }
 
+const MAT_ID_TO_NAME = {0: 'cereal', 1: 'mineral', 2: 'clay', 3: 'wood', 4: 'wool'};
+
 function formatTradeOffer(offer) {
-    if (typeof offer === 'number') return String(offer) + ' recursos';
+    if (typeof offer === 'number') {
+        const matName = MAT_ID_TO_NAME[offer];
+        if (matName) return `${RESOURCE_ICONS[matName]} ${RESOURCE_NAMES[matName]}`;
+        return String(offer);
+    }
     return formatTradeResources(offer);
 }
 
