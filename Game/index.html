@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catán - Visualizador de Partidas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- ============ HEADER ============ -->
+        <header id="app-header">
+            <h1>Catán <span class="subtitle">Visualizador</span></h1>
+            <div class="header-right">
+                <div id="game-status" class="status-badge hidden">
+                    <span id="status-text">Partida cargada</span>
+                </div>
+                <button id="load-btn" class="btn-load" title="Cargar partida JSON">
+                    📁 Cargar Partida
+                </button>
+                <input type="file" id="file-input" accept=".json" style="display:none">
+            </div>
+        </header>
+
+        <!-- ============ MAIN LAYOUT ============ -->
+        <div id="main-layout">
+
+            <!-- ====== TABLERO (Centro) ====== -->
+            <main id="board-area">
+                <!-- Diceroll display -->
+                <div id="dice-display" class="hidden">
+                    <div class="dice-info">
+                        <span class="dice-label">🎲 Dado:</span>
+                        <span id="dice-value" class="dice-number">0</span>
+                    </div>
+                </div>
+
+                <!-- Contenedor del tablero -->
+                <div id="board-wrapper">
+                    <div id="board">
+                        <!-- Hexágonos generados por JS -->
+                        <div id="hex-container"></div>
+                        <!-- Fichas de número generadas por JS -->
+                        <div id="token-container"></div>
+                        <!-- Caminos generados por JS -->
+                        <div id="road-container"></div>
+                        <!-- Nodos (poblados/ciudades) generados por JS -->
+                        <div id="node-container"></div>
+                        <!-- Puertos generados por JS -->
+                        <div id="harbor-container"></div>
+                        <!-- Ladrón -->
+                        <div id="robber" class="hidden">
+                            <img src="../nuevos_assets/ladron.png" alt="Ladrón" draggable="false">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ====== CONTROLES DE NAVEGACIÓN ====== -->
+                <div id="controls">
+                    <button id="btn-start" class="ctrl-btn" title="Ir al inicio">
+                        <img src="../nuevos_assets/ui/boton_principio.png" alt="Inicio" draggable="false">
+                    </button>
+                    <button id="btn-prev-round" class="ctrl-btn" title="Ronda anterior">
+                        <img src="../nuevos_assets/ui/boton_retrocede.png" alt="Ronda anterior" draggable="false">
+                    </button>
+                    <button id="btn-prev" class="ctrl-btn" title="Fase anterior">
+                        <img src="../nuevos_assets/ui/boton_retrocede.png" alt="Anterior" draggable="false" class="small-btn">
+                    </button>
+                    <button id="btn-play" class="ctrl-btn play-btn" title="Play / Pausa">
+                        <img src="../nuevos_assets/ui/boton_play.png" alt="Play" draggable="false" id="play-icon">
+                    </button>
+                    <button id="btn-next" class="ctrl-btn" title="Fase siguiente">
+                        <img src="../nuevos_assets/ui/boton_avanza.png" alt="Siguiente" draggable="false" class="small-btn">
+                    </button>
+                    <button id="btn-next-round" class="ctrl-btn" title="Ronda siguiente">
+                        <img src="../nuevos_assets/ui/boton_avanza.png" alt="Ronda siguiente" draggable="false">
+                    </button>
+                    <button id="btn-end" class="ctrl-btn" title="Ir al final">
+                        <img src="../nuevos_assets/ui/boton_final.png" alt="Final" draggable="false">
+                    </button>
+
+                    <!-- Velocidad de reproducción -->
+                    <div id="speed-control">
+                        <label for="speed-slider">Velocidad:</label>
+                        <input type="range" id="speed-slider" min="200" max="3000" value="1000" step="100">
+                        <span id="speed-value">1.0s</span>
+                    </div>
+                </div>
+
+                <!-- ====== INFO DE ESTADO ====== -->
+                <div id="state-bar">
+                    <div class="state-item">
+                        <span class="state-label">Ronda</span>
+                        <span id="info-round" class="state-value">-</span>
+                        <span id="info-round-max" class="state-max"></span>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Turno</span>
+                        <span id="info-turn" class="state-value">-</span>
+                    </div>
+                    <div class="state-item">
+                        <span class="state-label">Fase</span>
+                        <span id="info-phase" class="state-value">-</span>
+                    </div>
+                    <div class="state-item active-player-indicator">
+                        <span class="state-label">Jugador activo</span>
+                        <span id="info-active-player" class="state-value">-</span>
+                    </div>
+                </div>
+            </main>
+
+            <!-- ====== PANEL DERECHO ====== -->
+            <aside id="right-panel">
+                <!-- Jugadores -->
+                <section id="players-section">
+                    <h2 class="section-title">Jugadores</h2>
+                    <div id="players-container">
+                        <!-- Se genera dinámicamente -->
+                    </div>
+                </section>
+
+                <!-- Log de eventos -->
+                <section id="log-section">
+                    <h2 class="section-title">Registro de Eventos</h2>
+                    <div id="log-container">
+                        <div class="empty-log">
+                            <p>📜 Carga una partida para ver los eventos</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Comercio -->
+                <section id="commerce-section">
+                    <h2 class="section-title">Comercios</h2>
+                    <div id="commerce-container">
+                        <div class="empty-log">
+                            <p>🤝 Los comercios aparecerán aquí</p>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+
+        <!-- ============ MODAL CARGA ============ -->
+        <div id="upload-modal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h2>Cargar Partida</h2>
+                <div id="drop-zone" class="drop-zone">
+                    <p class="drop-icon">📁</p>
+                    <p>Arrastra un archivo JSON aquí</p>
+                    <p class="drop-sub">o haz clic para seleccionar</p>
+                </div>
+                <div id="file-info" class="hidden">
+                    <p>📄 <span id="file-name"></span></p>
+                </div>
+                <div class="modal-actions">
+                    <button id="modal-cancel" class="btn-secondary">Cancelar</button>
+                    <button id="modal-load" class="btn-primary" disabled>Cargar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ MODAL VICTORIA ============ -->
+        <div id="victory-modal" class="modal hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content victory-content">
+                <h2>🏆 ¡Victoria!</h2>
+                <p id="winner-text"></p>
+                <button id="victory-close" class="btn-primary">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
