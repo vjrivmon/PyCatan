@@ -316,14 +316,29 @@ function loadSelectedFile() {
     if (!selectedFile) return;
     const reader = new FileReader();
     reader.onload = (e) => {
+        // Clear any previous corrupt session data before loading
+        try { sessionStorage.removeItem('catan_game_data'); } catch (_) {}
+
+        let data;
         try {
-            const data = JSON.parse(e.target.result);
+            data = JSON.parse(e.target.result);
+        } catch (err) {
+            alert('Error al parsear JSON: archivo inválido.\n' + err.message);
+            return;
+        }
+
+        try {
+            const fileName = selectedFile.name;
             loadGame(data);
             hideModal('upload-modal');
             $('#game-status').classList.remove('hidden');
-            $('#status-text').textContent = selectedFile.name;
+            $('#status-text').textContent = fileName;
         } catch (err) {
-            alert('Error al parsear el archivo JSON: ' + err.message);
+            console.error('Error al cargar la partida:', err);
+            alert('Error al cargar la partida: ' + err.message + '\n\nRevisa la consola (F12) para más detalles.');
+            // Reset state on error
+            gameData = null;
+            boardState = null;
         }
     };
     reader.readAsText(selectedFile);
@@ -333,6 +348,23 @@ function loadSelectedFile() {
 // GAME LOADING
 // ============================================================
 function loadGame(data) {
+    // Validar estructura JSON antes de procesar
+    if (!data || !data.setup || !data.setup.board || !data.setup.board.board_nodes || !data.setup.board.board_terrain || !data.game) {
+        console.error('Estructura JSON inválida. Claves encontradas:', data ? Object.keys(data) : 'null');
+        if (data && data.setup) console.error('setup keys:', Object.keys(data.setup));
+        if (data && data.setup && data.setup.board) console.error('board keys:', Object.keys(data.setup.board));
+        throw new Error('El archivo JSON no tiene la estructura esperada. Revisa la consola para detalles.');
+    }
+
+    // Validar que terrain tenga terrain_type en cada entrada
+    const terrain = data.setup.board.board_terrain;
+    for (let i = 0; i < terrain.length; i++) {
+        if (terrain[i] && terrain[i].terrain_type === undefined) {
+            console.error('Terrain[' + i + '] no tiene terrain_type:', terrain[i]);
+            throw new Error('Terrain[' + i + '] no tiene campo terrain_type.');
+        }
+    }
+
     gameData = data;
 
     // Persist to sessionStorage for reload
@@ -392,9 +424,17 @@ function restoreFromSession() {
         const saved = sessionStorage.getItem('catan_game_data');
         if (saved) {
             const data = JSON.parse(saved);
-            loadGame(data);
+            if (data && data.setup && data.setup.board &&
+                data.setup.board.board_nodes && data.setup.board.board_terrain &&
+                data.game && Object.keys(data.game).length > 0) {
+                loadGame(data);
+            } else {
+                sessionStorage.removeItem('catan_game_data');
+                console.warn('Datos de sesión incompletos, eliminados.');
+            }
         }
     } catch (e) {
+        sessionStorage.removeItem('catan_game_data');
         console.warn('No se pudo restaurar la partida:', e);
     }
 }
@@ -457,7 +497,8 @@ function renderHexagons() {
         const pos = HEX_POSITIONS[idx];
         if (!pos) return;
 
-        const terrainInfo = TERRAIN_TYPES[terrain.terrain_type] || TERRAIN_TYPES['-1'];
+        const tt = terrain ? terrain.terrain_type : -1;
+        const terrainInfo = TERRAIN_TYPES[tt] || TERRAIN_TYPES[String(tt)] || TERRAIN_TYPES['-1'] || { name: 'Desconocido', asset: 'hexagono_desierto.png' };
         const div = document.createElement('div');
         div.className = 'hex';
         div.id = 'hex-' + idx;

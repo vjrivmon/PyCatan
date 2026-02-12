@@ -64,9 +64,10 @@ class AgentInterface:
         """
         return None
 
-    def on_commerce_phase(self):
+    def on_commerce_phase(self, board_instance=None):
         """
         Trigger para cuando empieza la fase de comercio. Devuelve una oferta
+        :param board_instance: Board() copia profunda del tablero actual
         :return: TradeOffer, dict{'gives': int, 'receives': int}, None
         """
         return None

@@ -1,4 +1,4 @@
-from copy import copy
+from copy import deepcopy
 from Classes.Board import Board
 from Classes.Constants import *
 from Classes.DevelopmentCards import *
@@ -16,6 +16,8 @@ class GameManager:
     MAX_COMMERCE_DEPTH = 2
     MAX_COMMERCE_TRADES = 2
 
+    BANK_TOTAL_PER_RESOURCE = 19
+
     def __init__(self, for_test=False, agents = None):
         self.already_played_development_card = False
         self.last_dice_roll = 0
@@ -28,7 +30,27 @@ class GameManager:
         self.turn_manager = TurnManager()
         self.commerce_manager = CommerceManager()
         self.agent_manager = AgentManager(for_test, agents=agents)
+        self._init_bank()
         return
+
+    def _init_bank(self):
+        """Inicializa el banco con 19 cartas de cada recurso (regla oficial de Catán)."""
+        n = self.BANK_TOTAL_PER_RESOURCE
+        self.bank = Hand()
+        self.bank.resources = Materials(n, n, n, n, n)
+
+    def _bank_give(self, resource_id, amount):
+        """Saca recursos del banco y los da. Devuelve la cantidad realmente disponible."""
+        available = self.bank.get_from_id(resource_id)
+        actual = min(amount, available)
+        if actual > 0:
+            self.bank.remove_material(resource_id, actual)
+        return actual
+
+    def _bank_return(self, resource_id, amount):
+        """Devuelve recursos al banco."""
+        if amount > 0:
+            self.bank.add_material(resource_id, amount)
 
     def reset_game_values(self):
         """
@@ -45,6 +67,7 @@ class GameManager:
         self.development_cards_deck = DevelopmentDeck()
         self.turn_manager = TurnManager()
         self.agent_manager.reset_game_values()
+        self._init_bank()
         return
 
     def throw_dice(self):
@@ -61,24 +84,40 @@ class GameManager:
         """
         Función que entrega materiales a cada uno de los jugadores en función de la tirada de dados.
         No entrega recursos de terrenos bloqueados por el ladrón.
+        Regla oficial: si el banco no tiene suficiente de un recurso para satisfacer TODA la demanda
+        de un hexágono, NADIE recibe ese recurso de ese hexágono.
         :return: None
         """
-        # Por cada pieza de terreno en el tablero
         for terrain in self.board.terrain:
-            # Si el ladrón bloquea este terreno, no produce recursos
             if terrain.get('has_thief', False):
                 continue
-            # Si la probabilidad coincide
             if terrain['probability'] == self.last_dice_roll:
-                # Se miran los nodos adyacentes
+                resource_type = terrain['terrain_type']
+                if resource_type < 0:  # Desierto, no produce
+                    continue
+
+                # Calcular demanda total de este hexágono
+                total_demand = 0
+                recipients = []
                 for node in terrain['contacting_nodes']:
-                    # Si tiene jugador, implica que hay pueblo
                     if self.board.nodes[node]['player'] != -1:
-                        player = self.agent_manager.players[self.board.nodes[node]['player']]
-                        # Si tiene ciudad se dan 2 en lugar de 1 material
                         amount = 2 if self.board.nodes[node]['has_city'] else 1
-                        player['player'].hand.add_material(terrain['terrain_type'], amount)
-                        player['resources'].add_material(terrain['terrain_type'], amount)
+                        recipients.append((self.board.nodes[node]['player'], amount))
+                        total_demand += amount
+
+                # Si el banco no tiene suficiente para cubrir toda la demanda, nadie recibe
+                if total_demand == 0:
+                    continue
+                bank_available = self.bank.get_from_id(resource_type)
+                if bank_available < total_demand:
+                    continue  # Nadie recibe — regla oficial de Catán
+
+                # Repartir recursos y restar del banco
+                for player_id, amount in recipients:
+                    player = self.agent_manager.players[player_id]
+                    player['resources'].add_material(resource_type, amount)
+                    player['player'].hand = player['resources']  # Sincronizar (son el mismo obj tras setup)
+                    self.bank.remove_material(resource_type, amount)
         return
 
     def _give_all_resources(self):
@@ -184,7 +223,7 @@ class GameManager:
             'giver': giver['id'],
             'receiver': receiver['id'],
         }
-        response = receiver['player'].on_trade_offer(copy(self.board), trade_offer, giver['id'])
+        response = receiver['player'].on_trade_offer(deepcopy(self.board), trade_offer, giver['id'])
 
         if count > self.MAX_COMMERCE_DEPTH:
             json_obj['response'] = False
@@ -243,6 +282,9 @@ class GameManager:
                                                                                     MaterialConstants.WOOL
                                                                                     ], 1)
                 self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
+                # Devolver recursos al banco
+                for mat in [MaterialConstants.CEREAL, MaterialConstants.CLAY, MaterialConstants.WOOD, MaterialConstants.WOOL]:
+                    self._bank_return(mat, 1)
 
             return build_town_obj
         else:
@@ -263,6 +305,9 @@ class GameManager:
                 self.agent_manager.players[player_id]['resources'].remove_material(MaterialConstants.MINERAL, 3)
 
                 self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
+                # Devolver recursos al banco
+                self._bank_return(MaterialConstants.CEREAL, 2)
+                self._bank_return(MaterialConstants.MINERAL, 3)
 
             return build_city_obj
         else:
@@ -285,6 +330,9 @@ class GameManager:
                                                                                     MaterialConstants.WOOD
                                                                                     ], 1)
                 self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
+                # Devolver recursos al banco
+                self._bank_return(MaterialConstants.CLAY, 1)
+                self._bank_return(MaterialConstants.WOOD, 1)
 
             return build_road_obj
         else:
@@ -314,6 +362,10 @@ class GameManager:
                                                                             MaterialConstants.WOOL
                                                                             ], 1)
         self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
+        # Devolver recursos al banco
+        self._bank_return(MaterialConstants.CEREAL, 1)
+        self._bank_return(MaterialConstants.MINERAL, 1)
+        self._bank_return(MaterialConstants.WOOL, 1)
 
         if card_drawn.type == DevelopmentCardConstants.VICTORY_POINT:
             self.agent_manager.players[player_id]['hidden_victory_points'] += 1
@@ -387,7 +439,7 @@ class GameManager:
 
         for count in range(3):
             try:
-                node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(copy(self.board))
+                node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(deepcopy(self.board))
             except Exception as e:
                 print(f"Error: {e}. Agente: {self.agent_manager.players[player]['player']}")
                 node_id, road_to = None, None
@@ -406,24 +458,37 @@ class GameManager:
 
                 terrain_ids = self.board.nodes[node_id]['contacting_terrain']
                 for ter_id in terrain_ids:
-                    materials.append(self.board.terrain[ter_id]['terrain_type'])
+                    terrain_type = self.board.terrain[ter_id]['terrain_type']
+                    if terrain_type >= 0:  # Filtrar desierto (terrain_type == -1)
+                        materials.append(terrain_type)
 
                 self.board.nodes[node_id]['player'] = player
 
-                # Se le dan materiales al AgentManager y este a los agentes para que sepan cuantos tienen en realidad
-                self.agent_manager.players[player]['resources'].add_material(materials, 1)
+                # Se le dan materiales al AgentManager y estos se restan del banco
+                for mat in materials:
+                    actual = self._bank_give(mat, 1)
+                    if actual > 0:
+                        self.agent_manager.players[player]['resources'].add_material(mat, 1)
                 self.agent_manager.players[player]['player'].hand = self.agent_manager.players[player]['resources']
 
                 self.agent_manager.players[player]['victory_points'] += 1
 
-                # Parte carreteras
+                # Parte carreteras: validar que road_to sea adyacente
+                adjacent = self.board.nodes[node_id]['adjacent']
+                if road_to not in adjacent:
+                    road_to = random.choice(adjacent)
+
                 if self.board.build_road(player, node_id, road_to)['response']:
                     return node_id, road_to
                 else:
-                    possible_roads = self.board.nodes[node_id]['adjacent']
-                    road_to = random.choice(possible_roads) 
-                    self.board.build_road(player, node_id, road_to)
-                    return node_id, road_to
+                    # Iterar sobre adyacentes hasta encontrar una road válida
+                    random.shuffle(adjacent)
+                    for candidate in adjacent:
+                        result = self.board.build_road(player, node_id, candidate)
+                        if result['response']:
+                            return node_id, candidate
+                    # Fallback: devolver la última intentada
+                    return node_id, adjacent[0] if adjacent else road_to
 
     def longest_road_calculator(self, node, depth, longest_road_obj, player_id, visited_nodes):
         """
@@ -638,9 +703,15 @@ class GameManager:
                 # Guardar en el objeto DESPUÉS de la posible generación aleatoria
                 card_obj['materials_selected'] = materials_selected
 
-                # Obtienen una carta de ese material elegido
-                self.agent_manager.players[player_id]['resources'].add_material(materials_selected['material'], 1)
-                self.agent_manager.players[player_id]['resources'].add_material(materials_selected['material_2'], 1)
+                # Obtienen una carta de ese material elegido (del banco)
+                mat1 = materials_selected['material']
+                mat2 = materials_selected['material_2']
+                actual1 = self._bank_give(mat1, 1)
+                actual2 = self._bank_give(mat2, 1)
+                if actual1 > 0:
+                    self.agent_manager.players[player_id]['resources'].add_material(mat1, 1)
+                if actual2 > 0:
+                    self.agent_manager.players[player_id]['resources'].add_material(mat2, 1)
 
                 # Se actualiza la mano
                 self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
@@ -778,14 +849,14 @@ class GameManager:
         :param player_id: int
         :return: TradeOffer, dict{'gives': int, 'receives': int}, None
         """
-        return self.agent_manager.players[player_id]['player'].on_commerce_phase()
+        return self.agent_manager.players[player_id]['player'].on_commerce_phase(deepcopy(self.board))
 
     def call_to_agent_on_build_phase(self, player_id):
         """
         :param player_id: int
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        return self.agent_manager.players[player_id]['player'].on_build_phase(copy(self.board))
+        return self.agent_manager.players[player_id]['player'].on_build_phase(deepcopy(self.board))
 
     def get_board_nodes(self):
         """
@@ -832,6 +903,7 @@ class GameManager:
                             break
                         material_id = random.choice(available)
                         obj['resources'].remove_material(material_id, 1)
+                        self._bank_return(material_id, 1)  # Devolver al banco
                         total = obj['resources'].get_total()
 
             on_moving_thief = self.agent_manager.players[player_id]['player'].on_moving_thief()
@@ -873,20 +945,28 @@ class GameManager:
 
             harbor_type = self.board.check_for_player_harbors(player_id, commerce_response['gives'])
 
+            # Capturar recursos ANTES del trade (CommerceManager modifica in-place)
+            gives_id = commerce_response['gives']
+            receives_id = commerce_response['receives']
+
             if harbor_type == HarborConstants.NONE:
+                trade_ratio = 4
                 response = self.commerce_manager.trade_without_harbor(
-                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
-                    commerce_response['receives'])
+                    self.agent_manager.players[player_id]['resources'], gives_id, receives_id)
             elif harbor_type == HarborConstants.ALL:
+                trade_ratio = 3
                 response = self.commerce_manager.trade_through_harbor(
-                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
-                    commerce_response['receives'])
+                    self.agent_manager.players[player_id]['resources'], gives_id, receives_id)
             else:
+                trade_ratio = 2
                 response = self.commerce_manager.trade_through_special_harbor(
-                    self.agent_manager.players[player_id]['resources'], commerce_response['gives'],
-                    commerce_response['receives'])
+                    self.agent_manager.players[player_id]['resources'], gives_id, receives_id)
 
             if isinstance(response, Hand):
+                # Actualizar banco: jugador entregó trade_ratio recursos, recibió 1
+                self._bank_return(gives_id, trade_ratio)
+                self._bank_give(receives_id, 1)
+
                 self.agent_manager.players[player_id]['resources'] = response
                 self.agent_manager.players[player_id]['player'].hand = self.agent_manager.players[player_id]['resources']
                 commerce_phase_object['answer'] = response.resources.__to_object__()
