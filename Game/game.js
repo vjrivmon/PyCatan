@@ -604,8 +604,9 @@ function renderRoads() {
         const length = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
+        const roadH = 18;
         div.style.left = fromPos.x + 'px';
-        div.style.top = fromPos.y + 'px';
+        div.style.top = (fromPos.y - roadH / 2) + 'px';
         div.style.width = length + 'px';
         div.style.transformOrigin = '0 50%';
         div.style.transform = 'rotate(' + angle + 'deg)';
@@ -794,14 +795,36 @@ function updatePlayerHands(turnData) {
 
             el.textContent = val;
 
-            // Highlight changes
+            // Remove previous delta badges
+            const cell = el.closest('.resource-cell');
+            if (cell) {
+                const oldBadge = cell.querySelector('.res-delta');
+                if (oldBadge) oldBadge.remove();
+            }
+
+            // Highlight changes with delta badge
             el.classList.remove('increased', 'decreased');
-            if (val > prevVal) {
+            const diff = val - prevVal;
+            if (diff > 0) {
                 el.classList.add('increased');
-                setTimeout(() => el.classList.remove('increased'), 800);
-            } else if (val < prevVal) {
+                setTimeout(() => el.classList.remove('increased'), 1800);
+                if (cell) {
+                    const badge = document.createElement('span');
+                    badge.className = 'res-delta res-delta-up';
+                    badge.textContent = '+' + diff;
+                    cell.appendChild(badge);
+                    setTimeout(() => badge.remove(), 1800);
+                }
+            } else if (diff < 0) {
                 el.classList.add('decreased');
-                setTimeout(() => el.classList.remove('decreased'), 800);
+                setTimeout(() => el.classList.remove('decreased'), 1800);
+                if (cell) {
+                    const badge = document.createElement('span');
+                    badge.className = 'res-delta res-delta-down';
+                    badge.textContent = diff;
+                    cell.appendChild(badge);
+                    setTimeout(() => badge.remove(), 1800);
+                }
             }
         });
 
@@ -905,18 +928,42 @@ function applyCurrentPhase() {
     }
 }
 
+
+function highlightProducingHexes(diceValue) {
+    // Remove previous highlights
+    document.querySelectorAll('.hex.hex-producing').forEach(el => {
+        el.classList.remove('hex-producing');
+    });
+
+    if (!boardState.terrain || !diceValue || diceValue === 7) return;
+
+    boardState.terrain.forEach((terrain, idx) => {
+        if (terrain.probability === diceValue && terrain.terrain_type !== -1) {
+            const hexEl = document.getElementById('hex-' + idx);
+            if (hexEl) {
+                hexEl.classList.add('hex-producing');
+                setTimeout(() => hexEl.classList.remove('hex-producing'), 2500);
+            }
+        }
+    });
+}
+
 function applyStartTurn(data) {
     if (!data) return;
 
     const dice = data.dice;
     const player = parseInt(data.actual_player);
 
-    // Update dice display
+    // Update dice display with player color
     const diceEl = $('#dice-display');
-    diceEl.classList.remove('hidden');
+    diceEl.classList.remove('hidden', 'dice-player-0', 'dice-player-1', 'dice-player-2', 'dice-player-3');
+    diceEl.classList.add('dice-player-' + player);
     const diceVal = $('#dice-value');
     diceVal.textContent = dice;
     diceVal.classList.toggle('dice-seven', dice === 7);
+
+    // Highlight hexes that produce resources for this dice roll
+    highlightProducingHexes(dice);
 
     // Update hands
     updatePlayerHands(data);
@@ -964,7 +1011,12 @@ function applyCommerce(data) {
     commerceContainer.innerHTML = '';
 
     data.forEach((trade, idx) => {
-        // Skip null/None/empty/played_card trade offers
+        // Always update hands from every commerce entry (even None/skipped trades)
+        if (trade['hand_P0']) {
+            updatePlayerHands(trade);
+        }
+
+        // Skip null/None/empty/played_card trade offers for logging purposes
         if (!trade.trade_offer || trade.trade_offer === 'None' || trade.trade_offer === null) {
             addLog(`🤝 Sin comercio en esta fase`, 'log-trade');
             return;
@@ -994,29 +1046,48 @@ function applyCommerce(data) {
                 'log-trade'
             );
 
-            // Process answers
+            // Show offer header in commerce panel when there are multiple player trades
+            const playerTrades = data.filter(t => t.trade_offer && t.trade_offer !== 'None' && typeof t.trade_offer === 'object' && !t.harbor_trade && typeof t.trade_offer.gives !== 'number');
+            if (playerTrades.length > 1) {
+                const offerNum = playerTrades.indexOf(trade) + 1;
+                addCommerceLog(`<strong>Oferta ${offerNum}:</strong> ${gives} → ${receives}`);
+            }
+
+            // Process answers — show only ONE line per negotiation chain
             if (trade.answers) {
                 trade.answers.forEach((playerAnswers) => {
-                    if (Array.isArray(playerAnswers)) {
-                        playerAnswers.forEach(answer => {
-                            if (answer.response !== undefined) {
-                                const giver = answer.giver !== undefined ? answer.giver : '?';
-                                const receiver = answer.receiver !== undefined ? answer.receiver : '?';
-                                const accepted = answer.response ? '✅ Acepta' : '❌ Rechaza';
-                                addCommerceLog(
-                                    `<span class="pname-${receiver}">${PLAYER_NAMES[receiver] || 'J?'}</span> → ${accepted}`
-                                );
-                            }
-                        });
+                    if (!Array.isArray(playerAnswers) || playerAnswers.length === 0) return;
+
+                    // count=1 entry identifies the responding player (receiver field)
+                    const respondent = playerAnswers[0].receiver;
+
+                    // Final outcome comes from the last entry
+                    const last = playerAnswers[playerAnswers.length - 1];
+                    const completed = last.completed === true;
+                    const accepted = last.response === true;
+                    const hadCounterOffers = playerAnswers.length > 1;
+
+                    let status;
+                    if (completed) {
+                        status = '✅ Acepta';
+                    } else if (accepted) {
+                        // Accepted but trade not executed (resource validation failed)
+                        status = '⚠️ Acepta (sin efecto)';
+                    } else {
+                        status = '❌ Rechaza';
                     }
+
+                    if (hadCounterOffers) {
+                        status += ' 🔄';
+                    }
+
+                    addCommerceLog(
+                        `<span class="pname-${respondent}">${PLAYER_NAMES[respondent] || 'J?'}</span> → ${status}`
+                    );
                 });
             }
         }
 
-        // Update hands after trade
-        if (trade['hand_P0']) {
-            updatePlayerHands(trade);
-        }
     });
 }
 
@@ -1090,6 +1161,17 @@ function applyBuild(data) {
         }
     });
 
+    // Update hands after builds (from backend hand snapshots)
+    if (data.length > 0) {
+        // Use the last build entry that has hand data
+        for (let i = data.length - 1; i >= 0; i--) {
+            if (data[i]['hand_P0']) {
+                updatePlayerHands(data[i]);
+                break;
+            }
+        }
+    }
+
     // Re-render board elements that changed
     renderNodes();
     renderRoads();
@@ -1122,11 +1204,11 @@ function applyEndTurn(data) {
 
     // Development cards played at end of turn
     if (data.development_card_played && data.development_card_played.length > 0) {
-        data.development_card_played.forEach(card => {
-            addLog(
-                `🃏 <span class="pname-${currentTurn}">${PLAYER_NAMES[currentTurn]}</span> juega carta al final: <strong>${CARD_TYPES[card] || 'Desconocida'}</strong>`,
-                'log-card'
-            );
+        data.development_card_played.forEach(cardInfo => {
+            // Filter out failed_victory_point spam from the log
+            if (cardInfo && cardInfo.played_card === 'failed_victory_point') return;
+            // Use the proper handler that supports both objects and numbers
+            handleDevCardPlayed(cardInfo, currentTurn);
         });
     }
 
@@ -1277,9 +1359,164 @@ function prevPhase() {
     }
 
     // Rebuild state from scratch for this position
+    clearEventLog();
     rebuildState();
-    applyCurrentPhase();
+    replayLogUpToCurrent();
     updateUI();
+}
+
+
+function replayLogUpToCurrent() {
+    // Replay all log events from the start up to the current round/turn/phase
+    // This ensures the log always shows the complete history up to current position
+    if (!gameData) return;
+
+    for (let r = 0; r <= currentRound; r++) {
+        const roundKey = roundKeys[r];
+        if (!roundKey) continue;
+        const round = gameData.game[roundKey];
+        if (!round) continue;
+
+        const maxTurn = (r === currentRound) ? currentTurn : 3;
+
+        for (let t = 0; t <= maxTurn; t++) {
+            const turn = round['turn_P' + t];
+            if (!turn) continue;
+
+            const maxPhase = (r === currentRound && t === currentTurn) ? currentPhase : 3;
+
+            // Save/restore globals so addLog timestamps are correct
+            const savedRound = currentRound;
+            const savedTurn = currentTurn;
+            const savedPhase = currentPhase;
+            currentRound = r;
+            currentTurn = t;
+
+            // Phase 0: start_turn
+            if (maxPhase >= 0 && turn.start_turn) {
+                currentPhase = 0;
+                applyStartTurnLog(turn.start_turn, t);
+            }
+
+            // Phase 1: commerce
+            if (maxPhase >= 1 && turn.commerce_phase) {
+                currentPhase = 1;
+                applyCommerceLog(turn.commerce_phase);
+            }
+
+            // Phase 2: build
+            if (maxPhase >= 2 && turn.build_phase) {
+                currentPhase = 2;
+                applyBuildLog(turn.build_phase, t);
+            }
+
+            // Phase 3: end_turn
+            if (maxPhase >= 3 && turn.end_turn) {
+                currentPhase = 3;
+                applyEndTurnLog(turn.end_turn, t);
+            }
+
+            currentRound = savedRound;
+            currentTurn = savedTurn;
+            currentPhase = savedPhase;
+        }
+    }
+}
+
+function applyStartTurnLog(data, player) {
+    if (!data || !data.dice) return;
+    const dice = data.dice;
+    addLog(
+        `🎲 <span class="pname-${player}">${PLAYER_NAMES[player]}</span> lanza los dados: <strong>${dice}</strong>`,
+        dice === 7 ? 'log-thief' : 'log-dice'
+    );
+    if (data.development_card_played && data.development_card_played.length > 0) {
+        data.development_card_played.forEach(cardInfo => {
+            handleDevCardPlayedLog(cardInfo, player);
+        });
+    }
+    if (data.past_thief_terrain !== undefined && data.thief_terrain !== undefined) {
+        addLog(`🥷 Ladrón movido del terreno ${data.past_thief_terrain} al terreno ${data.thief_terrain}`, 'log-thief');
+        if (data.robbed_player !== undefined && data.robbed_player !== -1) {
+            const stolen = data.stolen_material_id;
+            const stolenName = stolen >= 0 ? Object.values(RESOURCE_NAMES)[stolen] : 'nada';
+            addLog(`🥷 <span class="pname-${player}">${PLAYER_NAMES[player]}</span> roba <strong>${stolenName}</strong> a <span class="pname-${data.robbed_player}">${PLAYER_NAMES[data.robbed_player]}</span>`, 'log-thief');
+        }
+    }
+}
+
+function handleDevCardPlayedLog(cardInfo, player) {
+    if (typeof cardInfo === 'number') {
+        addLog(`🃏 <span class="pname-${player}">${PLAYER_NAMES[player]}</span> juega carta: <strong>${CARD_TYPES[cardInfo] || 'Desconocida'}</strong>`, 'log-card');
+        return;
+    }
+    if (cardInfo && cardInfo.played_card === 'failed_victory_point') return;
+    const cardName = DEV_CARD_NAMES[cardInfo.played_card] || cardInfo.played_card || 'Desconocida';
+    const pName = `<span class="pname-${player}">${PLAYER_NAMES[player]}</span>`;
+    if (cardInfo.played_card === 'knight') {
+        addLog(`🃏 ${pName} juega ${cardName} (total: ${cardInfo.total_knights || '?'})`, 'log-card');
+        if (cardInfo.thief_terrain !== undefined) {
+            addLog(`🥷 Ladrón movido al terreno ${cardInfo.thief_terrain}`, 'log-thief');
+            if (cardInfo.robbed_player !== undefined && cardInfo.robbed_player !== -1) {
+                const stolen = cardInfo.stolen_material_id;
+                const stolenName = stolen >= 0 ? Object.values(RESOURCE_NAMES)[stolen] : 'nada';
+                addLog(`🥷 Roba <strong>${stolenName}</strong> a ${PLAYER_NAMES[cardInfo.robbed_player]}`, 'log-thief');
+            }
+        }
+    } else {
+        addLog(`🃏 ${pName} juega <strong>${cardName}</strong>`, 'log-card');
+    }
+}
+
+function applyCommerceLog(data) {
+    if (!data || data.length === 0) return;
+    data.forEach(trade => {
+        if (!trade.trade_offer || trade.trade_offer === 'None' || trade.trade_offer === null) return;
+        if (trade.trade_offer === 'played_card') return;
+        if (typeof trade.trade_offer !== 'object') return;
+        if (trade.harbor_trade || typeof trade.trade_offer.gives === 'number') {
+            addLog(`🏪 Comercio con banco/puerto — Da: ${formatTradeOffer(trade.trade_offer.gives)} → Recibe: ${formatTradeOffer(trade.trade_offer.receives)}`, 'log-trade');
+        } else {
+            const gives = formatTradeResources(trade.trade_offer.gives);
+            const receives = formatTradeResources(trade.trade_offer.receives);
+            addLog(`🤝 Oferta de comercio — Ofrece: ${gives} | Pide: ${receives}${trade.inviable ? ' <em>(inviable)</em>' : ''}`, 'log-trade');
+        }
+    });
+}
+
+function applyBuildLog(data, player) {
+    if (!data || data.length === 0) return;
+    data.forEach(build => {
+        if (build.building === 'None') return;
+        const pName = `<span class="pname-${player}">${PLAYER_NAMES[player]}</span>`;
+        switch (build.building) {
+            case 'town': addLog(`🏠 ${pName} construye <strong>poblado</strong> en nodo ${build.node_id}`, 'log-build'); break;
+            case 'city': addLog(`🏰 ${pName} mejora a <strong>ciudad</strong> en nodo ${build.node_id}`, 'log-build'); break;
+            case 'road': addLog(`🛤️ ${pName} construye <strong>camino</strong> ${build.node_id} → ${build.road_to}`, 'log-build'); break;
+            case 'card':
+                if (build.finished) {
+                    const cardType = CARD_TYPES[build.card_type] || 'Desconocida';
+                    addLog(`🃏 ${pName} compra carta de desarrollo: <strong>${cardType}</strong>`, 'log-card');
+                }
+                break;
+            case 'played_card':
+                if (build.development_card_played) {
+                    handleDevCardPlayedLog(build.development_card_played, player);
+                }
+                break;
+        }
+    });
+}
+
+function applyEndTurnLog(data, player) {
+    if (!data) return;
+    if (data.development_card_played && data.development_card_played.length > 0) {
+        data.development_card_played.forEach(cardInfo => {
+            if (cardInfo && cardInfo.played_card === 'failed_victory_point') return;
+            handleDevCardPlayedLog(cardInfo, player);
+        });
+    }
+    addLog(`✅ Fin del turno de <span class="pname-${player}">${PLAYER_NAMES[player]}</span>`, 'log-phase');
 }
 
 function nextRound() {
@@ -1288,8 +1525,9 @@ function nextRound() {
         currentRound++;
         currentTurn = 0;
         currentPhase = 0;
+        clearEventLog();
         rebuildState();
-        applyCurrentPhase();
+        replayLogUpToCurrent();
         updateUI();
     }
 }
@@ -1300,8 +1538,9 @@ function prevRound() {
         currentRound--;
         currentTurn = 0;
         currentPhase = 0;
+        clearEventLog();
         rebuildState();
-        applyCurrentPhase();
+        replayLogUpToCurrent();
         updateUI();
     }
 }
@@ -1311,8 +1550,9 @@ function goToStart() {
     currentRound = 0;
     currentTurn = 0;
     currentPhase = 0;
+    clearEventLog();
     rebuildState();
-    applyCurrentPhase();
+    replayLogUpToCurrent();
     updateUI();
     stopPlay();
 }
@@ -1332,8 +1572,9 @@ function goToEnd() {
     if (currentTurn < 0) { currentTurn = 0; }
 
     currentPhase = 3;
+    clearEventLog();
     rebuildState();
-    applyCurrentPhase();
+    replayLogUpToCurrent();
     updateUI();
     stopPlay();
 }
@@ -1445,9 +1686,16 @@ function rebuildState() {
                 });
             }
 
-            // Apply builds
+            // Apply builds + capture hand snapshots
             if (maxPhase >= 2 && turn.build_phase) {
                 turn.build_phase.forEach(build => {
+                    // Capture hand snapshots from build phase
+                    for (let p = 0; p < 4; p++) {
+                        if (build['hand_P' + p]) {
+                            latestHands['hand_P' + p] = build['hand_P' + p];
+                            latestHands['total_P' + p] = build['total_P' + p];
+                        }
+                    }
                     if (build.building === 'None') return;
                     if (build.building === 'town') {
                         if (boardState.nodes[build.node_id]) {
@@ -1575,6 +1823,16 @@ function clearLogs() {
     $('#log-container').innerHTML = '<div class="empty-log"><p>📜 Carga una partida para ver los eventos</p></div>';
     $('#commerce-container').innerHTML = '<div class="empty-log"><p>🤝 Los comercios aparecerán aquí</p></div>';
 }
+
+
+function clearEventLog() {
+    const container = $('#log-container');
+    // Keep only the "game loaded" entry if present
+    const entries = container.querySelectorAll('.log-entry');
+    entries.forEach(e => e.remove());
+}
+
+
 
 // ============================================================
 // FORMATTING HELPERS
