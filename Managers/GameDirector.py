@@ -1,3 +1,5 @@
+import copy
+
 from Classes.DevelopmentCards import DevelopmentCard
 from Managers.GameManager import GameManager
 from TraceLoader.TraceLoader import TraceLoader
@@ -212,10 +214,11 @@ class GameDirector:
         self.reset_game_values()
 
         # Se añade el tablero al setup, para que el intérprete sepa cómo es el tablero
+        # IMPORTANTE: deep copy para capturar el estado INICIAL, no el final
         setup_object = {
             "board": {
-                "board_nodes": self.game_manager.get_board_nodes(),
-                "board_terrain": self.game_manager.get_board_terrain(),
+                "board_nodes": copy.deepcopy(self.game_manager.get_board_nodes()),
+                "board_terrain": copy.deepcopy(self.game_manager.get_board_terrain()),
             }
         }
         # Se le da paso al primer jugador para que ponga un poblado y una aldea
