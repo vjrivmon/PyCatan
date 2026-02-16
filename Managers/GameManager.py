@@ -434,10 +434,10 @@ class GameManager:
         :return: node_id, road_to
         """
         # Le da a los agentes 2 intentos de poner bien los pueblos y carreteras. Si no, el GameManager lo hará por ellos.
-        valid_nodes = self.board.valid_starting_nodes()
         materials = []
 
         for count in range(3):
+            valid_nodes = self.board.valid_starting_nodes()
             try:
                 node_id, road_to = self.agent_manager.players[player]['player'].on_game_start(deepcopy(self.board))
             except Exception as e:
@@ -448,7 +448,18 @@ class GameManager:
 
                 if count == 2:
                     if not valid_nodes:
-                        raise Exception("No hay nodos válidos disponibles para iniciar el juego")
+                        free = [n['id'] for n in self.board.nodes if n['player'] == -1]
+                        non_coastal = [nid for nid in free if not self.board.is_coastal_node(nid)]
+                        dist_ok_non_coastal = [nid for nid in non_coastal if self.board.empty_adjacent_nodes(nid)]
+                        dist_ok_any = [nid for nid in free if self.board.empty_adjacent_nodes(nid)]
+                        occupied = [n['id'] for n in self.board.nodes if n['player'] != -1]
+
+                        raise Exception(
+                            "No hay nodos válidos disponibles para iniciar el juego | "
+                            f"free={len(free)} non_coastal_free={len(non_coastal)} "
+                            f"dist_ok_non_coastal={len(dist_ok_non_coastal)} dist_ok_any={len(dist_ok_any)} "
+                            f"occupied={len(occupied)} occupied_ids={occupied}"
+                        )
                     else:
                         node_id = random.choice(valid_nodes)
 

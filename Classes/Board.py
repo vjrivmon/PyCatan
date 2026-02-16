@@ -421,11 +421,23 @@ class Board:
     def valid_starting_nodes(self):
         """
         Devuelve un array con el ID de todos los nodos viables para el posicionamiento inicial.
-        No necesita número del jugador porque es cualquier nodo que no tenga un jugador en él y no sea costero
+        No necesita número del jugador porque es cualquier nodo que no tenga un jugador en él y (si se puede) que no sea costero.
+        Si no hay nodos interiores válidos, hace fallback a cualquier nodo libre con adyacentes vacíos.
         :return: [int]
         """
-        valid_node = lambda n: n['player'] == -1 and self.empty_adjacent_nodes(n['id']) and not self.is_coastal_node(n['id'])
-        return [node['id'] for node in self.nodes if valid_node(node)]
+        interior = [
+            node['id'] for node in self.nodes
+            if node['player'] == -1
+            and self.empty_adjacent_nodes(node['id'])
+            and not self.is_coastal_node(node['id'])
+        ]
+        if interior:
+            return interior
+
+        return [
+            node['id'] for node in self.nodes
+            if node['player'] == -1 and self.empty_adjacent_nodes(node['id'])
+        ]
 
 
     def check_for_player_harbors(self, player, material_harbor=None):
