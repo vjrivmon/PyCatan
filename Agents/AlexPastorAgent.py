@@ -56,7 +56,7 @@ class AlexPastorAgent(AgentInterface):
 
         return {'terrain': terrain_with_thief_id, 'player': -1}
 
-    def on_commerce_phase(self):
+    def on_commerce_phase(self, board_instance=None):
         if len(self.development_cards_hand.hand) and random.randint(0, 1):
             return self.development_cards_hand.select_card(0)
 

@@ -10,7 +10,7 @@ class GameDirector:
     Clase que se encarga de dirigir la partida, empezarla y acabarla
     """
 
-    def __init__(self, for_test=False, agents = None, max_rounds=1000, store_trace=True):
+    def __init__(self, for_test=False, agents = None, max_rounds=200, store_trace=True):
         self.game_manager = GameManager(for_test, agents)
         self.trace_loader = TraceLoader(store_trace)
         self.max_rounds = max_rounds
@@ -24,6 +24,14 @@ class GameDirector:
         # Reseteamos el game_manager
         self.game_manager.reset_game_values()
         return
+
+
+    def _snapshot_hands(self, obj):
+        """Captura el estado actual de las manos de todos los jugadores en el objeto dado."""
+        for i in range(4):
+            obj['hand_P' + str(i)] = self.game_manager.player_resources_to_object(i)
+            obj['total_P' + str(i)] = str(self.game_manager.player_resources_total(i))
+        return obj
 
     # -- -- -- --  Turn  -- -- -- --
     def start_turn(self, winner, player=-1):
@@ -109,6 +117,7 @@ class GameDirector:
                 winner = True
 
         end_turn_object['victory_points'] = vp
+        self._snapshot_hands(end_turn_object)
         return end_turn_object, winner
 
     def start_commerce_phase(self, winner, depth=1, player=-1):
@@ -128,6 +137,7 @@ class GameDirector:
         commerce_phase_object, winner = self.game_manager.on_commerce_response(commerce_phase_object, commerce_response,
                                                                                depth, player, winner)
 
+        self._snapshot_hands(commerce_phase_object)
         return commerce_phase_object, winner
 
     def start_build_phase(self, winner, player=-1):
@@ -146,6 +156,7 @@ class GameDirector:
         build_phase_object, winner = self.game_manager.build_phase_object(build_phase_object, build_response, player,
                                                                           winner)
 
+        self._snapshot_hands(build_phase_object)
         return build_phase_object, winner
 
     # Round #

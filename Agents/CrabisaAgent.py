@@ -1,37 +1,159 @@
-import random
-
 from Classes.Constants import *
-from Classes.Materials import Materials
+from Classes.Board import Board
+from Classes.DevelopmentCards import *
+from Classes.Hand import Hand
 from Classes.TradeOffer import TradeOffer
+from Classes.Materials import Materials
+import random
 from Interfaces.AgentInterface import AgentInterface
+from Managers.GameManager import GameManager
 
-
-class AdrianHerasAgent(AgentInterface):
+class CrabisaAgent(AgentInterface):
     """
-    Es necesario poner super().nombre_de_funcion() para asegurarse de que coge la función del padre
+    Interfaz que implementa a un agente
     """
-    town_number = 0
-    material_given_more_than_three = None
-    # Son los materiales más necesarios en construcciones, luego se piden con year of plenty para tener en mano
-    year_of_plenty_material_one = MaterialConstants.CEREAL
-    year_of_plenty_material_two = MaterialConstants.MINERAL
 
     def __init__(self, agent_id):
-        super().__init__(agent_id)
+        self.town_number = 0
+        self.first_road_to = -1
+        self.second_road_to = -1
+        self.hand = Hand()
+        self.board = Board()
+        self.development_cards_hand = DevelopmentCardsHand()
+        self.id = agent_id
+        self.game_manager = GameManager(True)
+        self.turn = 0
+        self.material_given_more_than_three = None
+        # Son los materiales más necesarios en construcciones, luego se piden con year of plenty para tener en mano
+        self.year_of_plenty_material_one = MaterialConstants.CEREAL
+        self.year_of_plenty_material_two = MaterialConstants.MINERAL
 
-    def on_trade_offer(self, board_instance, offer=TradeOffer(), player_id=int):
+    # Los triggers son llamados por el GameDirector las veces que sean necesarias hasta que devuelvan null
+    #  o el GameDirector le niegue continuar el trigger
+    def on_trade_offer(self, board_instance, offer=TradeOffer(), player_making_offer=int):
         """
         Hay que tener en cuenta que gives se refiere a los materiales que da el jugador que hace la oferta,
         luego en este caso es lo que recibe
         :param offer:
         :return:
         """
-        return offer.gives.has_more(offer.receives)
+        # TODO: ver los recursos que tenemos
+        # TODO: evaluar las construcciones que podemos hacer
+        recursos_propios = Hand()
+        recursos_propios.add_material(MaterialConstants.CEREAL, self.hand.resources.cereal)
+        recursos_propios.add_material(MaterialConstants.MINERAL, self.hand.resources.mineral)
+        recursos_propios.add_material(MaterialConstants.CLAY, self.hand.resources.clay)
+        recursos_propios.add_material(MaterialConstants.WOOD, self.hand.resources.wood)
+        recursos_propios.add_material(MaterialConstants.WOOL, self.hand.resources.wool)
+
+        recursos_que_nos_ofrece = Materials(0,0,0,0,0)
+        recursos_que_nos_ofrece.add_from_id(MaterialConstants.CEREAL, offer.gives.cereal)
+        recursos_que_nos_ofrece.add_from_id(MaterialConstants.MINERAL, offer.gives.mineral)
+        recursos_que_nos_ofrece.add_from_id(MaterialConstants.CLAY,offer.gives.clay)
+        recursos_que_nos_ofrece.add_from_id(MaterialConstants.WOOD, offer.gives.wood)
+        recursos_que_nos_ofrece.add_from_id(MaterialConstants.WOOL, offer.gives.wool)
+
+        recursos_que_nos_pide = Materials(0,0,0,0,0)
+        recursos_que_nos_pide.add_from_id(MaterialConstants.CEREAL, offer.receives.cereal)
+        recursos_que_nos_pide.add_from_id(MaterialConstants.MINERAL, offer.receives.mineral)
+        recursos_que_nos_pide.add_from_id(MaterialConstants.CLAY,offer.receives.clay)
+        recursos_que_nos_pide.add_from_id(MaterialConstants.WOOD, offer.receives.wood)
+        recursos_que_nos_pide.add_from_id(MaterialConstants.WOOL, offer.receives.wool)
+
+
+        construcciones_que_podemos_hacer = []
+        
+        if recursos_propios.resources.has_more(BuildConstants.CITY):
+            construcciones_que_podemos_hacer.append(BuildConstants.CITY)
+            recursos_propios.remove_material(MaterialConstants.CEREAL, 2)
+            recursos_propios.remove_material(MaterialConstants.MINERAL, 3)
+        if recursos_propios.resources.has_more(BuildConstants.TOWN):
+            construcciones_que_podemos_hacer.append(BuildConstants.TOWN)
+            recursos_propios.remove_material(MaterialConstants.CEREAL, 1)
+            recursos_propios.remove_material(MaterialConstants.MINERAL, 1)
+            recursos_propios.remove_material(MaterialConstants.CLAY, 1)
+            recursos_propios.remove_material(MaterialConstants.WOOD, 1)
+        if recursos_propios.resources.has_more(BuildConstants.ROAD):
+            construcciones_que_podemos_hacer.append(BuildConstants.ROAD)
+            recursos_propios.remove_material(MaterialConstants.CLAY, 1)
+            recursos_propios.remove_material(MaterialConstants.WOOD, 1)
+        if recursos_propios.resources.has_more(BuildConstants.CARD):
+            construcciones_que_podemos_hacer.append(BuildConstants.CARD)
+            recursos_propios.remove_material(MaterialConstants.CEREAL, 1)
+            recursos_propios.remove_material(MaterialConstants.WOOL, 1)
+            recursos_propios.remove_material(MaterialConstants.MINERAL, 1)
+
+        recursos_propios_despues_de_trade = recursos_propios
+        # en recursos propios tenemos ahora lo que nos sobra despues de hacer las construcciones
+        # evaluamos si con lo que nos ofrece hacemos alguna construccion
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.CEREAL, recursos_que_nos_ofrece.cereal)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.MINERAL, recursos_que_nos_ofrece.mineral)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.CLAY, recursos_que_nos_ofrece.clay)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.WOOD, recursos_que_nos_ofrece.wood)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.WOOL, recursos_que_nos_ofrece.wool)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.CEREAL, -recursos_que_nos_pide.cereal)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.MINERAL, -recursos_que_nos_pide.mineral)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.CLAY, -recursos_que_nos_pide.clay)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.WOOD, -recursos_que_nos_pide.wood)
+        recursos_propios_despues_de_trade.add_material(MaterialConstants.WOOL, -recursos_que_nos_pide.wool)
+        # si despues del trade podemos hacer una construccion, aceptamos
+        if recursos_propios_despues_de_trade.resources.has_more(BuildConstants.CITY):
+            return True
+        if recursos_propios_despues_de_trade.resources.has_more(BuildConstants.TOWN):
+            return True
+        if recursos_propios_despues_de_trade.resources.has_more(BuildConstants.ROAD):
+            return True
+        if recursos_propios_despues_de_trade.resources.has_more(BuildConstants.CARD):
+            return True
+        # si no podemos hacer ninguna construccion, 
+        # contraofertamos manteniendo lo que nos ofrece (porque puede no tener otros materiales)
+        # y dandole materiales que nos sobren hasta igualar la cantidad que nos pide
+        # si no nos sobra nada, rechazamos
+        cereal_a_dar = 0
+        mineral_a_dar = 0
+        clay_a_dar = 0
+        wood_a_dar = 0
+        wool_a_dar = 0
+        cantidad_de_recursos_que_damos = 0
+        cantidad_de_recursos_que_nos_ofrece = recursos_que_nos_ofrece.cereal + recursos_que_nos_ofrece.mineral + recursos_que_nos_ofrece.clay + recursos_que_nos_ofrece.wood + recursos_que_nos_ofrece.wool
+
+        for i in range(cantidad_de_recursos_que_nos_ofrece):
+            if recursos_propios.resources.wool > 2 and cantidad_de_recursos_que_damos < cantidad_de_recursos_que_nos_ofrece:
+                wool_a_dar += 1
+                cantidad_de_recursos_que_damos += 1
+            if recursos_propios.resources.cereal > 2 and cantidad_de_recursos_que_damos < cantidad_de_recursos_que_nos_ofrece:
+                cereal_a_dar += 1
+                cantidad_de_recursos_que_damos += 1
+            if recursos_propios.resources.mineral > 4 and cantidad_de_recursos_que_damos < cantidad_de_recursos_que_nos_ofrece:
+                mineral_a_dar += 1
+                cantidad_de_recursos_que_damos += 1
+            if recursos_propios.resources.clay > 2 and cantidad_de_recursos_que_damos < cantidad_de_recursos_que_nos_ofrece:
+                clay_a_dar += 1
+                cantidad_de_recursos_que_damos += 1
+            if recursos_propios.resources.wood > 2 and cantidad_de_recursos_que_damos < cantidad_de_recursos_que_nos_ofrece:
+                wood_a_dar += 1
+                cantidad_de_recursos_que_damos += 1
+        if cantidad_de_recursos_que_damos == cantidad_de_recursos_que_nos_ofrece:
+            return TradeOffer(Materials(cereal_a_dar, mineral_a_dar, clay_a_dar, wood_a_dar, wool_a_dar), recursos_que_nos_ofrece)  
+        # Si no se ha devuelto nada, se rechaza la oferta
+        return False
+        
+
 
     def on_turn_start(self):
         # Si tiene mano de cartas de desarrollo
-        knight_cards = self.development_cards_hand.find_card_by_effect(DevelopmentCardConstants.KNIGHT_EFFECT)
-        return knight_cards[0] if len(knight_cards) > 0  else None
+        if len(self.development_cards_hand.hand):
+            # Mira todas las cartas
+            for i in range(0, len(self.development_cards_hand.hand)):
+                # Si una es un caballero
+                if self.development_cards_hand.hand[i].type == DevelopmentCardConstants.KNIGHT:
+                    # Si el ladrón está en nuestro terreno, la juega
+                    for terrain in self.board.terrain:
+                        if terrain['has_thief']:
+                            for node_id in terrain['contacting_nodes']:
+                                if self.board.nodes[node_id]['player'] == self.id:
+                                    return self.development_cards_hand.select_card(i) 
+        return None
 
     def on_having_more_than_7_materials_when_thief_is_called(self):
         # Comprueba si tiene materiales para construir una ciudad. Si los tiene, descarta el resto que no le sirvan.
@@ -49,11 +171,43 @@ class AdrianHerasAgent(AgentInterface):
                     self.hand.remove_material(2, 1)
                 if self.hand.resources.wood > 0:
                     self.hand.remove_material(3, 1)
-        # Si no tiene materiales para hacer una ciudad descarta de manera aleatoria cartas de su mano
+        # Si no tiene materiales para hacer una ciudad comprueba si tiene para hacer un pueblo
+        elif self.hand.resources.has_more(BuildConstants.TOWN):
+            while self.hand.get_total() > 7:
+                if self.hand.resources.wool > 0:
+                    self.hand.remove_material(4, 1)
+
+                if self.hand.resources.cereal > 0:
+                    self.hand.remove_material(0, 1)
+                if self.hand.resources.mineral > 0:
+                    self.hand.remove_material(1, 1)
+
+                if self.hand.resources.clay > 0:
+                    self.hand.remove_material(2, 1)
+                if self.hand.resources.wood > 0:
+                    self.hand.remove_material(3, 1)
+        # Si no tiene para hacer un pueblo, comprueba si tiene para hacer una carta
+        elif self.hand.resources.has_more(BuildConstants.CARD):
+            while self.hand.get_total() > 7:
+                if self.hand.resources.cereal > 0:
+                    self.hand.remove_material(0, 1)
+                if self.hand.resources.wool > 0:
+                    self.hand.remove_material(4, 1)
+                if self.hand.resources.mineral > 0:
+                    self.hand.remove_material(1, 1)
+                
+                if self.hand.resources.clay > 0:
+                    self.hand.remove_material(2, 1)
+                if self.hand.resources.wood > 0:
+                    self.hand.remove_material(3, 1)
+        # Si no tiene para hacer una carta, descarta lo que menos le sirva
         return self.hand
 
     def on_moving_thief(self):
-        # Bloquea un número 6 u 8 donde no tenga un pueblo, pero que tenga uno del rival
+        #TODO: Bloquea un número 6 u 8 donde no tenga un pueblo, pero que tenga dos del rival
+        #  sino Bloquea un número 6 u 8 donde no tenga un pueblo, pero que tenga uno del rival
+        #  sino Bloquea un número 5 u 9 donde no tenga un pueblo, pero que tenga dos del rival
+        #  sino Bloquea un número 5 u 9 donde no tenga un pueblo, pero que tenga uno del rival
         # Si no se dan las condiciones lo deja donde está, lo que hace que el GameManager lo ponga en un lugar aleatorio
         terrain_with_thief_id = -1
         for terrain in self.board.terrain:
@@ -62,6 +216,7 @@ class AdrianHerasAgent(AgentInterface):
                     nodes = self.board.__get_contacting_nodes__(terrain['id'])
                     has_own_town = False
                     has_enemy_town = False
+                    enemy_town_quantity = 0
                     enemy = -1
                     for node_id in nodes:
                         if self.board.nodes[node_id]['player'] == self.id:
@@ -69,9 +224,31 @@ class AdrianHerasAgent(AgentInterface):
                             break
                         if self.board.nodes[node_id]['player'] != -1:
                             has_enemy_town = True
+                            enemy_town_quantity += 1
                             enemy = self.board.nodes[node_id]['player']
 
-                    if not has_own_town and has_enemy_town:
+                    if not has_own_town and has_enemy_town and enemy_town_quantity > 1:
+                        return {'terrain': terrain['id'], 'player': enemy}
+                    elif not has_own_town and has_enemy_town:
+                        return {'terrain': terrain['id'], 'player': enemy}
+                elif terrain['probability'] == 5 or terrain['probability'] == 9:
+                    nodes = self.board.__get_contacting_nodes__(terrain['id'])
+                    has_own_town = False
+                    has_enemy_town = False
+                    enemy_town_quantity = 0
+                    enemy = -1
+                    for node_id in nodes:
+                        if self.board.nodes[node_id]['player'] == self.id:
+                            has_own_town = True
+                            break
+                        if self.board.nodes[node_id]['player'] != -1:
+                            has_enemy_town = True
+                            enemy_town_quantity += 1
+                            enemy = self.board.nodes[node_id]['player']
+
+                    if not has_own_town and has_enemy_town and enemy_town_quantity > 1:
+                        return {'terrain': terrain['id'], 'player': enemy}
+                    elif not has_own_town and has_enemy_town:
                         return {'terrain': terrain['id'], 'player': enemy}
             else:
                 terrain_with_thief_id = terrain['id']
@@ -270,31 +447,56 @@ class AdrianHerasAgent(AgentInterface):
         return None
 
     def on_game_start(self, board_instance):
-        # Si el terreno tiene un 6 o un 8 mirar los adyacentes y el siguiente número más cercano a 7
-        #   es donde construye la casa si no hay nadie. La carretera se hace apuntando al mar
+        '''
+        Para elegir el nodo donde construir la primera casa, se siguen los siguientes pasos:
+        1. Se obtienen los nodos válidos donde se puede construir
+        2. Calcula la probabilidad total de los terrenos adyacentes a cada nodo
+        3. A esa probabilidad se le añadirá un factor extra 
+            3.1 si tiene terrenos de madera o de ladrillo ya que son esenciales al principio
+            3.2 si ademas tiene un puerto de 3:1
+        4. Para la carretera se elige la que más nos beneficie
+        '''
         self.board = board_instance
         possibilities = self.board.valid_starting_nodes()
-        # Se generan las variables que tendrán el resultado final
         chosen_node_id = -1
-        # chosen_road_to_id = -1
+        chosen_node_probability = -1
+        chosen_road_to_id = -1
+        probabilities = {
+                        0:-1, 2: 1/36, 3: 2/36, 4: 3/36, 5: 4/36, 6: 5/36,
+                        7: 0,    8: 5/36, 9: 4/36, 10: 3/36, 11: 2/36, 12: 1/36
+                    }
+
         for node_id in possibilities:
+            total_probability = 0
+            extra_factor = 0
             for terrain_id in self.board.nodes[node_id]['contacting_terrain']:
-                if (self.board.terrain[terrain_id]['probability'] == 6 or
-                        self.board.terrain[terrain_id]['probability'] == 8):
-                    chosen_node_id = node_id
+                # Se añade la probabilidad de cada terreno adyacente en base a probabilities
+                total_probability += probabilities[self.board.terrain[terrain_id]['probability']]
+                # Se añade un factor extra si el terreno es de madera
+                if self.board.terrain[terrain_id]['terrain_type'] == TerrainConstants.WOOD:
+                    extra_factor += 0.1
+            # si la probabilidad es mayor se elige ese nodo
+            if total_probability > chosen_node_probability:
+                chosen_node_id = node_id
+                chosen_node_probability = total_probability
 
-        # Si no hay ningún nodo ideal, se elige aleatoriamente entre las opciones
-        if chosen_node_id == -1:
-            chosen_node_id = possibilities[random.randint(0, len(possibilities) - 1)]
-
-        # Sumamos 1 a la cantidad de pueblos creados
-        self.town_number += 1
-
+            #print("Nodo: ", node_id, "Probabilidad: ", total_probability)
+            #print("Terrenos adyacentes: ", self.board.nodes[node_id]['contacting_terrain'])
+            #for terrenoID in self.board.nodes[node_id]['contacting_terrain']:
+                #terreno = self.board.terrain[terrenoID]
+                #print("Terreno: ", terreno)
+            
+        #print("Nodo elegido: ", chosen_node_id, "probabilidad: ", total_probability)
+        #for terrenoID in self.board.nodes[chosen_node_id]['contacting_terrain']:
+            #terreno = self.board.terrain[terrenoID]
+            #print("Terreno: ", terreno)
+   
         # Se elige una carretera aleatoria entre todas las opciones
         possible_roads = self.board.nodes[chosen_node_id]['adjacent']
         chosen_road_to_id = possible_roads[random.randint(0, len(possible_roads) - 1)]
-
         return chosen_node_id, chosen_road_to_id
+    
+    
 
     def on_monopoly_card_use(self):
         # Elige el material que más haya intercambiado (variable global de esta clase)

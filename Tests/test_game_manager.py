@@ -429,18 +429,20 @@ class TestGameManager:
 
         assert start_turn_object['past_thief_terrain'] != start_turn_object['thief_terrain']
 
+        # P3 starts with 15, discards floor(15/2)=7 cards, keeps ceil(15/2)=8
+        # P2 starts with 10, discards floor(10/2)=5 cards, keeps ceil(10/2)=5
         if start_turn_object['robbed_player'] == 0:  # Si le ha robado al J0
             assert self.game_manager.agent_manager.players[0]['resources'].get_total() == (4 - 1)
             assert self.game_manager.agent_manager.players[1]['resources'].get_total() == 5
-            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == 7
+            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == 8
         elif start_turn_object['robbed_player'] == 1:  # Si le ha robado al J1
             assert self.game_manager.agent_manager.players[0]['resources'].get_total() == 4
             assert self.game_manager.agent_manager.players[1]['resources'].get_total() == (5 - 1)
-            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == 7
+            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == 8
         elif start_turn_object['robbed_player'] == 3:  # Si le ha robado al J3
             assert self.game_manager.agent_manager.players[0]['resources'].get_total() == 4
             assert self.game_manager.agent_manager.players[1]['resources'].get_total() == 5
-            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == (7 - 1)
+            assert self.game_manager.agent_manager.players[3]['resources'].get_total() == (8 - 1)
 
         assert self.game_manager.agent_manager.players[2]['resources'].get_total() == (5 + 1)
 

@@ -37,10 +37,10 @@
     /* Colores UI */
     --bg-primary: #0D47A1;
     --bg-ocean: #0288D1;
-    --bg-panel: #FAFAFA;
-    --bg-card: #FFFFFF;
-    --border-light: #E0E0E0;
-    --border-medium: #BDBDBD;
+    --bg-panel: #F5E6D0;
+    --bg-card: #FDF6EC;
+    --border-light: #C9B99A;
+    --border-medium: #A89270;
     --text-primary: #212121;
     --text-secondary: #616161;
     --text-muted: #9E9E9E;
@@ -196,6 +196,12 @@ img {
     text-shadow: 0 0 10px rgba(239,83,80,0.5);
 }
 
+/* Dice player color indicators */
+#dice-display.dice-player-0 { border-color: #D32F2F; box-shadow: 0 0 8px rgba(211,47,47,0.5); }
+#dice-display.dice-player-1 { border-color: #1976D2; box-shadow: 0 0 8px rgba(25,118,210,0.5); }
+#dice-display.dice-player-2 { border-color: #F57C00; box-shadow: 0 0 8px rgba(245,124,0,0.5); }
+#dice-display.dice-player-3 { border-color: #388E3C; box-shadow: 0 0 8px rgba(56,142,60,0.5); }
+
 /* Board wrapper */
 #board-wrapper {
     flex: 1;
@@ -246,6 +252,21 @@ img {
     z-index: 5;
 }
 
+/* Hex producing highlight (dice roll match) */
+.hex.hex-producing {
+    z-index: 6;
+    animation: hexPulse 0.6s ease-in-out 3;
+}
+
+.hex.hex-producing img {
+    filter: drop-shadow(0 0 10px rgba(255,215,0,0.9)) drop-shadow(0 0 20px rgba(255,215,0,0.5)) brightness(1.2);
+}
+
+@keyframes hexPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.08); }
+}
+
 /* Number tokens */
 .number-token {
     position: absolute;
@@ -274,7 +295,7 @@ img {
 }
 
 .road img {
-    height: 26px;
+    height: 18px;
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
 }
 
@@ -396,8 +417,8 @@ img {
 }
 
 .ctrl-btn {
-    background: linear-gradient(to bottom, #37474F 0%, #263238 100%);
-    border: 2px solid #546E7A;
+    background: linear-gradient(to bottom, #D7CCC8 0%, #A1887F 100%);
+    border: 2px solid #8D6E63;
     border-radius: 8px;
     padding: 4px;
     cursor: pointer;
@@ -419,7 +440,7 @@ img {
 }
 
 .ctrl-btn:hover {
-    background: linear-gradient(to bottom, #455A64 0%, #37474F 100%);
+    background: linear-gradient(to bottom, #EFEBE9 0%, #BCAAA4 100%);
     border-color: var(--gold);
     transform: translateY(-1px);
 }
@@ -443,25 +464,7 @@ img {
     background: linear-gradient(to bottom, #C62828 0%, #B71C1C 100%);
 }
 
-#speed-control {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: 12px;
-    color: #B0BEC5;
-    font-size: 0.75rem;
-}
-
-#speed-slider {
-    width: 80px;
-    accent-color: var(--gold);
-}
-
-#speed-value {
-    min-width: 30px;
-    font-weight: 600;
-    color: var(--gold);
-}
+/* speed-control removed */
 
 /* ============ STATE BAR ============ */
 #state-bar {
@@ -513,7 +516,7 @@ img {
     width: 420px;
     min-width: 360px;
     background: var(--bg-panel);
-    border-left: 1px solid var(--border-light);
+    border-left: 3px solid #8D6E63;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -526,11 +529,36 @@ img {
     font-size: 0.9rem;
     color: #FFF;
     padding: 8px 14px;
-    background: linear-gradient(to bottom, #37474F 0%, #263238 100%);
+    background: linear-gradient(to bottom, #5D4037 0%, #3E2723 100%);
     border-bottom: 2px solid var(--gold);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 1.5px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+    position: relative;
 }
+
+.section-title::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--gold);
+    border-radius: 0 2px 2px 0;
+}
+
+#log-section .section-title {
+    background: linear-gradient(to bottom, #5D4037 0%, #3E2723 100%);
+}
+
+#log-section .section-title::before { background: #B8860B; }
+
+#commerce-section .section-title {
+    background: linear-gradient(to bottom, #2E5339 0%, #1B3A24 100%);
+}
+
+#commerce-section .section-title::before { background: #4CAF50; }
 
 /* ============ PLAYERS SECTION ============ */
 #players-section {
@@ -553,9 +581,14 @@ img {
     padding: 0;
 }
 
-.player-card.active-turn {
-    border-color: var(--gold);
-    box-shadow: 0 0 12px rgba(255,215,0,0.3);
+/* Inactive players dimmed */
+.player-card:not(.active-turn) {
+    opacity: 0.45;
+    transition: opacity 0.3s ease;
+}
+
+.player-card:not(.active-turn):hover {
+    opacity: 0.8;
 }
 
 .player-card-header {
@@ -632,13 +665,63 @@ img {
 }
 
 .resource-cell .res-count.increased {
-    color: #2E7D32;
-    transform: scale(1.3);
+    color: #1B5E20;
+    font-weight: 900;
+    transform: scale(1.4);
+    text-shadow: 0 0 6px rgba(46,125,50,0.6);
 }
 
 .resource-cell .res-count.decreased {
-    color: #C62828;
-    transform: scale(0.8);
+    color: #B71C1C;
+    font-weight: 900;
+    transform: scale(0.75);
+    text-shadow: 0 0 6px rgba(198,40,40,0.6);
+}
+
+/* Delta badges (+N / -N) */
+.resource-cell {
+    position: relative;
+}
+
+.res-delta {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 8px;
+    pointer-events: none;
+    animation: deltaPop 0.35s ease-out;
+    z-index: 5;
+    line-height: 1.2;
+}
+
+@keyframes deltaPop {
+    0%   { opacity: 0; transform: scale(0.4) translateY(4px); }
+    70%  { transform: scale(1.15) translateY(-2px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Ganancias por dados (verde) */
+.res-delta-up {
+    background: #C8E6C9;
+    color: #1B5E20;
+    border: 1px solid #4CAF50;
+}
+
+/* Ganancias por comercio (azul) */
+.res-delta-up.delta-trade {
+    background: #BBDEFB;
+    color: #0D47A1;
+    border: 1px solid #42A5F5;
+}
+
+/* Pérdidas (rojo) */
+.res-delta-down {
+    background: #FFCDD2;
+    color: #B71C1C;
+    border: 1px solid #EF5350;
 }
 
 /* Resource background colors */
@@ -696,9 +779,23 @@ img {
 /* Dev cards row */
 .dev-cards-row {
     display: flex;
-    gap: 3px;
+    gap: 4px;
     margin-top: 4px;
     flex-wrap: wrap;
+    align-items: center;
+}
+
+.dev-card-group {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.dev-card-count {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #4A148C;
+    line-height: 1;
 }
 
 .dev-card-badge {
@@ -726,7 +823,8 @@ img {
     font-size: 0.78rem;
     line-height: 1.5;
     scrollbar-width: thin;
-    scrollbar-color: #90A4AE #ECEFF1;
+    scrollbar-color: #A89270 #F0E4D0;
+    background: linear-gradient(180deg, #F0E0C4 0%, #EAD8BA 100%);
 }
 
 #log-container::-webkit-scrollbar,
@@ -736,7 +834,7 @@ img {
 
 #log-container::-webkit-scrollbar-thumb,
 #commerce-container::-webkit-scrollbar-thumb {
-    background: #90A4AE;
+    background: #A89270;
     border-radius: 3px;
 }
 
@@ -750,36 +848,56 @@ img {
 }
 
 .log-entry {
-    padding: 5px 8px;
-    margin-bottom: 4px;
-    border-radius: 4px;
-    border-left: 3px solid transparent;
-    background: #F5F5F5;
-    animation: logSlideIn 0.2s ease-out;
+    padding: 6px 10px;
+    margin-bottom: 2px;
+    border-radius: 3px;
+    border-left: 4px solid transparent;
+    background: #F5EDDC;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.78rem;
+    line-height: 1.5;
+    border-bottom: 1px solid rgba(169,145,100,0.15);
 }
 
-@keyframes logSlideIn {
-    from { opacity: 0; transform: translateX(-8px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.log-entry.log-dice { border-left-color: #1976D2; background: #E3F2FD; }
-.log-entry.log-thief { border-left-color: #7B1FA2; background: #F3E5F5; }
-.log-entry.log-build { border-left-color: #F57C00; background: #FFF3E0; }
-.log-entry.log-trade { border-left-color: #00897B; background: #E0F2F1; }
-.log-entry.log-card { border-left-color: #C62828; background: #FFEBEE; }
-.log-entry.log-resource { border-left-color: #388E3C; background: #E8F5E9; }
-.log-entry.log-phase { border-left-color: #546E7A; background: #ECEFF1; }
-.log-entry.log-victory { border-left-color: var(--gold); background: #FFFDE7; font-weight: 700; }
+.log-entry.log-dice   { border-left-color: #8B6914; background: rgba(139,105,20,0.07); }
+.log-entry.log-thief  { border-left-color: #4A0E4E; background: rgba(74,14,78,0.07); }
+.log-entry.log-build  { border-left-color: #8B4513; background: rgba(139,69,19,0.06); }
+.log-entry.log-trade  { border-left-color: #2E5339; background: rgba(46,83,57,0.06); }
+.log-entry.log-card   { border-left-color: #6B1E3A; background: rgba(107,30,58,0.06); }
+.log-entry.log-resource { border-left-color: #4E6B30; background: rgba(78,107,48,0.06); }
+.log-entry.log-phase  { border-left-color: #5C4033; background: rgba(92,64,51,0.06); }
+.log-entry.log-victory { border-left-color: var(--gold); background: rgba(184,134,11,0.12); font-weight: 700; }
+.log-entry.log-warning { border-left-color: #E65100; background: rgba(230,81,0,0.08); }
 
 .log-entry .log-time {
     font-size: 0.6rem;
-    color: var(--text-muted);
-    margin-right: 4px;
+    font-weight: 600;
+    color: #5C4033;
+    margin-right: 6px;
+    font-family: 'Cinzel', serif;
 }
 
 .log-entry strong {
-    font-weight: 600;
+    font-weight: 700;
+}
+
+/* Separador visual entre turnos */
+.log-turn-separator {
+    text-align: center;
+    padding: 5px 0;
+    margin: 6px 0;
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-top: 1px dashed #C9B99A;
+    border-bottom: 1px dashed #C9B99A;
+    background: rgba(141,110,99,0.08);
+}
+
+.log-turn-separator .separator-player {
+    font-weight: 800;
 }
 
 /* Player name colors in logs */
@@ -948,6 +1066,49 @@ img {
 .tooltip.visible {
     opacity: 1;
 }
+
+/* ============ INLINE RESOURCE ICONS ============ */
+.res-icon-inline {
+    width: 18px;
+    height: 18px;
+    vertical-align: middle;
+    margin: 0 1px;
+    display: inline-block;
+}
+
+.res-qty {
+    font-weight: 700;
+    font-size: 0.85rem;
+    vertical-align: middle;
+    margin-left: 1px;
+}
+
+/* ============ TRADE STATUS CLASSES ============ */
+.trade-accepted { color: #2E7D32; font-weight: 600; }
+.trade-warning { color: #E65100; font-weight: 600; }
+.trade-rejected { color: #C62828; font-weight: 600; }
+.trade-inviable { color: #C62828; font-style: italic; }
+
+.commerce-header {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.log-entry.log-warning {
+    border-left-color: #E65100;
+    background: #FFF3E0;
+}
+
+/* ============ ACTIVE PLAYER ============ */
+.player-card.active-turn {
+    border-color: var(--gold);
+    box-shadow: 0 0 8px rgba(255,215,0,0.4);
+    opacity: 1;
+    transition: opacity 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* delta badges are now persistent — see .res-delta above */
 
 /* ============ HIDDEN UTILITY ============ */
 .hidden {

@@ -299,6 +299,11 @@ class Board:
         # una ciudad o pueblo
         conected_road = any([road['player_id'] in [player] for road in self.nodes[start]['roads']])
         player_owns_node = self.nodes[start]['player'] == player
+        # Regla Catán: no se puede construir una carretera pasando por un poblado/ciudad de un rival
+        rival_owns_node = self.nodes[start]['player'] != -1 and self.nodes[start]['player'] != player
+        if rival_owns_node:
+            return {'response': False, 'error_msg': 'No puedes hacer una carretera aquí,' +
+                        ' hay un poblado o ciudad de un rival bloqueando el paso.'}
         if not (conected_road or player_owns_node):
             return {'response': False, 'error_msg': 'No puedes hacer una carretera aquí,' +
                         ' no hay una carretera, ciudad o pueblo adyacente que te pertenezca.'}

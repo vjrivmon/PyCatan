@@ -192,9 +192,11 @@ class GameManager:
                     offer = False
             if on_tradeoffer_response[(len(on_tradeoffer_response) - 1)]['response']:
                 if count % 2 == 0:
-                    done = self._trade_with_player(trade_offer, giver, receiver)
-                else:
+                    # Contra-oferta aceptada: receiver hizo la contra-oferta, es el "giver" del trade
                     done = self._trade_with_player(trade_offer, receiver, giver)
+                else:
+                    # Oferta original aceptada: giver hizo la oferta original
+                    done = self._trade_with_player(trade_offer, giver, receiver)
 
                 if done:
                     on_tradeoffer_response[(len(on_tradeoffer_response) - 1)]['completed'] = True
@@ -223,7 +225,9 @@ class GameManager:
             'giver': giver['id'],
             'receiver': receiver['id'],
         }
+        saved = self._save_all_hands()
         response = receiver['player'].on_trade_offer(deepcopy(self.board), trade_offer, giver['id'])
+        self._restore_all_hands(saved)
 
         if count > self.MAX_COMMERCE_DEPTH:
             json_obj['response'] = False
@@ -389,11 +393,20 @@ class GameManager:
         move_thief_obj['robbed_player'] = -1
         move_thief_obj['stolen_material_id'] = -1
         if move_thief_obj['response']:
-            if adjacent_player != -1:
+            current_player = self.agent_manager.actual_player
+            if adjacent_player != -1 and adjacent_player != current_player:
                 for node in self.board.terrain[move_thief_obj['terrain_id']]['contacting_nodes']:
                     if self.board.nodes[node]['player'] == adjacent_player:
                         move_thief_obj['stolen_material_id'] = self._steal_from_player(adjacent_player)
                         move_thief_obj['robbed_player'] = adjacent_player
+                        break
+            elif adjacent_player == current_player:
+                # El agente intentó robarse a sí mismo — buscar otro jugador adyacente
+                for node in self.board.terrain[move_thief_obj['terrain_id']]['contacting_nodes']:
+                    other = self.board.nodes[node]['player']
+                    if other != -1 and other != current_player:
+                        move_thief_obj['stolen_material_id'] = self._steal_from_player(other)
+                        move_thief_obj['robbed_player'] = other
                         break
             else:
                 move_thief_obj['error_msg'] = 'No se ha podido robar a otro jugador ya que no hay ninguno'
@@ -807,6 +820,7 @@ class GameManager:
         :return: None
         """
         self.turn_manager.actual_player = player_id
+        self.agent_manager.actual_player = player_id
         return
 
     def get_last_dice_roll(self):
@@ -841,33 +855,59 @@ class GameManager:
         """
         return self.agent_manager.players[player_id]['resources'].resources.__to_object__()
 
+    def _save_all_hands(self):
+        """Guarda una copia de las manos de todos los jugadores para poder restaurarlas
+        después de que un agente potencialmente las modifique durante planificación."""
+        saved = []
+        for p in self.agent_manager.players:
+            saved.append(deepcopy(p['resources'].resources))
+        return saved
+
+    def _restore_all_hands(self, saved):
+        """Restaura las manos de todos los jugadores desde una copia guardada."""
+        for i, p in enumerate(self.agent_manager.players):
+            p['resources'].resources = saved[i]
+            p['player'].hand = p['resources']
+
     def call_to_agent_on_turn_start(self, player):
         """
         :param player: int
         :return: DevelopmentCard, None
         """
-        return self.agent_manager.players[player]['player'].on_turn_start()
+        saved = self._save_all_hands()
+        result = self.agent_manager.players[player]['player'].on_turn_start()
+        self._restore_all_hands(saved)
+        return result
 
     def call_to_agent_on_turn_end(self, player_id):
         """
         :param player_id: int
         :return: DevelopmentCard, None
         """
-        return self.agent_manager.players[player_id]['player'].on_turn_end()
+        saved = self._save_all_hands()
+        result = self.agent_manager.players[player_id]['player'].on_turn_end()
+        self._restore_all_hands(saved)
+        return result
 
     def call_to_agent_on_commerce_phase(self, player_id):
         """
         :param player_id: int
         :return: TradeOffer, dict{'gives': int, 'receives': int}, None
         """
-        return self.agent_manager.players[player_id]['player'].on_commerce_phase(deepcopy(self.board))
+        saved = self._save_all_hands()
+        result = self.agent_manager.players[player_id]['player'].on_commerce_phase(deepcopy(self.board))
+        self._restore_all_hands(saved)
+        return result
 
     def call_to_agent_on_build_phase(self, player_id):
         """
         :param player_id: int
         :return: dict{'building': str, 'node_id': int, 'road_to': int/None}, None
         """
-        return self.agent_manager.players[player_id]['player'].on_build_phase(deepcopy(self.board))
+        saved = self._save_all_hands()
+        result = self.agent_manager.players[player_id]['player'].on_build_phase(deepcopy(self.board))
+        self._restore_all_hands(saved)
+        return result
 
     def get_board_nodes(self):
         """
@@ -904,8 +944,14 @@ class GameManager:
         if self.last_dice_roll == 7:
             for obj in self.agent_manager.players:
                 if obj['resources'].get_total() > 7:
-                    total = obj['player'].on_having_more_than_7_materials_when_thief_is_called().get_total()
-                    max_hand = math.floor(total / 2)
+                    # Proteger el hand del agente: save/restore para que no corrompa el estado
+                    saved = self._save_all_hands()
+                    obj['player'].on_having_more_than_7_materials_when_thief_is_called()
+                    self._restore_all_hands(saved)
+
+                    # Descartar con el total ORIGINAL (post-restore)
+                    total = obj['resources'].get_total()
+                    max_hand = math.ceil(total / 2)
 
                     while total > max_hand:
                         # Solo intentar descartar materiales que el jugador realmente tiene
@@ -972,6 +1018,8 @@ class GameManager:
                 trade_ratio = 2
                 response = self.commerce_manager.trade_through_special_harbor(
                     self.agent_manager.players[player_id]['resources'], gives_id, receives_id)
+
+            commerce_phase_object['trade_ratio'] = trade_ratio
 
             if isinstance(response, Hand):
                 # Actualizar banco: jugador entregó trade_ratio recursos, recibió 1

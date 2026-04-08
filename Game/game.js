@@ -259,15 +259,7 @@ function initEventListeners() {
     $('#btn-next-round').addEventListener('click', nextRound);
     $('#btn-play').addEventListener('click', togglePlay);
 
-    // Speed slider
-    $('#speed-slider').addEventListener('input', (e) => {
-        playSpeed = parseInt(e.target.value);
-        $('#speed-value').textContent = (playSpeed / 1000).toFixed(1) + 's';
-        if (isPlaying) {
-            clearInterval(playInterval);
-            playInterval = setInterval(nextPhase, playSpeed);
-        }
-    });
+    // Speed slider removed — fixed at 1s
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -775,7 +767,12 @@ function renderPlayers() {
     }
 }
 
-function updatePlayerHands(turnData) {
+/**
+ * Updates player hand displays with persistent delta badges.
+ * @param {object} turnData - Object with hand_P0..hand_P3 and total_P0..total_P3
+ * @param {string} source - 'dice'|'trade'|'build'|'thief'|null — used to color-code delta badges
+ */
+function updatePlayerHands(turnData, source) {
     for (let p = 0; p < 4; p++) {
         const handKey = 'hand_P' + p;
         const totalKey = 'total_P' + p;
@@ -802,28 +799,24 @@ function updatePlayerHands(turnData) {
                 if (oldBadge) oldBadge.remove();
             }
 
-            // Highlight changes with delta badge
+            // Persistent delta badge — stays until next updatePlayerHands call
             el.classList.remove('increased', 'decreased');
             const diff = val - prevVal;
             if (diff > 0) {
                 el.classList.add('increased');
-                setTimeout(() => el.classList.remove('increased'), 1800);
                 if (cell) {
                     const badge = document.createElement('span');
-                    badge.className = 'res-delta res-delta-up';
+                    badge.className = 'res-delta res-delta-up' + (source === 'trade' ? ' delta-trade' : '');
                     badge.textContent = '+' + diff;
                     cell.appendChild(badge);
-                    setTimeout(() => badge.remove(), 1800);
                 }
             } else if (diff < 0) {
                 el.classList.add('decreased');
-                setTimeout(() => el.classList.remove('decreased'), 1800);
                 if (cell) {
                     const badge = document.createElement('span');
                     badge.className = 'res-delta res-delta-down';
                     badge.textContent = diff;
                     cell.appendChild(badge);
-                    setTimeout(() => badge.remove(), 1800);
                 }
             }
         });
@@ -858,22 +851,41 @@ function renderPlayerDevCards(playerIdx) {
     const cards = boardState.playerDevCards[playerIdx];
     if (cards.length === 0) return;
 
+    // Group cards by type and count
+    const counts = {};
     cards.forEach(cardType => {
-        if (cardType === null || cardType === undefined) return; // Skip invalid cards
+        if (cardType === null || cardType === undefined) return;
+        const key = String(cardType);
+        counts[key] = (counts[key] || 0) + 1;
+    });
+
+    // Render one icon per type with multiplier
+    Object.entries(counts).forEach(([cardType, count]) => {
+        const group = document.createElement('div');
+        group.className = 'dev-card-group';
+
         const img = document.createElement('img');
         img.className = 'dev-card-thumb';
         const asset = DEV_CARD_ASSETS[cardType];
         if (asset) {
             img.src = ASSET_BASE + asset;
         } else {
-            // Fallback: try to find by string name
             img.src = ASSET_BASE + 'desarrollo/caballero.png';
         }
         img.alt = CARD_TYPES[cardType] || DEV_CARD_NAMES[cardType] || '?';
         img.title = CARD_TYPES[cardType] || DEV_CARD_NAMES[cardType] || 'Carta';
         img.draggable = false;
-        img.onerror = function() { this.style.display = 'none'; }; // Hide if image fails
-        container.appendChild(img);
+        img.onerror = function() { this.style.display = 'none'; };
+        group.appendChild(img);
+
+        if (count > 1) {
+            const mult = document.createElement('span');
+            mult.className = 'dev-card-count';
+            mult.textContent = 'x' + count;
+            group.appendChild(mult);
+        }
+
+        container.appendChild(group);
     });
 }
 
@@ -914,11 +926,32 @@ function getPhaseNames() {
     return ['Inicio de Turno', 'Comercio', 'Construcción', 'Fin de Turno'];
 }
 
+function addTurnSeparator(playerIdx) {
+    const container = $('#log-container');
+    const empty = container.querySelector('.empty-log');
+    if (empty) empty.remove();
+
+    const sep = document.createElement('div');
+    sep.className = 'log-turn-separator';
+    sep.innerHTML = `Turno de <span class="separator-player pname-${playerIdx}">${PLAYER_NAMES[playerIdx]}</span> — Ronda ${currentRound + 1}`;
+    container.appendChild(sep);
+    container.scrollTop = container.scrollHeight;
+
+    // Also clear commerce for new turn
+    const cc = $('#commerce-container');
+    cc.innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
+}
+
 function applyCurrentPhase() {
     const turn = getTurnData();
     if (!turn) return;
 
     highlightActivePlayer(currentTurn);
+
+    // Insert turn separator at the start of each turn (phase 0)
+    if (currentPhase === 0) {
+        addTurnSeparator(currentTurn);
+    }
 
     switch (currentPhase) {
         case 0: applyStartTurn(turn.start_turn); break;
@@ -965,8 +998,8 @@ function applyStartTurn(data) {
     // Highlight hexes that produce resources for this dice roll
     highlightProducingHexes(dice);
 
-    // Update hands
-    updatePlayerHands(data);
+    // Update hands (source: dice for resource distribution)
+    updatePlayerHands(data, 'dice');
 
     // Log dice roll
     addLog(
@@ -1009,85 +1042,97 @@ function applyCommerce(data) {
 
     const commerceContainer = $('#commerce-container');
     commerceContainer.innerHTML = '';
+    const activePlayer = currentTurn;
 
     data.forEach((trade, idx) => {
-        // Always update hands from every commerce entry (even None/skipped trades)
+        // Update hands from every commerce entry
         if (trade['hand_P0']) {
-            updatePlayerHands(trade);
+            updatePlayerHands(trade, 'trade');
         }
 
         // Skip null/None/empty/played_card trade offers for logging purposes
         if (!trade.trade_offer || trade.trade_offer === 'None' || trade.trade_offer === null) {
-            addLog(`🤝 Sin comercio en esta fase`, 'log-trade');
+            addLog(`${resIcon('wood')} Sin comercio en esta fase`, 'log-trade');
             return;
         }
         if (trade.trade_offer === 'played_card') {
-            // Development card played during commerce phase — handled elsewhere
             return;
         }
         if (typeof trade.trade_offer !== 'object') {
-            // Unknown format, skip
             return;
         }
 
         if (trade.harbor_trade || typeof trade.trade_offer.gives === 'number') {
-            // Harbor/bank trade
+            // Harbor/bank trade — show quantities
+            const ratio = trade.trade_ratio || 4;
+            const givesStr = formatTradeOffer(trade.trade_offer.gives, ratio);
+            const recvStr = formatTradeOffer(trade.trade_offer.receives, 1);
             addLog(
-                `🏪 Comercio con banco/puerto — Da: ${formatTradeOffer(trade.trade_offer.gives)} → Recibe: ${formatTradeOffer(trade.trade_offer.receives)}`,
+                `<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> comercia con ${ratio === 4 ? 'banca (4:1)' : ratio === 3 ? 'puerto (3:1)' : 'puerto especial (2:1)'} — Da: ${givesStr} → Recibe: ${recvStr}`,
                 'log-trade'
+            );
+            addCommerceLog(
+                `<span class="commerce-header">Comercio ${ratio}:1</span><br>` +
+                `<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> da ${givesStr} y recibe ${recvStr}`
             );
         } else {
             // Player trade
             const gives = formatTradeResources(trade.trade_offer.gives);
             const receives = formatTradeResources(trade.trade_offer.receives);
 
-            addLog(
-                `🤝 Oferta de comercio — Ofrece: ${gives} | Pide: ${receives}${trade.inviable ? ' <em>(inviable)</em>' : ''}`,
-                'log-trade'
-            );
+            if (trade.inviable) {
+                addLog(
+                    `<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> intenta ofrecer: ${gives} a cambio de: ${receives} — <em class="trade-inviable">Inviable (no tiene recursos suficientes)</em>`,
+                    'log-trade log-warning'
+                );
+                addCommerceLog(
+                    `<span class="commerce-header">Oferta inviable</span><br>` +
+                    `<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> no puede ofrecer ${gives}`
+                );
+            } else {
+                addLog(
+                    `<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> ofrece: ${gives} | Pide: ${receives}`,
+                    'log-trade'
+                );
 
-            // Show offer header in commerce panel when there are multiple player trades
-            const playerTrades = data.filter(t => t.trade_offer && t.trade_offer !== 'None' && typeof t.trade_offer === 'object' && !t.harbor_trade && typeof t.trade_offer.gives !== 'number');
-            if (playerTrades.length > 1) {
-                const offerNum = playerTrades.indexOf(trade) + 1;
-                addCommerceLog(`<strong>Oferta ${offerNum}:</strong> ${gives} → ${receives}`);
+                addCommerceLog(
+                    `<span class="commerce-header">Oferta de <span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span></span><br>` +
+                    `Da: ${gives} &nbsp;|&nbsp; Pide: ${receives}`
+                );
             }
 
-            // Process answers — show only ONE line per negotiation chain
+            // Process answers
             if (trade.answers) {
                 trade.answers.forEach((playerAnswers) => {
                     if (!Array.isArray(playerAnswers) || playerAnswers.length === 0) return;
 
-                    // count=1 entry identifies the responding player (receiver field)
                     const respondent = playerAnswers[0].receiver;
-
-                    // Final outcome comes from the last entry
                     const last = playerAnswers[playerAnswers.length - 1];
                     const completed = last.completed === true;
                     const accepted = last.response === true;
                     const hadCounterOffers = playerAnswers.length > 1;
 
-                    let status;
+                    let status, statusClass;
                     if (completed) {
-                        status = '✅ Acepta';
-                    } else if (accepted) {
-                        // Accepted but trade not executed (resource validation failed)
-                        status = '⚠️ Acepta (sin efecto)';
+                        status = 'Acepta y se realiza el intercambio';
+                        statusClass = 'trade-accepted';
+                    } else if (accepted && !completed) {
+                        status = 'Acepta pero recursos insuficientes para ejecutar';
+                        statusClass = 'trade-warning';
+                    } else if (hadCounterOffers) {
+                        status = 'Rechaza (hubo contra-ofertas sin acuerdo)';
+                        statusClass = 'trade-rejected';
                     } else {
-                        status = '❌ Rechaza';
-                    }
-
-                    if (hadCounterOffers) {
-                        status += ' 🔄';
+                        status = 'Rechaza la oferta';
+                        statusClass = 'trade-rejected';
                     }
 
                     addCommerceLog(
-                        `<span class="pname-${respondent}">${PLAYER_NAMES[respondent] || 'J?'}</span> → ${status}`
+                        `<span class="pname-${respondent}">${PLAYER_NAMES[respondent] || 'J?'}</span> → <span class="${statusClass}">${status}</span>`
                     );
                 });
             }
         }
-
     });
 }
 
@@ -1166,7 +1211,7 @@ function applyBuild(data) {
         // Use the last build entry that has hand data
         for (let i = data.length - 1; i >= 0; i--) {
             if (data[i]['hand_P0']) {
-                updatePlayerHands(data[i]);
+                updatePlayerHands(data[i], 'build');
                 break;
             }
         }
@@ -1199,7 +1244,7 @@ function applyEndTurn(data) {
 
     // Update final hands
     if (data['hand_P0']) {
-        updatePlayerHands(data);
+        updatePlayerHands(data, null);
     }
 
     // Development cards played at end of turn
@@ -1350,7 +1395,9 @@ function prevPhase() {
                 currentRound = 0;
                 currentTurn = 0;
                 currentPhase = 0;
+                clearEventLog();
                 rebuildState();
+                replayLogUpToCurrent();
                 applyCurrentPhase();
                 updateUI();
                 return;
@@ -1362,13 +1409,14 @@ function prevPhase() {
     clearEventLog();
     rebuildState();
     replayLogUpToCurrent();
+    applyCurrentPhase();
     updateUI();
 }
 
 
 function replayLogUpToCurrent() {
-    // Replay all log events from the start up to the current round/turn/phase
-    // This ensures the log always shows the complete history up to current position
+    // Replay all log events from the start up to (but NOT including) the current phase.
+    // The current phase is handled by applyCurrentPhase() to avoid duplication.
     if (!gameData) return;
 
     for (let r = 0; r <= currentRound; r++) {
@@ -1383,7 +1431,7 @@ function replayLogUpToCurrent() {
             const turn = round['turn_P' + t];
             if (!turn) continue;
 
-            const maxPhase = (r === currentRound && t === currentTurn) ? currentPhase : 3;
+            const maxPhase = (r === currentRound && t === currentTurn) ? currentPhase - 1 : 3;
 
             // Save/restore globals so addLog timestamps are correct
             const savedRound = currentRound;
@@ -1391,6 +1439,11 @@ function replayLogUpToCurrent() {
             const savedPhase = currentPhase;
             currentRound = r;
             currentTurn = t;
+
+            // Add turn separator for every replayed turn
+            if (maxPhase >= 0) {
+                addTurnSeparator(t);
+            }
 
             // Phase 0: start_turn
             if (maxPhase >= 0 && turn.start_turn) {
@@ -1470,16 +1523,22 @@ function handleDevCardPlayedLog(cardInfo, player) {
 
 function applyCommerceLog(data) {
     if (!data || data.length === 0) return;
+    const activePlayer = currentTurn;
     data.forEach(trade => {
         if (!trade.trade_offer || trade.trade_offer === 'None' || trade.trade_offer === null) return;
         if (trade.trade_offer === 'played_card') return;
         if (typeof trade.trade_offer !== 'object') return;
         if (trade.harbor_trade || typeof trade.trade_offer.gives === 'number') {
-            addLog(`🏪 Comercio con banco/puerto — Da: ${formatTradeOffer(trade.trade_offer.gives)} → Recibe: ${formatTradeOffer(trade.trade_offer.receives)}`, 'log-trade');
+            const ratio = trade.trade_ratio || 4;
+            addLog(`<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> comercia con ${ratio === 4 ? 'banca' : 'puerto'} (${ratio}:1) — Da: ${formatTradeOffer(trade.trade_offer.gives, ratio)} → Recibe: ${formatTradeOffer(trade.trade_offer.receives, 1)}`, 'log-trade');
         } else {
             const gives = formatTradeResources(trade.trade_offer.gives);
             const receives = formatTradeResources(trade.trade_offer.receives);
-            addLog(`🤝 Oferta de comercio — Ofrece: ${gives} | Pide: ${receives}${trade.inviable ? ' <em>(inviable)</em>' : ''}`, 'log-trade');
+            if (trade.inviable) {
+                addLog(`<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> intenta ofrecer: ${gives} a cambio de: ${receives} — <em class="trade-inviable">Inviable</em>`, 'log-trade log-warning');
+            } else {
+                addLog(`<span class="pname-${activePlayer}">${PLAYER_NAMES[activePlayer]}</span> ofrece: ${gives} | Pide: ${receives}`, 'log-trade');
+            }
         }
     });
 }
@@ -1528,6 +1587,7 @@ function nextRound() {
         clearEventLog();
         rebuildState();
         replayLogUpToCurrent();
+        applyCurrentPhase();
         updateUI();
     }
 }
@@ -1541,6 +1601,7 @@ function prevRound() {
         clearEventLog();
         rebuildState();
         replayLogUpToCurrent();
+        applyCurrentPhase();
         updateUI();
     }
 }
@@ -1553,6 +1614,7 @@ function goToStart() {
     clearEventLog();
     rebuildState();
     replayLogUpToCurrent();
+    applyCurrentPhase();
     updateUI();
     stopPlay();
 }
@@ -1575,6 +1637,7 @@ function goToEnd() {
     clearEventLog();
     rebuildState();
     replayLogUpToCurrent();
+    applyCurrentPhase();
     updateUI();
     stopPlay();
 }
@@ -1827,9 +1890,12 @@ function clearLogs() {
 
 function clearEventLog() {
     const container = $('#log-container');
-    // Keep only the "game loaded" entry if present
-    const entries = container.querySelectorAll('.log-entry');
-    entries.forEach(e => e.remove());
+    // Remove all entries AND separators
+    container.querySelectorAll('.log-entry, .log-turn-separator').forEach(e => e.remove());
+
+    // Also clear commerce container and restore placeholder
+    const cc = $('#commerce-container');
+    cc.innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
 }
 
 
@@ -1837,6 +1903,14 @@ function clearEventLog() {
 // ============================================================
 // FORMATTING HELPERS
 // ============================================================
+function resIcon(resName) {
+    // Returns an inline <img> tag for the resource, replacing emojis
+    if (RESOURCE_IMG[resName]) {
+        return `<img class="res-icon-inline" src="${ASSET_BASE}${RESOURCE_IMG[resName]}" alt="${RESOURCE_NAMES[resName]}" title="${RESOURCE_NAMES[resName]}">`;
+    }
+    return RESOURCE_ICONS[resName] || resName;
+}
+
 function formatTradeResources(offer) {
     if (!offer || typeof offer !== 'object') return String(offer);
     const parts = [];
@@ -1844,7 +1918,7 @@ function formatTradeResources(offer) {
     resources.forEach(res => {
         const val = parseInt(offer[res]) || 0;
         if (val > 0) {
-            parts.push(`${RESOURCE_ICONS[res]}${val}`);
+            parts.push(`${resIcon(res)}<span class="res-qty">${val}</span>`);
         }
     });
     return parts.length > 0 ? parts.join(' ') : 'nada';
@@ -1852,10 +1926,13 @@ function formatTradeResources(offer) {
 
 const MAT_ID_TO_NAME = {0: 'cereal', 1: 'mineral', 2: 'clay', 3: 'wood', 4: 'wool'};
 
-function formatTradeOffer(offer) {
+function formatTradeOffer(offer, ratio) {
     if (typeof offer === 'number') {
         const matName = MAT_ID_TO_NAME[offer];
-        if (matName) return `${RESOURCE_ICONS[matName]} ${RESOURCE_NAMES[matName]}`;
+        if (matName) {
+            const qty = ratio ? `x${ratio}` : '';
+            return `${resIcon(matName)} ${RESOURCE_NAMES[matName]}${qty ? ' ' + qty : ''}`;
+        }
         return String(offer);
     }
     return formatTradeResources(offer);

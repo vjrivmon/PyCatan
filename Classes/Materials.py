@@ -49,16 +49,20 @@ class Materials(NamedTuple):
     def remove_from_id(self, material_constant, amount):
         return self.add_from_id(material_constant, -amount)
 
-    def has_more(self, materials): #TODO: añadir tipos
+    def has_more(self, materials):
         """
         Si le llega otra clase Materials() comprobará si hay más o igual materiales que los que hay en el parámetro y
         si le llega un string con lo que se quiere construir comprobará si tiene suficiente material para hacerlo.
+        Rechaza valores negativos en el parámetro.
         :param materials: (str o Materials()) Nombre de lo que se quiere construir o materiales.
         :return: bool
         """
         if isinstance(materials, str):
             materials = Materials.from_building(materials)
-            
+
+        if isinstance(materials, Materials) and materials.check_negative():
+            return False
+
         return all(materials <= self)
     
     def __str__(self):
