@@ -33,6 +33,14 @@ class GameDirector:
             obj['total_P' + str(i)] = str(self.game_manager.player_resources_total(i))
         return obj
 
+    @staticmethod
+    def _is_valid_card_play(card_obj):
+        """Filtra jugadas de cartas fallidas/silenciadas para no ensuciar la traza."""
+        if not card_obj or not isinstance(card_obj, dict):
+            return False
+        played = card_obj.get('played_card', '')
+        return played not in ('failed_victory_point', 'cannot_play_just_bought', 'none', '')
+
     # -- -- -- --  Turn  -- -- -- --
     def start_turn(self, winner, player=-1):
         """
@@ -50,7 +58,8 @@ class GameDirector:
 
         if isinstance(turn_start_response, DevelopmentCard) and not self.game_manager.get_card_used() and not winner:
             played_card_obj, winner = self.game_manager.play_development_card(player, turn_start_response, winner)
-            start_turn_object['development_card_played'].append(played_card_obj)
+            if self._is_valid_card_play(played_card_obj):
+                start_turn_object['development_card_played'].append(played_card_obj)
 
         if not winner:
             self.game_manager.throw_dice()
@@ -85,7 +94,8 @@ class GameDirector:
 
         if isinstance(turn_end_response, DevelopmentCard) and not self.game_manager.get_card_used() and not winner:
             played_card_obj, winner = self.game_manager.play_development_card(player, turn_end_response, winner)
-            end_turn_object['development_card_played'].append(played_card_obj)
+            if self._is_valid_card_play(played_card_obj):
+                end_turn_object['development_card_played'].append(played_card_obj)
 
         if not winner:
             # -- -- -- -- Calcular carretera más larga -- -- -- --
@@ -165,11 +175,13 @@ class GameDirector:
         Esta función permite comenzar una ronda nueva.
         """
         round_object = {}
-        self.game_manager.set_card_used(False)
 
         if not winner:
             for i in range(4):
                 obj = {}
+                # Reset por turno, no por ronda: cada jugador puede jugar 1 carta de desarrollo
+                self.game_manager.set_card_used(False)
+                self.game_manager.cards_bought_this_turn = []
                 self.game_manager.set_turn(self.game_manager.get_turn() + 1)
                 self.game_manager.set_whose_turn_is_it(i)
 

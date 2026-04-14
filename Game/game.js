@@ -259,7 +259,23 @@ function initEventListeners() {
     $('#btn-next-round').addEventListener('click', nextRound);
     $('#btn-play').addEventListener('click', togglePlay);
 
-    // Speed slider removed — fixed at 1s
+    // Jump-to-round input
+    $('#info-round-input').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const target = parseInt(e.target.value);
+            if (!isNaN(target) && gameData) {
+                goToRound(target - 1); // Input is 1-based, internal is 0-based
+            }
+        }
+    });
+    $('#info-round-input').addEventListener('blur', (e) => {
+        // Also jump on blur (clicking away)
+        const target = parseInt(e.target.value);
+        if (!isNaN(target) && gameData && (target - 1) !== currentRound) {
+            goToRound(target - 1);
+        }
+    });
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -935,11 +951,10 @@ function addTurnSeparator(playerIdx) {
     sep.className = 'log-turn-separator';
     sep.innerHTML = `Turno de <span class="separator-player pname-${playerIdx}">${PLAYER_NAMES[playerIdx]}</span> — Ronda ${currentRound + 1}`;
     container.appendChild(sep);
-    container.scrollTop = container.scrollHeight;
+    // No scroll here — deferred by addLog batch
 
-    // Also clear commerce for new turn
-    const cc = $('#commerce-container');
-    cc.innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
+    // Clear commerce for new turn
+    $('#commerce-container').innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
 }
 
 function applyCurrentPhase() {
@@ -1581,14 +1596,107 @@ function applyEndTurnLog(data, player) {
 function nextRound() {
     if (!gameData) return;
     if (currentRound < roundKeys.length - 1) {
-        currentRound++;
+        // Avance incremental: aplicar las fases restantes de la ronda actual
+        // y la primera fase de la ronda siguiente, SIN reconstruir desde 0
+        const prevR = currentRound;
+        const prevT = currentTurn;
+        const prevP = currentPhase;
+
+        // Completar la ronda actual fase a fase (sin render)
+        while (currentRound === prevR) {
+            currentPhase++;
+            if (currentPhase > 3) {
+                currentPhase = 0;
+                currentTurn++;
+                if (currentTurn > 3) {
+                    currentTurn = 0;
+                    currentRound++;
+                    break;
+                }
+            }
+            const turn = getTurnData();
+            if (!turn) { currentPhase = 0; currentTurn++; if (currentTurn > 3) { currentTurn = 0; currentRound++; break; } continue; }
+            // Aplicar solo la lógica de estado (hands, board), sin logs
+            applyPhaseState(turn);
+        }
+
+        // Ahora estamos al inicio de la ronda siguiente
         currentTurn = 0;
         currentPhase = 0;
         clearEventLog();
-        rebuildState();
-        replayLogUpToCurrent();
+        // Solo replayar logs de la ronda actual (no todo el historial)
         applyCurrentPhase();
         updateUI();
+    }
+}
+
+function goToRound(targetRound) {
+    if (!gameData) return;
+    targetRound = Math.max(0, Math.min(targetRound, roundKeys.length - 1));
+    currentRound = targetRound;
+    currentTurn = 0;
+    currentPhase = 0;
+    clearEventLog();
+    rebuildState();
+    replayLogUpToCurrent();
+    applyCurrentPhase();
+    updateUI();
+    stopPlay();
+}
+
+function applyPhaseState(turn) {
+    // Aplica solo el estado (hands, board) sin crear logs/DOM
+    switch (currentPhase) {
+        case 0:
+            if (turn.start_turn) {
+                updatePlayerHands(turn.start_turn, 'dice');
+                if (turn.start_turn.thief_terrain !== undefined) {
+                    boardState.thiefTerrain = turn.start_turn.thief_terrain;
+                }
+                if (turn.start_turn.development_card_played) {
+                    turn.start_turn.development_card_played.forEach(cd => {
+                        if (cd.thief_terrain !== undefined) boardState.thiefTerrain = cd.thief_terrain;
+                    });
+                }
+            }
+            break;
+        case 1:
+            if (turn.commerce_phase) {
+                turn.commerce_phase.forEach(trade => {
+                    if (trade['hand_P0']) updatePlayerHands(trade, 'trade');
+                });
+            }
+            break;
+        case 2:
+            if (turn.build_phase) {
+                turn.build_phase.forEach(build => {
+                    if (build['hand_P0']) updatePlayerHands(build, 'build');
+                    if (build.building === 'town' && boardState.nodes[build.node_id]) {
+                        boardState.nodes[build.node_id].player = currentTurn;
+                        boardState.nodes[build.node_id].has_city = false;
+                    } else if (build.building === 'city' && boardState.nodes[build.node_id]) {
+                        boardState.nodes[build.node_id].has_city = true;
+                    } else if (build.building === 'road') {
+                        boardState.roads.push({ from: build.node_id, to: build.road_to, player: currentTurn });
+                    } else if (build.building === 'card' && build.finished && build.card_type !== null && build.card_type !== undefined) {
+                        boardState.playerDevCards[currentTurn].push(build.card_type);
+                    } else if (build.building === 'played_card') {
+                        const cd = build.development_card_played;
+                        if (cd && cd.played_card === 'road_building' && cd.roads) {
+                            if (cd.roads.node_id !== undefined) boardState.roads.push({ from: cd.roads.node_id, to: cd.roads.road_to, player: currentTurn });
+                            if (cd.roads.node_id_2 !== undefined) boardState.roads.push({ from: cd.roads.node_id_2, to: cd.roads.road_to_2, player: currentTurn });
+                        }
+                        if (cd && cd.played_card === 'knight' && cd.thief_terrain !== undefined) boardState.thiefTerrain = cd.thief_terrain;
+                    }
+                });
+            }
+            break;
+        case 3:
+            if (turn.end_turn) {
+                if (turn.end_turn['hand_P0']) updatePlayerHands(turn.end_turn, null);
+                if (turn.end_turn.victory_points) updateVictoryPoints(turn.end_turn.victory_points);
+            }
+            break;
     }
 }
 
@@ -1830,7 +1938,7 @@ function rebuildState() {
 // ============================================================
 function updateUI() {
     // Round info
-    $('#info-round').textContent = (currentRound + 1);
+    $('#info-round-input').value = (currentRound + 1);
     $('#info-round-max').textContent = '/ ' + roundKeys.length;
     $('#info-turn').textContent = 'J' + (currentTurn + 1);
     $('#info-phase').textContent = getPhaseNames()[currentPhase];
@@ -1845,10 +1953,11 @@ function updateUI() {
 // ============================================================
 // LOGGING
 // ============================================================
+let _logScrollPending = false;
+
 function addLog(message, className) {
     const container = $('#log-container');
 
-    // Remove empty state
     const empty = container.querySelector('.empty-log');
     if (empty) empty.remove();
 
@@ -1866,7 +1975,15 @@ function addLog(message, className) {
     entry.appendChild(content);
 
     container.appendChild(entry);
-    container.scrollTop = container.scrollHeight;
+
+    // Batch scroll: defer to next frame to avoid reflow per addLog call
+    if (!_logScrollPending) {
+        _logScrollPending = true;
+        requestAnimationFrame(() => {
+            container.scrollTop = container.scrollHeight;
+            _logScrollPending = false;
+        });
+    }
 }
 
 function addCommerceLog(message) {
@@ -1889,13 +2006,9 @@ function clearLogs() {
 
 
 function clearEventLog() {
-    const container = $('#log-container');
-    // Remove all entries AND separators
-    container.querySelectorAll('.log-entry, .log-turn-separator').forEach(e => e.remove());
-
-    // Also clear commerce container and restore placeholder
-    const cc = $('#commerce-container');
-    cc.innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
+    // Bulk clear: innerHTML is O(1) vs querySelectorAll+forEach O(n)
+    $('#log-container').innerHTML = '';
+    $('#commerce-container').innerHTML = '<div class="empty-log"><p>Los comercios de este turno aparecerán aquí</p></div>';
 }
 
 

@@ -195,8 +195,10 @@ class TestAuditIntegrity:
         gm.check_if_thief_is_called(start_obj, 1)
 
         remaining = gm.agent_manager.players[0]['resources'].get_total()
-        # ceil(11/2) = 6
-        assert remaining == 6, f"B7 FAIL: expected 6, got {remaining} (double discard?)"
+        # ceil(11/2) = 6, pero el ladrón puede robar 1 recurso extra
+        robbed = start_obj.get('robbed_player', -1) == 0
+        expected = 6 - (1 if robbed else 0)
+        assert remaining == expected, f"B7 FAIL: expected {expected}, got {remaining} (double discard?)"
 
     # ──────────────────────────────────────────────
     # B8: build_road bloqueada por rival

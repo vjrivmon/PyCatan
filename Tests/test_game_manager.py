@@ -333,6 +333,8 @@ class TestGameManager:
                                                                                   MaterialConstants.WOOL,
                                                                                   ], 1)
             self.game_manager.build_development_card(3)
+            # Simular nuevo turno: la carta comprada solo se puede jugar en el turno siguiente
+            self.game_manager.cards_bought_this_turn = []
             card = self.game_manager.agent_manager.players[3]['development_cards'].hand[
                 len(self.game_manager.agent_manager.players[3]['development_cards'].hand) - 1]
 

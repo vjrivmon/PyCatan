@@ -2,7 +2,7 @@
 
 ## Resumen
 
-Se ha realizado una auditoría exhaustiva del simulador de Catán que ha identificado y corregido **12 bugs de backend** y **10 mejoras/correcciones de frontend**. Todos los cambios han sido verificados con los 40 tests unitarios existentes (100% passing) y con el sistema de verificación automática `debug_server.py` que compara cada estado del frontend contra el JSON fuente sin discrepancias.
+Se ha realizado una auditoría exhaustiva del simulador de Catán que ha identificado y corregido **16 bugs de backend** y **12 mejoras/correcciones de frontend**. Todos los cambios han sido verificados con 51 tests unitarios (100% passing) y con el sistema de verificación automática `debug_server.py` que compara cada estado del frontend contra el JSON fuente sin discrepancias.
 
 ---
 
@@ -175,6 +175,49 @@ Se ha creado `Game/debug_server.py`: un servidor Python que sirve el visualizado
 
 ## Tests
 
-- **40 tests pasando** (0 fallos)
+- **51 tests pasando** (0 fallos) — 40 originales + 11 de auditoría
 - Test `test_check_if_thief_is_called` actualizado para reflejar el fix B3 (ceil en vez de floor)
-- Test `test_build_road` ahora pasa correctamente (antes fallaba por B7)
+- Test `test_build_road` ahora pasa correctamente (antes fallaba por B8)
+- Test `test_play_development_card` actualizado para simular nuevo turno antes de jugar carta comprada
+
+---
+
+## BUGS REPORTADOS POR JUANMI (2a auditoría)
+
+### B12. Carta de desarrollo jugada el mismo turno que se compra (CRÍTICO)
+
+**Ficheros:** `Managers/GameManager.py`, `Managers/GameDirector.py`
+
+**Qué ocurría:** Un jugador compraba una carta de desarrollo y la jugaba inmediatamente en el mismo turno. Regla oficial de Catán: no se puede jugar una carta recién comprada (salvo VP que gane la partida).
+
+**Solución:** Se añadió `cards_bought_this_turn = []` en GameManager. Al comprar carta, se marca. Al intentar jugar, se verifica que no esté en la lista. Se resetea al inicio de cada turno.
+
+### B13. Flag `already_played_development_card` se reseteaba por ronda en vez de por turno (CRÍTICO)
+
+**Fichero:** `Managers/GameDirector.py` — método `round_start()`
+
+**Qué ocurría:** `set_card_used(False)` se llamaba UNA VEZ al inicio de la ronda. Si P0 jugaba una carta, P1-P3 no podían jugar ninguna en todo el round.
+
+**Solución:** Movido el reset al bucle `for i in range(4)`, antes de cada turno de jugador.
+
+### B14. Spam de `failed_victory_point` en la traza (1000+ entradas)
+
+**Ficheros:** `Managers/GameManager.py`, `Managers/GameDirector.py`
+
+**Qué ocurría:** Los agentes intentaban revelar VP cards en cada fase (commerce, build, end_turn) incluso sin 10 puntos. La carta no se eliminaba tras el fallo, causando reintentos infinitos. game_8.json tenía 1031 entradas de `failed_victory_point`.
+
+**Solución:** Los intentos fallidos de VP y `cannot_play_just_bought` se silencian: no se añaden a la traza JSON. La lógica interna sigue funcionando correctamente.
+
+### F11. Rendimiento O(n^2) en navegación entre rondas tardías
+
+**Fichero:** `Game/game.js`
+
+**Qué ocurría:** `nextRound()` llamaba a `rebuildState()` que reconstruía el estado completo desde la ronda 0. Para ronda 166, esto significaba 2656+ iteraciones con manipulación DOM.
+
+**Solución:** `nextRound()` ahora avanza incrementalmente aplicando solo las fases restantes de la ronda actual via `applyPhaseState()` (sin crear DOM). `addLog()` usa scroll diferido con `requestAnimationFrame`. `clearEventLog()` usa `innerHTML = ''` en vez de `.forEach(remove)`.
+
+### F12. Saltar a una ronda concreta
+
+**Ficheros:** `Game/game.js`, `Game/index.html`, `Game/styles.css`
+
+**Implementación:** El indicador de ronda es ahora un input editable. Escribes el número de ronda y pulsas Enter para navegar directamente. También funciona al hacer blur (clic fuera).

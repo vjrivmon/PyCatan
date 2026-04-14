@@ -20,6 +20,7 @@ class GameManager:
 
     def __init__(self, for_test=False, agents = None):
         self.already_played_development_card = False
+        self.cards_bought_this_turn = []  # Cartas compradas este turno (no se pueden jugar)
         self.last_dice_roll = 0
         self.largest_army = 2
         self.largest_army_player = {}
@@ -58,6 +59,7 @@ class GameManager:
         :return: None
         """
         self.already_played_development_card = False
+        self.cards_bought_this_turn = []
         self.last_dice_roll = 0
         self.largest_army = 2
         self.largest_army_player = {}
@@ -378,6 +380,9 @@ class GameManager:
         self.agent_manager.players[player_id]['player'].development_cards_hand.hand = \
             self.agent_manager.players[player_id]['development_cards'].hand
 
+        # Marcar como recién comprada — no se puede jugar este turno
+        self.cards_bought_this_turn.append(card_drawn)
+
         return {'response': True, 'card_type': card_drawn.type,
                 'card_effect': card_drawn.effect}
 
@@ -549,6 +554,12 @@ class GameManager:
         card_obj = {}
 
         if card in self.agent_manager.players[player_id]['development_cards'].hand:
+            # Regla Catán: no se puede jugar una carta comprada este turno
+            # (excepto VP que lleve a 10 puntos — se comprueba más abajo)
+            if card in self.cards_bought_this_turn and card.type != DevelopmentCardConstants.VICTORY_POINT:
+                card_obj['played_card'] = 'cannot_play_just_bought'
+                return card_obj, winner
+
             if card.type != DevelopmentCardConstants.VICTORY_POINT:
                 self.agent_manager.players[player_id]['development_cards'].delete_card(card)  # Borramos la carta
 
@@ -599,21 +610,21 @@ class GameManager:
             return card_obj, winner
 
         elif card.type == DevelopmentCardConstants.VICTORY_POINT:
-            # Si tienen suficientes puntos de victoria para ganar. Ganan automáticamente, si no, no pasa nada
+            # Regla Catán: las cartas de VP se revelan al llegar a 10 puntos
+            # Si no se llega a 10, no se puede jugar (no se elimina de la mano)
+            total_vp = (self.agent_manager.players[player_id]['victory_points'] +
+                        self.agent_manager.players[player_id]['hidden_victory_points'])
 
-            if (self.agent_manager.players[player_id]['victory_points'] +
-                self.agent_manager.players[player_id]['hidden_victory_points']) >= 10:
-
+            if total_vp >= 10:
                 card_obj['played_card'] = 'victory_point'
                 self.agent_manager.players[player_id]['victory_points'] = 10
                 winner = True
-
-                self.already_played_development_card = True
+                # Las VP no cuentan para el límite de 1 carta por turno
                 return card_obj, winner
             else:
+                # No se puede revelar VP si no ganas — silenciar sin log spam
                 card_obj['played_card'] = 'failed_victory_point'
-
-            return card_obj, winner
+                return card_obj, winner
 
         elif card.type == DevelopmentCardConstants.PROGRESS_CARD:
 
@@ -1038,10 +1049,14 @@ class GameManager:
 
         elif isinstance(commerce_response, DevelopmentCard) and not self.already_played_development_card:
             played_card_obj, winner = self.play_development_card(player_id, commerce_response, winner)
-            commerce_phase_object['trade_offer'] = 'played_card'
-            commerce_phase_object['harbor_trade'] = False
-            commerce_phase_object['development_card_played'] = played_card_obj
-
+            played = played_card_obj.get('played_card', '')
+            if played not in ('failed_victory_point', 'cannot_play_just_bought', 'none', ''):
+                commerce_phase_object['trade_offer'] = 'played_card'
+                commerce_phase_object['harbor_trade'] = False
+                commerce_phase_object['development_card_played'] = played_card_obj
+                return commerce_phase_object, winner
+            # Silenciar intentos fallidos — tratar como sin comercio
+            commerce_phase_object['trade_offer'] = 'None'
             return commerce_phase_object, winner
         else:
             commerce_phase_object['trade_offer'] = 'None'
@@ -1094,10 +1109,14 @@ class GameManager:
 
         elif isinstance(build_response, DevelopmentCard) and not self.already_played_development_card:
             played_card_obj, winner = self.play_development_card(player_id, build_response, winner)
-            build_phase_object['building'] = 'played_card'
-            build_phase_object['finished'] = True
-            build_phase_object['development_card_played'] = played_card_obj
-
+            played = played_card_obj.get('played_card', '')
+            if played not in ('failed_victory_point', 'cannot_play_just_bought', 'none', ''):
+                build_phase_object['building'] = 'played_card'
+                build_phase_object['finished'] = True
+                build_phase_object['development_card_played'] = played_card_obj
+                return build_phase_object, winner
+            # Silenciar — tratar como sin construcción
+            build_phase_object['building'] = 'None'
             return build_phase_object, winner
         else:
             build_phase_object['building'] = 'None'
