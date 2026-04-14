@@ -673,7 +673,7 @@ class GameManager:
                         built_2 = {'response': True}
 
                     # Mientras no estén construidas las carreteras se vuelve a intentar
-                    while not built['response'] and not built_2['response']:
+                    while not built['response'] or not built_2['response']:
                         # Si ya está construida se ignora
                         if not built['response']:
                             built = self.build_road(player_id, road_nodes['node_id'], road_nodes['road_to'], free=True)
@@ -699,7 +699,7 @@ class GameManager:
                                     break
 
                         if isinstance(built_2, dict):
-                            if built['response']:
+                            if built_2['response']:
                                 card_obj['valid_road_2'] = True
                             else:
                                 card_obj['valid_road_2'] = False
